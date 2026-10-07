@@ -1,0 +1,10 @@
+# In-repo dbt profile. Always run dbt from the dbt/ folder with:  --profiles-dir .
+# DuckDB path: env var DUCKDB_PATH (must be ABSOLUTE - dbt also reads the repo .env),
+# else ../data/warehouse/esg_lens.duckdb (relative to dbt/).
+esg_lens:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../data/warehouse/esg_lens.duckdb') }}"
+      threads: 4

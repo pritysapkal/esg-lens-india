@@ -1,0 +1,10 @@
+# Normalise text files to LF in the repo (CI, Makefile and pre-commit expect LF)
+* text=auto eol=lf
+*.ps1 text eol=crlf
+
+# Keep real filings byte-exact (sha256 must not change with line-ending conversion)
+fixtures/** -text
+*.xml.gz binary
+*.zip binary
+*.pbix binary
+*.xlsx binary

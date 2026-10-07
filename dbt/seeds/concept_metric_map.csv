@@ -1,0 +1,7 @@
+taxonomy_version,concept,metric_id,required_dims,unit,core_attribute,direction
+2026-02-28,TotalScope1Emissions,ghg_scope1_tco2e,,tCO2e,GHG footprint,lower_better
+2026-02-28,TotalScope2Emissions,ghg_scope2_tco2e,,tCO2e,GHG footprint,lower_better
+2026-02-28,TotalEnergyConsumedFromRenewableSources,energy_renewable_gj,,GJ,Energy footprint,higher_better
+2026-02-28,TotalVolumeOfWaterWithdrawal,water_withdrawal_kl,,kl,Water footprint,lower_better
+2026-02-28,PercentageOfGrossWagesPaidToFemaleToTotalWagesPaid,female_wage_share,,pure,Gender diversity,higher_better
+2026-02-28,LostTimeInjuryFrequencyRatePerOneMillionPersonHoursWorked,ltifr,EmployeesAndWorkers,pure,Wellbeing & safety,lower_better

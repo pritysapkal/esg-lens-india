@@ -1,0 +1,32 @@
+[project]
+name = "esg-lens-india"
+version = "0.1.0"
+description = "Open BRSR ESG analytics platform for India's top ~1,000 listed companies."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+# Dependencies are pinned in requirements.txt / requirements-dev.txt (not installed as a package).
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["dbt/dbt_packages", "dbt/target", "notebooks"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ingestion"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"

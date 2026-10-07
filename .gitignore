@@ -1,0 +1,40 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Secrets / local config
+.env
+
+# Data: keep the folder skeleton (.gitkeep), ignore contents
+data/**
+!data/**/
+!data/**/.gitkeep
+
+# Data artefacts anywhere
+*.duckdb
+*.duckdb.wal
+*.parquet
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
+logs/
+
+# Elementary report output
+edr_target/
+
+# Power BI backups / lock files
+*.pbix.bak
+*.pbit.bak
+~$*.pbix
+dashboards/**/backup/
+
+# OS / editor
+Thumbs.db
+.DS_Store

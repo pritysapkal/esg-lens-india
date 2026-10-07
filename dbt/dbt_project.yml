@@ -1,0 +1,48 @@
+name: esg_lens
+version: "0.1.0"
+config-version: 2
+profile: esg_lens
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+vars:
+  # required by dbt_date (dependency of dbt_expectations)
+  "dbt_date:time_zone": "Asia/Kolkata"
+
+models:
+  esg_lens:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
+  elementary:
+    +schema: elementary
+
+seeds:
+  esg_lens:
+    concept_metric_map:
+      +column_types:
+        taxonomy_version: varchar # keep as text: it is a taxonomy label, not a reporting date
+        concept: varchar
+        metric_id: varchar
+        required_dims: varchar
+        unit: varchar
+        core_attribute: varchar
+        direction: varchar
+    nic_sector_map:
+      +column_types:
+        nic_code: varchar # preserve leading zeros
+        nic_section: varchar
+        nic_division: varchar
+        sector_name: varchar

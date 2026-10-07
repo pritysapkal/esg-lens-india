@@ -1,0 +1,19 @@
+version: 2
+
+# Placeholder: Parquet files written by ingestion/parse_xbrl.py into data/processed/.
+# dbt-duckdb reads them directly via external_location ({name} = table name below).
+sources:
+  - name: brsr_raw
+    description: Raw BRSR XBRL extracts (one Parquet file per table, raw string values).
+    config:
+      meta:
+        external_location: "../data/processed/{name}.parquet"
+    tables:
+      - name: contexts
+        description: XBRL contexts (entity, period, dimension axis/member pairs).
+      - name: units
+        description: XBRL units incl. divide measures.
+      - name: facts
+        description: Numeric facts with raw string values.
+      - name: text_facts
+        description: Non-numeric facts (text blocks, enumerations, dates).
