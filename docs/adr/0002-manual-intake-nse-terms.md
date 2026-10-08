@@ -37,11 +37,18 @@ this size, manual download takes roughly an hour per year of filings.
    taxonomy version read from the XML) and matches it to the listing by exact file name. It then
    moves the file to `data/raw/xbrl/<ISIN>/<reporting_year_label>/` and appends to
    `data/raw/manifest.csv`. It never overwrites a file, and running it again changes nothing.
-4. **No redistribution of raw files.** All of `data/` is git-ignored, and real XBRL files are
-   never committed. Tests use a hand-written synthetic instance. Tests that need real data skip
-   when it is absent.
-5. **Publish derived metrics only.** Any published output (dashboards, app, docs) shows computed
-   metrics and links to the source filing on NSE. It never shows the raw file.
+4. **Local storage only, never shared.** Raw files are kept under `data/` on the machine of the
+   person who downloaded them. This relies on clause 8's exception for content that is
+   "available for download": the listing CSVs and XBRL files are offered for download on the
+   NSE website. Raw files are never shared: all of `data/` is git-ignored, real XBRL files are
+   never committed, and raw files are not copied to any other location or person. Tests use a
+   hand-written synthetic instance. Tests that need real data skip when it is absent.
+5. **Publish derived metrics only, cited as plain text.** Any published output (dashboards, app,
+   docs) shows computed metrics, never the raw file. Each metric cites its source filing as
+   plain text: company, report (BRSR), financial year and NSE filing date, for example
+   "HDFC Bank Limited, BRSR FY2025-26, filed on NSE 11-Sep-2026". Published outputs do **not**
+   hyperlink to `nseindia.com` or `nsearchives.nseindia.com` URLs, because clause 8 lists
+   "hyperlinked" among the uses that need NSE's prior written permission.
 
 ## Consequences
 
@@ -52,6 +59,11 @@ this size, manual download takes roughly an hour per year of filings.
   expected: the repo ships code, synthetic fixtures and derived outputs, not NSE data.
 - A file that NSE lists but does not serve is recorded as `listed_unavailable` and is not
   retried. The known case is M&M FY2023-24, `BRSR_1167401_29062024075519_WEB.xml`.
+
+## Open actions
+
+- [ ] **Before public release: request written permission from NSE.** Ask about local storage,
+  publishing derived metrics and citing filings. Record the reply here and update this ADR.
 
 ## Revisit when
 
