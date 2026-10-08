@@ -47,8 +47,12 @@ this size, manual download takes roughly an hour per year of filings.
    docs) shows computed metrics, never the raw file. Each metric cites its source filing as
    plain text: company, report (BRSR), financial year and NSE filing date, for example
    "HDFC Bank Limited, BRSR FY2025-26, filed on NSE 11-Sep-2026". Published outputs do **not**
-   hyperlink to `nseindia.com` or `nsearchives.nseindia.com` URLs, because clause 8 lists
-   "hyperlinked" among the uses that need NSE's prior written permission.
+   hyperlink to NSE filings or data: no `nsearchives.nseindia.com` URLs (XBRL, PDF, listing
+   files) and no NSE filing or company-filing pages. The reason is that clause 8 lists
+   "hyperlinked" among the uses that need NSE's prior written permission. This rule does not
+   cover citing NSE's public
+   [Terms of Use](https://www.nseindia.com/static/nse-terms-of-use) page, which the docs link
+   to as the source of this policy.
 
 ## Consequences
 
