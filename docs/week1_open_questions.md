@@ -60,9 +60,10 @@ updated 29/10/2025.
 - **Raw files are not redistributed**: `data/` is git-ignored, and tests use synthetic fixtures.
 - The project publishes **derived metrics only**. Each metric cites its source filing as plain
   text (company, report, financial year, NSE filing date), e.g. "HDFC Bank Limited, BRSR
-  FY2025-26, filed on NSE 11-Sep-2026". There are **no hyperlinks** to `nseindia.com` or
-  `nsearchives.nseindia.com` URLs, because clause 8 lists "hyperlinked" among the uses that need
-  NSE's prior written permission.
+  FY2025-26, filed on NSE 11-Sep-2026". There are **no hyperlinks to NSE filings or data**: no
+  `nsearchives.nseindia.com` URLs (XBRL, PDF, listing files) and no NSE filing or company-filing
+  pages. The reason is that clause 8 lists "hyperlinked" among the uses that need NSE's prior
+  written permission. Citing NSE's public Terms of Use page (linked above) is fine.
 
 ## Q3 - Exact filename / URL of the NSE market-cap ranking list?
 

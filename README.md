@@ -138,7 +138,9 @@ prohibit automated data collection (clause 9) and redistribution without written
 - **Derived metrics only, cited as plain text.** Published outputs show computed metrics, never
   raw files. Each metric cites its source filing as plain text (company, report, financial year,
   NSE filing date), e.g. "HDFC Bank Limited, BRSR FY2025-26, filed on NSE 11-Sep-2026". There are
-  no hyperlinks to `nseindia.com` or `nsearchives.nseindia.com` URLs.
+  no hyperlinks to NSE filings or data: no `nsearchives.nseindia.com` URLs (XBRL, PDF, listing
+  files) and no NSE filing or company-filing pages. Citing NSE's public Terms of Use page (linked
+  above) is fine.
 - **Universe.** The NIFTY 50 constituents list comes from niftyindices.com and is saved locally.
 
 Workflow: [docs/how_to_add_filings.md](docs/how_to_add_filings.md). Status:
