@@ -43,7 +43,14 @@ updated 29/10/2025.
 
 - **Clause 9** prohibits "systematic or automated data collection activities (including
   scraping, data mining, data extraction and data harvesting)".
-- **Clause 8** prohibits redistributing the website's content without NSE's written permission.
+- **Clause 8:** "User agrees that any information or content or data on the Website / Mobile
+  Application shall not be copied, modified, reverse engineer, reproduced, uploaded, transmitted,
+  posted, stored (either in hardcopy or in an electronic retrieval system), adapted, altered,
+  translated, disseminated, distributed, displayed, performed, broadcasted, published,
+  hyperlinked, sold, marketed, licensed, rented, leased or distributed in any form, without prior
+  written permission of NSE. Unless the information or Content is available for download, not to
+  aggregate, copy or duplicate in any manner any of the content or information which is available
+  on Website / Mobile Application."
 
 **Decision** (recorded in [ADR 0002](adr/0002-manual-intake-nse-terms.md)):
 

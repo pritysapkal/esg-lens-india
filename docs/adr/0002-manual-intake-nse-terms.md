@@ -13,7 +13,14 @@ The original plan was a polite, rate-limited downloader that fetched BRSR XBRL f
 - **Clause 9** prohibits "systematic or automated data collection activities (including
   scraping, data mining, data extraction and data harvesting)". Rate limiting does not change
   this.
-- **Clause 8** prohibits redistributing the content without NSE's written permission.
+- **Clause 8:** "User agrees that any information or content or data on the Website / Mobile
+  Application shall not be copied, modified, reverse engineer, reproduced, uploaded, transmitted,
+  posted, stored (either in hardcopy or in an electronic retrieval system), adapted, altered,
+  translated, disseminated, distributed, displayed, performed, broadcasted, published,
+  hyperlinked, sold, marketed, licensed, rented, leased or distributed in any form, without prior
+  written permission of NSE. Unless the information or Content is available for download, not to
+  aggregate, copy or duplicate in any manner any of the content or information which is available
+  on Website / Mobile Application."
 
 The scope is the NIFTY 50: 51 companies and 197 listed filings for FY2022-23 to FY2025-26. At
 this size, manual download takes roughly an hour per year of filings.
