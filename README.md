@@ -135,8 +135,10 @@ prohibit automated data collection (clause 9) and redistribution without written
   `nsearchives.nseindia.com`.
 - **No redistribution.** Raw NSE files live under the git-ignored `data/` folder and are never
   committed. Tests use synthetic fixtures. Real-data tests skip when the files are absent.
-- **Derived metrics only.** Published outputs show computed metrics, each with a link to the
-  source filing on NSE.
+- **Derived metrics only, cited as plain text.** Published outputs show computed metrics, never
+  raw files. Each metric cites its source filing as plain text (company, report, financial year,
+  NSE filing date), e.g. "HDFC Bank Limited, BRSR FY2025-26, filed on NSE 11-Sep-2026". There are
+  no hyperlinks to `nseindia.com` or `nsearchives.nseindia.com` URLs.
 - **Universe.** The NIFTY 50 constituents list comes from niftyindices.com and is saved locally.
 
 Workflow: [docs/how_to_add_filings.md](docs/how_to_add_filings.md). Status:
