@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('help', 'setup', 'lint', 'test', 'download', 'parse', 'build', 'app')]
+    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'build', 'app')]
     [string]$Task = 'help'
 )
 
@@ -34,7 +34,7 @@ Push-Location $Root
 try {
     switch ($Task) {
         'help' {
-            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|download|parse|build|app>'
+            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|build|app>'
         }
         'setup' {
             if (-not (Test-Path $Py)) { Invoke-Step 'py' @('-3.12', '-m', 'venv', $Venv) }
@@ -55,10 +55,16 @@ try {
             Assert-Venv
             Invoke-Step $Py @('-m', 'pytest', '-q')
         }
-        'download' {
+        'intake' {
+            # Files are downloaded from NSE by hand (docs/how_to_add_filings.md); nothing here fetches data.
             Assert-Venv
             Invoke-Step $Py @('-m', 'ingestion.discover')
-            Invoke-Step $Py @('-m', 'ingestion.download')
+            Invoke-Step $Py @('-m', 'ingestion.taxonomy')
+            Invoke-Step $Py @('-m', 'ingestion.intake')
+        }
+        'todo' {
+            Assert-Venv
+            Invoke-Step $Py @('-m', 'ingestion.todo')
         }
         'parse' {
             Assert-Venv

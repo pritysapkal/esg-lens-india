@@ -19,10 +19,12 @@ Rules:
   concept mappings stay taxonomy-version aware.
 - Each file contains current-year AND prior-year values; keep both (period columns
   distinguish them) - they feed the restatement tracker.
-- Company key = ISIN (from the entity identifier / listing).
+- Company key = ISIN (from the entity identifier); input files come from the intake store
+  ``data/raw/xbrl/<ISIN>/<reporting_year_label>/`` (see ``ingestion.intake``).
 
-Fixture for tests: ``fixtures/xbrl/`` HDFC Bank FY2025-26 BRSR
-(expected 2,182 facts, 658 contexts, 11 units).
+Test data: ``tests/fixtures/synthetic_brsr.xml`` (synthetic). Real-data tests use HDFC Bank
+FY2025-26 from the local intake store (2,182 facts, 618 concepts, 658 contexts, 11 units) and
+skip when it is absent - real filings are never committed.
 """
 
 from __future__ import annotations

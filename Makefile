@@ -1,5 +1,5 @@
 # Linux / macOS / CI task runner. On Windows use:  .\scripts\dev.ps1 <target>
-.PHONY: help setup lint test download parse build app
+.PHONY: help setup lint test intake todo parse build app
 
 VENV   ?= .venv
 PY     ?= $(VENV)/bin/python
@@ -7,7 +7,7 @@ DBT    ?= $(abspath $(VENV))/bin/dbt
 DBTARGS = --profiles-dir .
 
 help:
-	@echo "targets: setup lint test download parse build app"
+	@echo "targets: setup lint test intake todo parse build app"
 
 setup:
 	python3.12 -m venv $(VENV)
@@ -24,9 +24,14 @@ lint:
 test:
 	$(PY) -m pytest -q
 
-download:
+# Files are downloaded from NSE by hand (docs/how_to_add_filings.md); nothing here fetches data.
+intake:
 	$(PY) -m ingestion.discover
-	$(PY) -m ingestion.download
+	$(PY) -m ingestion.taxonomy
+	$(PY) -m ingestion.intake
+
+todo:
+	$(PY) -m ingestion.todo
 
 parse:
 	$(PY) -m ingestion.parse_xbrl

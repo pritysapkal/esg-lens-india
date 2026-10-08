@@ -14,8 +14,12 @@ INGESTION_MODULES = [
     "ingestion",
     "ingestion.config",
     "ingestion.discover",
-    "ingestion.download",
+    "ingestion.instance",
+    "ingestion.intake",
     "ingestion.parse_xbrl",
+    "ingestion.taxonomy",
+    "ingestion.todo",
+    "ingestion.universe",
 ]
 
 
@@ -31,6 +35,7 @@ def test_data_paths_exist(path) -> None:
 
 def test_repo_paths_exist() -> None:
     assert config.XBRL_FIXTURES_DIR.is_dir()
+    assert config.DOCS_DIR.is_dir()
     assert (config.DBT_DIR / "dbt_project.yml").is_file()
 
 
@@ -44,6 +49,14 @@ def test_duckdb_path_env_is_absolute_if_set() -> None:
     value = os.environ.get("DUCKDB_PATH")
     if value:
         assert Path(value).is_absolute(), "DUCKDB_PATH must be absolute (see .env.example)"
+
+
+def test_no_nse_network_code() -> None:
+    # NSE terms of use forbid automated collection (docs/adr/0002): no HTTP client in ingestion.
+    for path in (config.REPO_ROOT / "ingestion").glob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        for needle in ("import httpx", "import requests", "urllib.request", "tenacity"):
+            assert needle not in source, f"{path.name} contains {needle!r}"
 
 
 def test_filing_id_is_stable_sha256() -> None:

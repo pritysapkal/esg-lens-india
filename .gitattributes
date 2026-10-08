@@ -4,6 +4,7 @@
 
 # Keep real filings byte-exact (sha256 must not change with line-ending conversion)
 fixtures/** -text
+tests/fixtures/** -text
 *.xml.gz binary
 *.zip binary
 *.pbix binary

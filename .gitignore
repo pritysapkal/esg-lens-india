@@ -14,6 +14,9 @@ data/**
 !data/**/
 !data/**/.gitkeep
 
+# Real XBRL filings must never be committed (NSE terms of use; see docs/adr/0002)
+fixtures/xbrl/*.xml
+
 # Data artefacts anywhere
 *.duckdb
 *.duckdb.wal

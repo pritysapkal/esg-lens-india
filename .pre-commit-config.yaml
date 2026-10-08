@@ -5,13 +5,14 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
+        exclude: ^tests/fixtures/  # fixtures reproduce NSE files byte-for-byte
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
+        exclude: ^tests/fixtures/
       - id: check-yaml
         exclude: ^dbt/(models|snapshots)/.*\.yml$  # dbt yml may contain jinja
       - id: check-added-large-files
         args: [--maxkb=5000]
-        exclude: ^fixtures/xbrl/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.10 # keep in step with ruff in requirements-dev.txt

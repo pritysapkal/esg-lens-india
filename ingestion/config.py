@@ -21,31 +21,45 @@ def _resolve(value: str) -> Path:
     return path if path.is_absolute() else (REPO_ROOT / path).resolve()
 
 
-# --- HTTP ----------------------------------------------------------------------------------
-USER_AGENT: str = os.getenv("USER_AGENT", "ESG-Lens-India/0.1 (capstone research)")
-REQUEST_DELAY_SECONDS: float = float(os.getenv("REQUEST_DELAY_SECONDS", "2.5"))
-
 # --- Data lake -----------------------------------------------------------------------------
 DATA_DIR: Path = _resolve(os.getenv("DATA_DIR", "data"))
 RAW_DIR: Path = DATA_DIR / "raw"
-LISTING_DIR: Path = RAW_DIR / "listing"  # NSE BRSR listing CSVs
-XBRL_DIR: Path = RAW_DIR / "xbrl"  # downloaded BRSR XBRL instance files (never overwritten)
+LISTING_DIR: Path = RAW_DIR / "listing"  # NSE BRSR listing CSVs (downloaded manually)
+REFERENCE_DIR: Path = RAW_DIR / "reference"  # index constituent lists
+UNIVERSE_CSV: Path = REFERENCE_DIR / "ind_nifty50list.csv"  # official NIFTY 50 constituents
+XBRL_INBOX_DIR: Path = RAW_DIR / "xbrl_inbox"  # manually downloaded XBRL files land here
+XBRL_DIR: Path = RAW_DIR / "xbrl"  # <ISIN>/<reporting_year_label>/<file> (never overwritten)
 TAXONOMY_DIR: Path = RAW_DIR / "taxonomy"  # SEBI BRSR taxonomy packages, one per version
-PROCESSED_DIR: Path = DATA_DIR / "processed"  # Parquet outputs of parse_xbrl
+PROCESSED_DIR: Path = DATA_DIR / "processed"  # derived outputs (listing, taxonomy versions, ...)
 WAREHOUSE_DIR: Path = DATA_DIR / "warehouse"
 DUCKDB_PATH: Path = _resolve(os.getenv("DUCKDB_PATH", "data/warehouse/esg_lens.duckdb"))
 
-MANIFEST_PATH: Path = XBRL_DIR / "manifest.csv"  # sha256 download manifest
+MANIFEST_PATH: Path = RAW_DIR / "manifest.csv"  # sha256 intake manifest (append-only)
+LISTING_PARQUET: Path = PROCESSED_DIR / "listing.parquet"
+TAXONOMY_VERSIONS_CSV: Path = PROCESSED_DIR / "taxonomy_versions.csv"
 
 # --- Repo assets ---------------------------------------------------------------------------
 FIXTURES_DIR: Path = REPO_ROOT / "fixtures"
 XBRL_FIXTURES_DIR: Path = FIXTURES_DIR / "xbrl"
 DBT_DIR: Path = REPO_ROOT / "dbt"
+DOCS_DIR: Path = REPO_ROOT / "docs"
+DATA_STATUS_MD: Path = DOCS_DIR / "data_status.md"
 
 DATA_PATHS: tuple[Path, ...] = (
     LISTING_DIR,
+    REFERENCE_DIR,
+    XBRL_INBOX_DIR,
     XBRL_DIR,
     TAXONOMY_DIR,
     PROCESSED_DIR,
     WAREHOUSE_DIR,
 )
+
+
+def display_path(path: Path) -> str:
+    """Return ``path`` relative to the repo root (POSIX style) if inside it, else absolute."""
+    path = Path(path).resolve()
+    try:
+        return path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()

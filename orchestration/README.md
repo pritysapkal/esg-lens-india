@@ -8,6 +8,8 @@ Prerequisites (not installed yet):
 - Docker Desktop (WSL 2 backend) - required by the Astro CLI
 - Astro CLI - `winget install -e --id Astronomer.Astro`
 
-Planned DAG: `discover -> download -> parse_xbrl -> dbt (Cosmos: seed, snapshot, run, test) -> elementary report`.
+Planned DAG: a sensor watches `data/raw/xbrl_inbox/` (files are downloaded by hand, never by
+Airflow - see `docs/adr/0002-manual-intake-nse-terms.md`), then
+`discover -> intake -> todo -> parse_xbrl -> dbt (Cosmos: seed, snapshot, run, test) -> elementary report`.
 
 Nothing in this folder runs yet.

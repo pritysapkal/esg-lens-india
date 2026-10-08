@@ -8,6 +8,8 @@ import pytest
 
 from ingestion import config
 
+FIXTURES = Path(__file__).parent / "fixtures"
+
 
 @pytest.fixture(scope="session")
 def repo_root() -> Path:
@@ -15,14 +17,12 @@ def repo_root() -> Path:
 
 
 @pytest.fixture(scope="session")
-def xbrl_fixtures_dir() -> Path:
-    return config.XBRL_FIXTURES_DIR
+def synthetic_xml() -> Path:
+    """Hand-written synthetic BRSR instance (fake company, fake ISIN)."""
+    return FIXTURES / "synthetic_brsr.xml"
 
 
 @pytest.fixture(scope="session")
-def hdfc_brsr_xml(xbrl_fixtures_dir: Path) -> Path:
-    """HDFC Bank FY2025-26 BRSR instance; skips the test until the file is added."""
-    candidates = sorted(xbrl_fixtures_dir.glob("*.xml"))
-    if not candidates:
-        pytest.skip("No XBRL fixture in fixtures/xbrl/ yet")
-    return candidates[0]
+def listing_sample_csv() -> Path:
+    """Three made-up listing rows in the real NSE CSV format (BOM, header quirks)."""
+    return FIXTURES / "listing_sample.csv"

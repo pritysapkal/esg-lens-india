@@ -6,7 +6,7 @@ st.set_page_config(page_title="ESG Lens India", page_icon=":seedling:", layout="
 
 st.title("Hello ESG Lens")
 st.write(
-    "Open BRSR analytics for India's top ~1,000 listed companies. "
+    "Open BRSR analytics for the NIFTY 50 companies. "
     "Company report cards will appear here once the dbt marts are built."
 )
 st.info(

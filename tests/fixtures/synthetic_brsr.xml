@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic test data, not a real filing. -->
+<!-- Fake company "Example Ltd" with a fake ISIN; structure mimics a SEBI BRSR XBRL instance. -->
+<xbrli:xbrl
+    xmlns:xbrli="http://www.xbrl.org/2003/instance"
+    xmlns:link="http://www.xbrl.org/2003/linkbase"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+    xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:in-capmkt="https://www.sebi.gov.in/xbrl/2026-02-28/in-capmkt">
+  <link:schemaRef xlink:type="simple" xlink:href="in-capmkt-ent-2026-02-28.xsd"/>
+
+  <xbrli:context id="DCYMain">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://www.sebi.gov.in/in-capmkt/ISIN">INE000X00000</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-04-01</xbrli:startDate>
+      <xbrli:endDate>2026-03-31</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+  <xbrli:context id="ICYMain">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://www.sebi.gov.in/in-capmkt/ISIN">INE000X00000</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:instant>2026-03-31</xbrli:instant>
+    </xbrli:period>
+  </xbrli:context>
+  <xbrli:context id="ICYFemale">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://www.sebi.gov.in/in-capmkt/ISIN">INE000X00000</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:instant>2026-03-31</xbrli:instant>
+    </xbrli:period>
+    <xbrli:scenario>
+      <xbrldi:explicitMember dimension="in-capmkt:GenderAxis">in-capmkt:FemaleMember</xbrldi:explicitMember>
+    </xbrli:scenario>
+  </xbrli:context>
+
+  <xbrli:unit id="INR">
+    <xbrli:measure>iso4217:INR</xbrli:measure>
+  </xbrli:unit>
+  <xbrli:unit id="pure">
+    <xbrli:measure>xbrli:pure</xbrli:measure>
+  </xbrli:unit>
+  <xbrli:unit id="tCO2e">
+    <xbrli:measure>in-capmkt:tCO2e</xbrli:measure>
+  </xbrli:unit>
+
+  <in-capmkt:NameOfTheCompany contextRef="DCYMain">Example Ltd</in-capmkt:NameOfTheCompany>
+  <in-capmkt:CorporateIdentityNumber contextRef="DCYMain">L00000XX2000PLC000000</in-capmkt:CorporateIdentityNumber>
+  <in-capmkt:PaidUpCapital contextRef="ICYMain" unitRef="INR" decimals="0">1000000000</in-capmkt:PaidUpCapital>
+  <in-capmkt:NumberOfEmployees contextRef="ICYMain" unitRef="pure" decimals="0">1200</in-capmkt:NumberOfEmployees>
+  <in-capmkt:NumberOfEmployees contextRef="ICYFemale" unitRef="pure" decimals="0">300</in-capmkt:NumberOfEmployees>
+  <in-capmkt:TotalScope1Emissions contextRef="DCYMain" unitRef="tCO2e" decimals="2">12345.67</in-capmkt:TotalScope1Emissions>
+  <in-capmkt:TotalScope2Emissions contextRef="DCYMain" unitRef="tCO2e" decimals="2">23456.78</in-capmkt:TotalScope2Emissions>
+  <in-capmkt:TotalScope3Emissions contextRef="DCYMain" unitRef="tCO2e" decimals="2" xsi:nil="true"/>
+</xbrli:xbrl>

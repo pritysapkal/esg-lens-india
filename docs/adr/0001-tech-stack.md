@@ -1,6 +1,7 @@
 # ADR 0001 - Core tech stack
 
-- **Status:** Accepted
+- **Status:** Accepted. The "Ingestion HTTP" row is superseded by
+  [ADR 0002](0002-manual-intake-nse-terms.md): no automated downloads.
 - **Date:** 2026-10-07
 
 ## Context

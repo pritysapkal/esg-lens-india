@@ -1,0 +1,11 @@
+﻿"COMPANY 
+","FROM YEAR 
+","TO YEAR 
+","ATTACHMENT 
+","**XBRL 
+","ORIGINAL SUBMISSION DATE 
+","LATEST REVISION DATE 
+"
+"Example Ltd",2025,2026,"https://example.com/corporate/EXAMPLE_2026_BRSR.pdf","https://example.com/corporate/xbrl/BRSR_EXAMPLE_2026_WEB.xml","05-Oct-2026","-"
+"Example Ltd",2024,2025,"https://example.com/corporate/EXAMPLE_2025_BRSR.pdf","https://example.com/corporate/xbrl/BRSR_EXAMPLE_2025_WEB.xml","14-Jul-2025","20-Aug-2025"
+"Example Ltd",2022,2024,"https://example.com/corporate/EXAMPLE_2024_BRSR.pdf","https://example.com/corporate/xbrl/BRSR_EXAMPLE_2024_WEB.xml","29-Jun-2024","-"

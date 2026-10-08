@@ -1,6 +1,6 @@
 # ESG Lens India
 
-**Open, reproducible ESG analytics on SEBI BRSR filings for India's top ~1,000 listed companies.**
+**Open, reproducible ESG analytics on SEBI BRSR filings of the NIFTY 50 companies.**
 
 ESG Lens India turns the machine-readable BRSR (Business Responsibility and Sustainability Report)
 XBRL filings published on NSE into a tested analytics warehouse, a semantic layer of ESG metrics,
@@ -10,23 +10,37 @@ company report cards, and a small AI analyst - all open source and runnable on a
 > internally coherent a company's BRSR disclosures are - not how sustainable the company is.
 > Nothing in this project is investment advice.
 
+## Scope
+
+- **Companies:** the official NIFTY 50 constituents (niftyindices.com list), plus companies with
+  listing CSVs that are no longer in the index (currently WIPRO, flagged `in_universe = false`).
+- **Years:** FY2022-23 to FY2025-26. That is **197 listed filings, 196 received**; M&M FY2023-24
+  is listed by NSE, but NSE does not serve the file.
+- **Taxonomies:** 5 SEBI BRSR versions are in use: 2021-09-30, 2023-06-30, 2024-04-30, 2025-05-31
+  and 2026-02-28.
+
+Live status: [docs/data_status.md](docs/data_status.md).
+
 ## Problem
 
 SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions are public. But:
 
 - each filing has ~2,000 facts over ~618 concepts, 658 contexts, 35 dimension axes and 11 units -
   not usable in a spreadsheet;
-- the SEBI taxonomy changes between years (FY2025-26 uses `2026-02-28`), so the same metric can
-  live under different concepts;
+- the SEBI taxonomy changes between years (5 versions across FY2022-23 to FY2025-26), so the
+  same metric can live under different concepts, and even the entity identifier changes (CIN
+  before 2026-02-28, ISIN after);
 - each file carries current **and** prior-year values, so silent restatements go unnoticed;
 - there is no free, transparent, cross-company view of these disclosures.
 
 ## Architecture
 
 ```
- NSE BRSR listing ──► discover.py ──► download.py ──► data/raw/xbrl/*.xml   (+ sha256 manifest)
-                      (new/revised)   (polite, retry)          │
-                                                               ▼
+ manual download ──► data/raw/listing/*.csv ──► discover.py ──► listing.parquet
+ (NSE website)  └──► data/raw/xbrl_inbox/*.xml ──► intake.py ──► data/raw/xbrl/<ISIN>/<year>/
+                                                   (sha256, match,      (+ manifest.csv)
+                                                    never overwrite)           │
+                       todo.py ──► docs/data_status.md                         ▼
                                                         parse_xbrl.py (lxml)
                                                                │
                                        data/processed/{contexts,units,facts,text_facts}.parquet
@@ -40,7 +54,7 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
                  ▼                   ▼                   ▼                   ▼
               Power BI             Excel        Streamlit report cards   MCP AI analyst
 
- Orchestration (week 13): Airflow 3 + Astronomer Cosmos (Docker) · CI: GitHub Actions
+ Orchestration (week 13): Airflow 3 + Astronomer Cosmos (Docker), watching the inbox · CI: GitHub Actions
  Prod target (later): Databricks Free Edition
 ```
 
@@ -49,8 +63,7 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Module | Path | Status |
 |---|---|---|
 | Scaffold, CI, pre-commit | repo root | ✅ Week 1 |
-| Filing discovery | `ingestion/discover.py` | 🔲 Stub |
-| Polite downloader + manifest | `ingestion/download.py` | 🔲 Stub |
+| Module 1 - Manual intake pipeline (listing, universe, taxonomy scan, intake, status) | `ingestion/{discover,universe,taxonomy,intake,todo}.py` | ✅ Done |
 | XBRL parser -> Parquet | `ingestion/parse_xbrl.py` | 🔲 Stub |
 | dbt staging / intermediate / marts | `dbt/models/` | 🔲 Sources placeholder only |
 | Concept -> metric mapping | `dbt/seeds/concept_metric_map.csv` | 🟡 6 seed rows |
@@ -60,7 +73,7 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Power BI / Excel | `dashboards/` | 🔲 Not started |
 | Streamlit report cards | `app/` | 🟡 Placeholder page |
 | AI analyst (MCP) | `ai/` | 🔲 Not started |
-| Orchestration (Airflow + Cosmos) | `orchestration/` | 🔲 Week 13 |
+| Orchestration (Airflow + Cosmos) - watches the inbox, never downloads | `orchestration/` | 🔲 Week 13 |
 
 ## Setup (Windows 11, PowerShell)
 
@@ -75,7 +88,7 @@ py -3.12 -m venv .venv
 python -m pip install --upgrade pip
 pip install -r requirements-dev.txt     # includes requirements.txt
 pre-commit install
-Copy-Item .env.example .env             # then edit USER_AGENT
+Copy-Item .env.example .env
 
 pytest -q
 cd dbt
@@ -85,8 +98,8 @@ dbt seed  --profiles-dir .
 cd ..
 ```
 
-Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|download|parse|build|app`
-(Linux/CI: `make <target>`).
+Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|build|app`
+(Linux/CI: `make <target>`). To add filings, see [docs/how_to_add_filings.md](docs/how_to_add_filings.md).
 
 > dbt always runs from `dbt/` with `--profiles-dir .` - the profile lives in the repo, not in `~/.dbt`.
 
@@ -98,10 +111,10 @@ install into a fresh venv, run `pip check`, then re-freeze. `click` is capped `<
 ## Repository layout
 
 ```
-ingestion/     Python: discover -> download -> parse XBRL -> Parquet
+ingestion/     Python: listing -> manual intake -> status report -> parse XBRL -> Parquet
 dbt/           dbt project `esg_lens` (DuckDB), seeds, snapshots, tests
 data/          raw / processed / warehouse (git-ignored contents)
-fixtures/xbrl/ small real filings used by tests
+tests/fixtures/ synthetic test data (no real filings are committed)
 app/           Streamlit report-card app
 dashboards/    Power BI / Excel
 ai/            MCP-based AI analyst
@@ -109,7 +122,22 @@ orchestration/ Airflow 3 + Cosmos (later)
 docs/          ADRs, metric definitions, open questions
 ```
 
-## Data & licence notes
+## Data source & compliance
 
-BRSR filings are public disclosures published via NSE / SEBI. Downloads are rate-limited and
-cached (never re-downloaded). See `docs/week1_open_questions.md` for open terms-of-use questions.
+BRSR filings are public disclosures that NSE publishes under SEBI rules. The
+[NSE Terms of Use](https://www.nseindia.com/static/nse-terms-of-use) (updated 29/10/2025)
+prohibit automated data collection (clause 9) and redistribution without written permission
+(clause 8). This project therefore works as follows
+([ADR 0002](docs/adr/0002-manual-intake-nse-terms.md)):
+
+- **Manual download only.** Listing CSVs and XBRL files are downloaded by hand into
+  `data/raw/listing/` and `data/raw/xbrl_inbox/`. No code makes requests to `nseindia.com` or
+  `nsearchives.nseindia.com`.
+- **No redistribution.** Raw NSE files live under the git-ignored `data/` folder and are never
+  committed. Tests use synthetic fixtures. Real-data tests skip when the files are absent.
+- **Derived metrics only.** Published outputs show computed metrics, each with a link to the
+  source filing on NSE.
+- **Universe.** The NIFTY 50 constituents list comes from niftyindices.com and is saved locally.
+
+Workflow: [docs/how_to_add_filings.md](docs/how_to_add_filings.md). Status:
+[docs/data_status.md](docs/data_status.md).
