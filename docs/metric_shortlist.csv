@@ -1,0 +1,37 @@
+role,brsr_core_attribute,concept,required_breakdown,unit_expected,direction,coverage_fy23_fy24_fy25_fy26,status_vs_v1,analytics_note
+input,Base,Turnover,,INR,n/a,47/48/50/51,keep,"Scale errors: ~6 filers report in crore (e.g. 14,700 = Rs 14,700 cr). Needs plausibility rule (< 1e9 INR -> x1e7) before any intensity."
+headline,1 GHG,TotalScope1Emissions,,tCO2e,lower_better,47/48/50/51,keep,Unit label tCO2e vs MtCO2e - normalise. Highly skewed (NTPC ~3e8) - use percentiles/log.
+headline,1 GHG,TotalScope2Emissions,,tCO2e,lower_better,47/48/50/51,keep,
+check_only,1 GHG,TotalScope1AndScope2EmissionsIntensityPerRupeeOfTurnover,,tCO2e/INR,lower_better,0/48/50/51,demoted,Only 33/50 filed values match (S1+S2)/Turnover within 5%; others off by 1e6-1e7 (unit/scale errors). Use for recompute-and-verify only; headline = our computed per Rs crore.
+secondary,1 GHG,TotalScope3Emissions,,tCO2e,lower_better,38/35/39/40,keep,Voluntary; boundaries differ by company -> use mainly as disclosure flag + trend within company.
+input,3 Energy,TotalEnergyConsumedFromRenewableAndNonRenewableSources,,GJ,lower_better,0/48/50/51,keep,FY23 name = TotalEnergyConsumption (map both).
+input,3 Energy,TotalEnergyConsumedFromRenewableSources,,GJ,higher_better,44/48/50/51,keep,-> renewable share %
+check_only,3 Energy,EnergyIntensityPerRupeeOfTurnover,,GJ/INR,lower_better,47/48/50/51,demoted,Filed max 66 GJ/INR = scale error. Recompute.
+headline,2 Water,TotalVolumeOfWaterWithdrawal,,kl,lower_better,47/48/50/51,keep,"0 for some NBFCs - treat as not material, not as best-in-class."
+headline,2 Water,TotalVolumeOfWaterConsumption,,kl,lower_better,47/48/50/51,keep,
+check_only,2 Water,WaterIntensityPerRupeeOfTurnover,,kl/INR,lower_better,47/48/50/51,demoted,Filed max 83 kl/INR = scale error. Recompute.
+input,4 Waste,TotalWasteGenerated,,t,lower_better,47/48/50/51,keep,COALINDIA 5.3 bn t (mining overburden) dominates totals - sector-relative only.
+input,4 Waste,TotalWasteRecovered,,t,higher_better,47/48/50/51,keep,-> recovery rate %
+check_only,4 Waste,TotalWasteDisposed,,t,lower_better,47/48/50/51,demoted,Only for sum check: recovered + disposed ~ generated.
+headline,5 Safety,LostTimeInjuryFrequencyRatePerOneMillionPersonHoursWorked,EmployeesAndWorkersAxis,rate,lower_better,all years (by breakdown),keep,Compare Workers vs Employees separately.
+headline,5 Safety,TotalRecordableWorkRelatedInjuries,EmployeesAndWorkersAxis,count,lower_better,all years (by breakdown),ADDED,42% zero vs 78% for fatalities -> more analytical signal.
+headline,5 Safety,NumberOfFatalities,EmployeesAndWorkersAxis,count,lower_better,all years (by breakdown),keep,"78% zero -> use as 'any fatality' flag + per 10,000 workforce."
+headline,5 Wellbeing,PercentageOfCostIncurredOnWellBeingMeasuresWithRespectToTotalRevenueOfTheCompany,,pure,higher_better,0/47/49/51,keep,
+input,6 Gender / workforce,NumberOfEmployeesOrWorkersIncludingDifferentlyAbled,DetailsOfEmployeesAndWorkersIncludingDifferentlyAbledAxis x GenderAxis,count,n/a,47/48/50/51,ADDED,Headcount by gender and employee/worker -> female workforce share; denominator for per-employee rates.
+headline,6 Gender,PercentageOfGrossWagesPaidToFemaleToTotalWagesPaid,,pure,higher_better,0/46/47/51,keep,Pair with female workforce share -> pay-equity gap (wage share minus headcount share).
+headline,6 Gender,PercentageOfComplaintsInRespectOfNumberOfEmployeesOrWorker,,pure,context,FY24+ (51 in FY26),ADDED (replaces raw POSH count),BRSR Core definition: POSH complaints as % of female employees -> comparable across company sizes.
+secondary,6 Gender,ComplaintsOnPOSHUpHeld,,count,context,0/48/50/51,ADDED,
+dropped,6 Gender,TotalComplaintsReportedUnderSexualHarassmentOfWomenAtWorkplace,,count,context,0/48/50/51,REPLACED,Raw count grows with company size - not comparable.
+secondary,6 Gender,PercentageOfFemaleBoardOfDirectors,,pure,higher_better,47/48/50/51,keep,Not BRSR Core; only 4-year trend metric for governance.
+secondary,Social,TurnoverRate,GenderAxis x PermanentEmployeesAndWorkersAxis,pure,lower_better,47/48/50/51,ADDED,Attrition by gender -> female vs male attrition gap.
+headline,7 Inclusive,PercentageOfDirectlySourcedFromMSMEsOrSmallProducers,,pure,higher_better,47/48/50/51,keep,
+secondary,7 Inclusive,PercentageOfJobCreation,TownsCategoryAxis,pure,context,146 filings,keep,Rural + semi-urban share of wages.
+flag,8 Fairness,NumberOfInstancesOfDataBreachesAlongWithImpact,,count,lower_better,43/48/50/51,CHANGED to flag,"92% zero -> use 'any data breach' yes/no, not a ranking metric."
+dropped,8 Fairness,PercentageOfDataBreachesInvolvingPersonallyIdentifiableInformationOfCustomers,,pure,lower_better,43/48/50/51,DROPPED,94% zero - no analytical signal.
+headline,8 Fairness,NumberOfDaysOfAccountsPayable,,days,lower_better,0/48/50/51,keep,Stored as ISO duration ('P59D') -> parse to integer; exclude financial companies.
+headline,9 Openness,PercentageOfPurchasesFromRelatedPartiesInTotalPurchasesForShareOfRelatedPartyTransactions,,pure,lower_better,0/42/46/51,keep,
+headline,9 Openness,PercentageOfSalesToRelatedPartiesInTotalSalesForShareOfRelatedPartyTransactions,,pure,lower_better,0/42/46/51,keep,
+quality,Quality,WhetherTheCompanyHasUndertakenAssessmentOrAssuranceOfTheBRSRCore,,text,n/a,0/0/49/51,keep,Feeds Disclosure Quality Score.
+quality,Quality,TypeOfAssessmentOrAssuranceObtain,,text,n/a,0/0/49/51,keep,
+quality,Quality,ReportingBoundary,,text,n/a,47/48/50/51,keep,Standalone vs consolidated - never mix.
+context,Sector,NICCodeOfProductOrServiceSoldByTheEntity,,text,n/a,all,ADDED,For sector peer groups (12 of 50 are Financial Services - environmental metrics not material for them).
