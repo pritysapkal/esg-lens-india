@@ -66,8 +66,8 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Module 1 - Manual intake pipeline (listing, universe, taxonomy scan, intake, status) | `ingestion/{discover,universe,taxonomy,intake,todo}.py` | ✅ Done |
 | Module 2 - XBRL parser (done) -> Parquet + DuckDB raw tables | `ingestion/{parse_xbrl,load_raw}.py` | ✅ Done - HDFC Bank FY2025-26: 2,182 facts, 618 concepts, 658 contexts, 11 units, 12-month period; Arelle cross-check on 5 filings: all counts and every fact/context identical ([validation](docs/parser_validation.md)) |
 | dbt staging (done) - typed, flagged staging models + tests | `dbt/models/staging/` | ✅ Done - 8 models (196 filings, 121,891 contexts, 1,714 units, 399,499 facts + 19,705 text facts), 55 tests pass, 0 cast failures, 7,226 NA-text facts |
-| dbt intermediate / marts | `dbt/models/` | 🔲 Week 5 |
-| Concept -> metric mapping | `dbt/seeds/concept_metric_map.csv` | 🟡 6 seed rows |
+| Module 4 - Metric catalogue + normalisation (done) | `dbt/models/intermediate/`, `dbt/seeds/` | ✅ Done - 34 metrics / 148 catalogue rows over 5 taxonomies, 21,730 metric values; 24 turnover scale corrections, old-taxonomy units inferred, 4 likely-megatonne MtCO2e filings reported ([rules](docs/business_rules.md), [metrics](docs/metric_definitions.md)) |
+| dbt marts | `dbt/models/marts/` | 🔲 Not started |
 | Snapshots (restatement tracker) | `dbt/snapshots/` | 🔲 Not started |
 | Data quality (tests, Elementary) | `dbt/` | 🔲 Packages installed |
 | Semantic layer (MetricFlow) | `dbt/models/` | 🔲 Not started |
@@ -150,7 +150,8 @@ group by concept order by n_na desc limit 10;
 ```
 
 Staging only cleans, types and flags. Current/prior-year roles, unit conversions and the metric
-mapping come in the intermediate layer (week 5).
+mapping live in the intermediate layer: `int_metric_values` (one row per metric value) and
+`int_normalisation_exceptions` (everything inferred or corrected, for review).
 
 ## Repository layout
 

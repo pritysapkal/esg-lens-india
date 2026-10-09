@@ -1,0 +1,419 @@
+version: 2
+
+# Intermediate layer: business rules (period roles, unit normalisation, scale corrections, metric
+# mapping). Every rule is documented with evidence in docs/business_rules.md; every changed value
+# keeps its original (raw_value / value_num) and says why (normalisation_flag, correction_reason).
+
+models:
+  - name: int_facts_with_context
+    description: >
+      One row per fact (numbers and short text) with its filing (company, fiscal year, taxonomy,
+      main period), context (period dates, breakdown) and unit label attached.
+    columns:
+      - name: fact_id
+        description: Unique ID of the fact.
+        tests: [unique, not_null]
+      - name: symbol
+        description: NSE symbol of the company.
+        tests: [not_null]
+      - name: filing_period_start
+        description: First day of the filing's main reporting period.
+      - name: filing_period_end
+        description: Last day of the filing's main reporting period.
+
+  - name: int_period_role
+    description: >
+      Facts labelled with the period they belong to, relative to their filing - CY (the reporting
+      year), PY (the comparative year), PY2 (second comparative), INSTANT_CY / INSTANT_PY (dates at
+      the end of those years) or OTHER - and with the financial year of the VALUE. A PY value in
+      the FY2025-26 filing belongs to FY2024-25. Works for 15-month and calendar-year filings
+      because roles are anchored on the filing's own period.
+    columns:
+      - name: fact_id
+        description: Unique ID of the fact.
+        tests: [unique, not_null]
+      - name: period_role
+        description: CY, PY, PY2, INSTANT_CY, INSTANT_PY or OTHER (see model description).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [CY, PY, PY2, INSTANT_CY, INSTANT_PY, OTHER]
+      - name: value_period_end
+        description: Last day of the value's own period (end date, or the instant).
+      - name: value_fiscal_year_label
+        description: April-March financial year in which the value's period ends, e.g. FY2024-25.
+        tests: [not_null]
+
+  - name: int_turnover_corrected
+    description: >
+      Turnover per filing (current year) as filed and corrected. Values below 10^9 INR were filed in
+      crore, million or lakh; the scale is chosen by comparing with the company's other plausible
+      years. Plausible-looking values far from the other years are NOT changed but get a lower
+      confidence so they show up for review.
+    columns:
+      - name: filing_id
+        description: The filing.
+        tests: [unique, not_null]
+      - name: symbol
+        description: NSE symbol of the company.
+      - name: fiscal_year_label
+        description: Financial year of the filing.
+      - name: turnover_raw
+        description: Turnover exactly as filed (as a number).
+      - name: turnover_inr
+        description: Turnover in rupees after the scale correction (= turnover_raw if not corrected).
+        tests: [not_null]
+      - name: scale_applied
+        description: True when turnover_raw was multiplied by a scale (crore, million or lakh).
+      - name: scale
+        description: The multiplier used (1, 10^5, 10^6 or 10^7).
+      - name: scale_name
+        description: rupees, crore, million or lakh.
+      - name: reference_inr
+        description: Median of the company's other years that look plausible (>= 10^9 INR).
+      - name: n_reference_years
+        description: How many other years were used for reference_inr.
+      - name: ratio_to_other_years
+        description: turnover_inr / reference_inr (1 = in line with the other years).
+      - name: evidence_ratio
+        description: >
+          (filed Scope 1+2) / turnover_raw / (filed Scope 1+2 intensity per rupee). About 10^7
+          when the filer computed its intensity with turnover in rupees while reporting turnover
+          in crore - supporting evidence for the crore reading.
+      - name: correction_reason
+        description: Why the value was corrected, with the evidence. Empty when not corrected.
+      - name: confidence
+        description: >
+          high / medium / low. Corrected: how well the corrected value matches the other years
+          (within 1.5x = high, 3x = medium). Not corrected: high unless far from the other years.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [high, medium, low]
+
+  - name: int_implied_units
+    description: >
+      The real unit of quantities that the 2021/2023 taxonomies file with unit "pure" (or as text),
+      one row per filing and metric - from the next filing's matching comparative value, else from
+      the companion "UnitOf..." text fact, else the BRSR format's default unit.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [filing_id, metric_id]
+    columns:
+      - name: implied_unit_label
+        description: Unit label to use (a key of seeds/unit_normalisation.csv).
+        tests: [not_null]
+      - name: unit_source
+        description: bridge_next_filing, text_unit or format_default.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [bridge_next_filing, text_unit, format_default]
+      - name: bridge_unit_label
+        description: Unit of the matching PY value in the company's next filing (if any).
+      - name: n_bridge_matches
+        description: How many values matched within 5 % between the two filings.
+      - name: text_unit_raw
+        description: The free-text unit as filed in the companion UnitOf<concept> fact.
+      - name: text_unit_label
+        description: text_unit_raw mapped through seeds/text_unit_normalisation.csv.
+      - name: unit_conflict
+        description: True when the bridge and the text unit imply different multipliers (text wins).
+
+  - name: int_values_normalised
+    description: >
+      Catalogue facts with values converted to the metric's standard unit. Keeps raw_value and
+      value_num; percent values get value_pct; ISO durations become days; old-taxonomy units are
+      inferred; turnover is scale-corrected. normalisation_flag lists everything that was inferred,
+      corrected or unusual. NA text and zero stay as flags; a missing value is a missing row.
+    columns:
+      - name: fact_id
+        description: Unique ID of the fact.
+        tests: [unique, not_null]
+      - name: metric_id
+        description: Catalogue metric the fact feeds.
+        tests: [not_null]
+      - name: unit_label_effective
+        description: Unit used for the conversion - the filed label, or the inferred one for old filings.
+      - name: multiplier
+        description: Factor from seeds/unit_normalisation.csv applied to the filed value.
+      - name: value_std
+        description: The value in unit_std (rounded to 15 significant digits to drop float noise).
+      - name: value_pct
+        description: >
+          For percent metrics, the value in percent (0.2036 -> 20.36). Values filed above 1 are
+          taken as already in percent and not multiplied again.
+      - name: normalisation_flag
+        description: >
+          "|"-separated flags, e.g. pct_given_as_0_100, numeric_from_text, iso_duration_parsed,
+          unit_bridged_from_next_filing, unit_from_text, unit_format_default,
+          unit_conflict_text_vs_bridge, mtco2e_read_as_metric_tonnes, unit_grams_converted,
+          unit_not_in_map, turnover_scale_corrected. Empty = taken as filed.
+      - name: correction_reason
+        description: Why the value differs from the filed number by more than a unit conversion.
+
+  - name: int_metric_values
+    description: >
+      The metric values: one row per catalogue value with its normalised value, the period it
+      belongs to and its source filing. Only the breakdowns allowed for each metric are kept.
+      This is the input for the marts.
+    columns:
+      - name: fact_id
+        description: Unique ID of the source fact.
+        tests: [unique, not_null]
+      - name: symbol
+        description: NSE symbol of the company.
+        tests: [not_null]
+      - name: isin
+        description: ISIN of the company.
+      - name: fiscal_year_label
+        description: Financial year of the filing the value comes from.
+        tests: [not_null]
+      - name: value_fiscal_year_label
+        description: >
+          Financial year the value itself belongs to. Differs from fiscal_year_label for PY
+          comparatives (the FY2025-26 filing's PY value belongs to FY2024-25).
+        tests: [not_null]
+      - name: period_role
+        description: CY, PY, PY2, INSTANT_CY, INSTANT_PY or OTHER, relative to the source filing.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [CY, PY, PY2, INSTANT_CY, INSTANT_PY, OTHER]
+      - name: metric_id
+        description: Catalogue metric (see docs/metric_definitions.md).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('concept_metric_map')
+                field: metric_id
+      - name: role
+        description: How the metric is used (headline, input, secondary, check_only, flag, quality, context).
+      - name: dimension_key
+        description: The breakdown, e.g. "EmployeesAndWorkersAxis=WorkersMember"; empty = company-wide.
+        tests: [not_null]
+      - name: value_std
+        description: The value in unit_std.
+      - name: unit_std
+        description: Standard unit of the metric.
+      - name: value_pct
+        description: Value in percent, for percent metrics.
+      - name: value_text
+        description: The answer as text, for text / enum metrics (e.g. "Standalone basis").
+      - name: raw_value
+        description: The value exactly as filed.
+      - name: value_num
+        description: The filed value as a number, before any conversion.
+      - name: unit_label
+        description: Unit label as filed.
+      - name: is_nil
+        description: True when the filer marked the value nil.
+      - name: is_na_text
+        description: True when the filed text means "not applicable / not available".
+      - name: is_zero
+        description: True when the filed number is exactly 0.
+      - name: normalisation_flag
+        description: See int_values_normalised.
+      - name: correction_reason
+        description: See int_values_normalised.
+      - name: concept
+        description: Concept as filed.
+      - name: taxonomy_version
+        description: Taxonomy version of the source filing.
+      - name: value_period_end
+        description: Last day of the value's own period.
+      - name: filing_id
+        description: Source filing.
+        tests: [not_null]
+      - name: is_latest_filing_for_value
+        description: >
+          True for the current-year value from the latest filing for that company and year - the
+          value to report. PY values are comparatives (input for the restatement tracker).
+      - name: is_comparative
+        description: True for PY / PY2 / INSTANT_PY values.
+
+  - name: int_mtco2e_check
+    description: >
+      Plausibility check of the rule "MtCO2e = metric tonnes", one row per filing with Scope 1/2 in
+      MtCO2e: Scope 1+2 intensity per rupee crore vs the company's other years and its industry
+      peers (at least 3). likely_megatonnes marks filings ~10^4-10^6 x below - reported, not corrected.
+    columns:
+      - name: filing_id
+        description: The filing.
+        tests: [unique, not_null]
+      - name: intensity_tco2e_per_inr_cr
+        description: Scope 1+2 (tCO2e) per rupee crore of corrected turnover.
+      - name: company_other_years_median
+        description: Median intensity of the same company in its other filings.
+      - name: industry_peer_median
+        description: Median intensity of other companies in the same NIFTY 50 industry and year (>= 3).
+      - name: ratio_to_company
+        description: intensity / company_other_years_median.
+      - name: ratio_to_peers
+        description: intensity / industry_peer_median.
+      - name: is_implausible
+        description: More than 100x away from either reference.
+      - name: likely_megatonnes
+        description: At least 10^4 x below a reference - the value was probably filed in megatonnes.
+
+  - name: int_unmapped_concepts
+    description: >
+      Numeric concepts with values that are not in the metric catalogue, per taxonomy version -
+      candidates for future metrics. For review, not errors.
+    columns:
+      - name: concept
+        description: Concept as filed.
+      - name: n_facts
+        description: Number of values filed.
+      - name: n_filings
+        description: Number of filings with at least one value.
+      - name: n_nonzero
+        description: Number of values that are not 0.
+
+  - name: int_normalisation_exceptions
+    description: >
+      Everything flagged, inferred or corrected, in one table for review - value flags, turnover
+      scale decisions and MtCO2e plausibility findings.
+    columns:
+      - name: exception_type
+        description: value_flag, turnover_scale or mtco2e_check.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [value_flag, turnover_scale, mtco2e_check]
+      - name: exception_code
+        description: The specific flag or finding.
+      - name: detail
+        description: Plain-English explanation with the numbers.
+
+unit_tests:
+  - name: test_pure_to_pct
+    description: Percent filed as a decimal is x100; a value already in percent is not scaled again.
+    model: int_values_normalised
+    given:
+      - input: ref('int_period_role')
+        rows:
+          - {fact_id: f1, filing_id: F, taxonomy_version: "2026-02-28", concept: PercentageOfGrossWagesPaidToFemaleToTotalWagesPaid, unit_label: pure, value_num: 0.2036, has_dimensions: false, dimension_key: "", period_role: CY}
+          - {fact_id: f2, filing_id: F, taxonomy_version: "2026-02-28", concept: PercentageOfGrossWagesPaidToFemaleToTotalWagesPaid, unit_label: pure, value_num: 20.36, has_dimensions: false, dimension_key: "", period_role: PY}
+      - input: ref('concept_metric_map')
+        rows:
+          - {taxonomy_version: "2026-02-28", concept: PercentageOfGrossWagesPaidToFemaleToTotalWagesPaid, metric_id: female_wage_share_pct, unit_std: pct, value_kind: numeric, allowed_dimension_axes: ""}
+      - input: ref('unit_normalisation')
+        rows:
+          - {unit_label_raw: pure, unit_std: pct, multiplier: 100}
+      - input: ref('int_implied_units')
+        rows: []
+      - input: ref('int_turnover_corrected')
+        rows: []
+    expect:
+      rows:
+        - {fact_id: f1, value_std: 20.36, value_pct: 20.36, normalisation_flag: ""}
+        - {fact_id: f2, value_std: 20.36, value_pct: 20.36, normalisation_flag: pct_given_as_0_100}
+
+  - name: test_per_rupee_to_per_crore
+    description: 8.88e-8 tCO2e per rupee = 0.888 tCO2e per rupee crore.
+    model: int_values_normalised
+    given:
+      - input: ref('int_period_role')
+        rows:
+          - {fact_id: f1, filing_id: F, taxonomy_version: "2026-02-28", concept: TotalScope1AndScope2EmissionsIntensityPerRupeeOfTurnover, unit_label: tCO2e/INR, value_num: 0.0000000888, has_dimensions: false, dimension_key: "", period_role: CY}
+      - input: ref('concept_metric_map')
+        rows:
+          - {taxonomy_version: "2026-02-28", concept: TotalScope1AndScope2EmissionsIntensityPerRupeeOfTurnover, metric_id: ghg_intensity_filed_tco2e_per_inr_cr, unit_std: tCO2e/INR cr, value_kind: numeric, allowed_dimension_axes: ""}
+      - input: ref('unit_normalisation')
+        rows:
+          - {unit_label_raw: tCO2e/INR, unit_std: tCO2e/INR cr, multiplier: 10000000}
+      - input: ref('int_implied_units')
+        rows: []
+      - input: ref('int_turnover_corrected')
+        rows: []
+    expect:
+      rows:
+        - {fact_id: f1, value_std: 0.888, unit_std: tCO2e/INR cr}
+
+  - name: test_iso_duration_days
+    description: Days payable filed as ISO 8601 'P59D' becomes 59 days.
+    model: int_values_normalised
+    given:
+      - input: ref('int_period_role')
+        rows:
+          - {fact_id: f1, filing_id: F, taxonomy_version: "2026-02-28", concept: NumberOfDaysOfAccountsPayable, value_text: P59D, has_dimensions: false, dimension_key: "", period_role: CY}
+      - input: ref('concept_metric_map')
+        rows:
+          - {taxonomy_version: "2026-02-28", concept: NumberOfDaysOfAccountsPayable, metric_id: days_payable, unit_std: days, value_kind: duration, allowed_dimension_axes: ""}
+      - input: ref('unit_normalisation')
+        rows:
+          - {unit_label_raw: (none), unit_std: days, multiplier: 1}
+      - input: ref('int_implied_units')
+        rows: []
+      - input: ref('int_turnover_corrected')
+        rows: []
+    expect:
+      rows:
+        - {fact_id: f1, value_std: 59, normalisation_flag: iso_duration_parsed}
+
+  - name: test_mtco2e_is_metric_tonnes
+    description: MtCO2e is read as metric tonnes (x1) and flagged.
+    model: int_values_normalised
+    given:
+      - input: ref('int_period_role')
+        rows:
+          - {fact_id: f1, filing_id: F, taxonomy_version: "2026-02-28", concept: TotalScope1Emissions, unit_label: MtCO2e, value_num: 91849.5, has_dimensions: false, dimension_key: "", period_role: CY}
+      - input: ref('concept_metric_map')
+        rows:
+          - {taxonomy_version: "2026-02-28", concept: TotalScope1Emissions, metric_id: ghg_scope1_tco2e, unit_std: tCO2e, value_kind: numeric, allowed_dimension_axes: ""}
+      - input: ref('unit_normalisation')
+        rows:
+          - {unit_label_raw: MtCO2e, unit_std: tCO2e, multiplier: 1}
+      - input: ref('int_implied_units')
+        rows: []
+      - input: ref('int_turnover_corrected')
+        rows: []
+    expect:
+      rows:
+        - {fact_id: f1, value_std: 91849.5, multiplier: 1, normalisation_flag: mtco2e_read_as_metric_tonnes}
+
+  - name: test_turnover_crore_scale
+    description: Turnover 14700.05 next to a plausible 1.28e11 year is read as crore -> 1.47e11.
+    model: int_turnover_corrected
+    given:
+      - input: ref('int_period_role')
+        rows:
+          - {filing_id: F25, symbol: TATACONSUM, fiscal_year_label: FY2024-25, concept: Turnover, value_num: 128018500000, period_role: CY, has_dimensions: false}
+          - {filing_id: F26, symbol: TATACONSUM, fiscal_year_label: FY2025-26, concept: Turnover, value_num: 14700.05, period_role: CY, has_dimensions: false}
+    expect:
+      rows:
+        - {filing_id: F25, turnover_inr: 128018500000, scale_applied: false, scale_name: rupees, confidence: high}
+        - {filing_id: F26, turnover_inr: 147000500000, scale_applied: true, scale_name: crore, confidence: high}
+
+  - name: test_period_roles
+    description: >
+      Normal year (CY, PY, PY2, instant); NESTLEIND's 15-month filing (2023-01-01..2024-03-31)
+      whose PY is calendar 2022; and the next filing, whose PY is that 15-month period and whose
+      PY2 is calendar 2022.
+    model: int_period_role
+    given:
+      - input: ref('int_facts_with_context')
+        rows:
+          - {fact_id: cy, filing_id: A, filing_period_start: "2025-04-01", filing_period_end: "2026-03-31", period_type: duration, start_date: "2025-04-01", end_date: "2026-03-31"}
+          - {fact_id: py, filing_id: A, filing_period_start: "2025-04-01", filing_period_end: "2026-03-31", period_type: duration, start_date: "2024-04-01", end_date: "2025-03-31"}
+          - {fact_id: py2, filing_id: A, filing_period_start: "2025-04-01", filing_period_end: "2026-03-31", period_type: duration, start_date: "2023-04-01", end_date: "2024-03-31"}
+          - {fact_id: inst, filing_id: A, filing_period_start: "2025-04-01", filing_period_end: "2026-03-31", period_type: instant, instant_date: "2026-03-31"}
+          - {fact_id: n15_cy, filing_id: N24, filing_period_start: "2023-01-01", filing_period_end: "2024-03-31", period_type: duration, start_date: "2023-01-01", end_date: "2024-03-31"}
+          - {fact_id: n15_py, filing_id: N24, filing_period_start: "2023-01-01", filing_period_end: "2024-03-31", period_type: duration, start_date: "2022-01-01", end_date: "2022-12-31"}
+          - {fact_id: n25_py, filing_id: N25, filing_period_start: "2024-04-01", filing_period_end: "2025-03-31", period_type: duration, start_date: "2023-01-01", end_date: "2024-03-31"}
+          - {fact_id: n25_py2, filing_id: N25, filing_period_start: "2024-04-01", filing_period_end: "2025-03-31", period_type: duration, start_date: "2022-01-01", end_date: "2022-12-31"}
+    expect:
+      rows:
+        - {fact_id: cy, period_role: CY, value_fiscal_year_label: FY2025-26}
+        - {fact_id: py, period_role: PY, value_fiscal_year_label: FY2024-25}
+        - {fact_id: py2, period_role: PY2, value_fiscal_year_label: FY2023-24}
+        - {fact_id: inst, period_role: INSTANT_CY, value_fiscal_year_label: FY2025-26}
+        - {fact_id: n15_cy, period_role: CY, value_fiscal_year_label: FY2023-24}
+        - {fact_id: n15_py, period_role: PY, value_fiscal_year_label: FY2022-23}
+        - {fact_id: n25_py, period_role: PY, value_fiscal_year_label: FY2023-24}
+        - {fact_id: n25_py2, period_role: PY2, value_fiscal_year_label: FY2022-23}

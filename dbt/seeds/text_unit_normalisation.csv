@@ -1,0 +1,22 @@
+unit_text,unit_label,note
+metric tonnes of co2 equivalent,tCO2e,
+metric tonnes of co2 equivalent (tco2e),tCO2e,
+metric tonnes of co2 eq.,tCO2e,
+metric tonnes of co2,tCO2e,
+metric tons of co2 equivalent,tCO2e,
+metric tonnes,tCO2e,unit text omits CO2e; concept is an emissions total
+tco2e,tCO2e,
+tco2 e,tCO2e,
+t co2e,tCO2e,
+tonnes co2e,tCO2e,
+tonnes of co2,tCO2e,
+tonne co2eq.,tCO2e,
+mtco2e,tCO2e,Mt = metric tonnes (see unit_normalisation MtCO2e)
+mt co2e,tCO2e,Mt = metric tonnes (see unit_normalisation MtCO2e)
+kilo tonnes of co2 equivalent,ktCO2e,
+million tco2e,million tCO2e,
+million mtco2e,million tCO2e,million metric tonnes
+million metric tonnes of co2 equivalent,million tCO2e,
+million tonnes of co2 equivalent,million tCO2e,
+million tonnes co2 equivalent,million tCO2e,
+grams co2 equivalent,gCO2e,SBILIFE FY2022-23 - x10^-6 confirmed by the next filing's comparative

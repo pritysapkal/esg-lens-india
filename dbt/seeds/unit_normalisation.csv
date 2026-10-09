@@ -1,0 +1,23 @@
+unit_label_raw,unit_std,multiplier,note
+INR,INR,1,Rupees. Turnover scale errors (crore/million/lakh) are corrected separately in int_turnover_corrected
+tCO2e,tCO2e,1,Tonnes of CO2 equivalent
+MtCO2e,tCO2e,1,BRSR filers use Mt = metric tonnes (not megatonnes): CY/PY values match tCO2e across filings - see docs/business_rules.md
+ktCO2e,tCO2e,1000,Kilotonnes (only ITC; ~1.1 million t Scope 1 is plausible for ITC)
+million tCO2e,tCO2e,1000000,Old-taxonomy free-text unit 'million tonnes of CO2 equivalent'
+gCO2e,tCO2e,0.000001,Old-taxonomy free-text unit 'grams CO2 equivalent' (SBILIFE FY2022-23): grams -> tonnes; confirmed by the next filing (86.73 t)
+tCO2e/INR,tCO2e/INR cr,10000000,Per rupee -> per rupee crore (x 1 crore = 10^7)
+MtCO2e/INR,tCO2e/INR cr,10000000,Mt = metric tonnes; per rupee -> per rupee crore
+ktCO2e/INR,tCO2e/INR cr,10000000000,Kilotonnes per rupee -> tonnes per rupee crore (10^3 x 10^7)
+GJ,GJ,1,Gigajoules
+MJ,GJ,0.001,Megajoules -> gigajoules
+TJ,GJ,1000,Terajoules -> gigajoules (verified: one TJ->GJ switch shows x1000 between filings)
+GJ/INR,GJ/INR cr,10000000,Per rupee -> per rupee crore
+MJ/INR,GJ/INR cr,10000,MJ -> GJ (10^-3) and per rupee -> per crore (10^7)
+TJ/INR,GJ/INR cr,10000000000,TJ -> GJ (10^3) and per rupee -> per crore (10^7)
+kl,kl,1,Kilolitres
+kl/INR,kl/INR cr,10000000,Per rupee -> per rupee crore
+t,t,1,Metric tonnes
+pure,count,1,Plain number (people / incidents)
+pure,per_million_hours,1,Rate per one million person-hours worked (LTIFR)
+pure,pct,100,Percent stored as a decimal (0.2036 -> 20.36 %); values > 1 are taken as already in percent and flagged
+(none),days,1,ISO 8601 duration P<n>D parsed to a number of days
