@@ -48,9 +48,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DBT_SEND_ANONYMOUS_USAGE_STATS: "false"
-      ESG_DATA_DIR: ${{ runner.temp }}/esg_data
-      DUCKDB_PATH: ${{ runner.temp }}/esg_data/ci.duckdb
     steps:
+      - name: Set data paths
+        run: |
+          echo "ESG_DATA_DIR=$RUNNER_TEMP/esg_data" >> "$GITHUB_ENV"
+          echo "DUCKDB_PATH=$RUNNER_TEMP/esg_data/ci.duckdb" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
