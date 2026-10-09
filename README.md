@@ -65,7 +65,8 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Scaffold, CI, pre-commit | repo root | ✅ Week 1 |
 | Module 1 - Manual intake pipeline (listing, universe, taxonomy scan, intake, status) | `ingestion/{discover,universe,taxonomy,intake,todo}.py` | ✅ Done |
 | Module 2 - XBRL parser (done) -> Parquet + DuckDB raw tables | `ingestion/{parse_xbrl,load_raw}.py` | ✅ Done - HDFC Bank FY2025-26: 2,182 facts, 618 concepts, 658 contexts, 11 units, 12-month period; Arelle cross-check on 5 filings: all counts and every fact/context identical ([validation](docs/parser_validation.md)) |
-| dbt staging / intermediate / marts | `dbt/models/` | 🔲 Sources point at the parsed Parquet; models next |
+| dbt staging (done) - typed, flagged staging models + tests | `dbt/models/staging/` | ✅ Done - 8 models (196 filings, 121,891 contexts, 1,714 units, 399,499 facts + 19,705 text facts), 55 tests pass, 0 cast failures, 7,226 NA-text facts |
+| dbt intermediate / marts | `dbt/models/` | 🔲 Week 5 |
 | Concept -> metric mapping | `dbt/seeds/concept_metric_map.csv` | 🟡 6 seed rows |
 | Snapshots (restatement tracker) | `dbt/snapshots/` | 🔲 Not started |
 | Data quality (tests, Elementary) | `dbt/` | 🔲 Packages installed |
@@ -98,7 +99,7 @@ dbt seed  --profiles-dir .
 cd ..
 ```
 
-Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|load|build|app`
+Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|load|dbt-build|dbt-docs|app`
 (Linux/CI: `make <target>`). To add filings, see [docs/how_to_add_filings.md](docs/how_to_add_filings.md).
 
 > dbt always runs from `dbt/` with `--profiles-dir .` - the profile lives in the repo, not in `~/.dbt`.
@@ -107,6 +108,49 @@ Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|te
 
 `requirements*.txt` are full locks (direct deps listed first). To upgrade: bump the direct pins,
 install into a fresh venv, run `pip check`, then re-freeze. `click` is capped `<8.5` by sqlfluff.
+
+## How to explore
+
+After `parse` (Module 2), build the dbt models and open the docs:
+
+```powershell
+.\scripts\dev.ps1 dbt-build     # dbt deps + dbt build (models + all tests)
+.\scripts\dev.ps1 dbt-docs      # dbt docs generate + serve -> http://localhost:8080
+
+# or by hand, from dbt/ (ESG_DATA_DIR must be ABSOLUTE - dev.ps1 sets it for you):
+cd dbt
+$env:ESG_DATA_DIR = "$((Resolve-Path ..\data).Path -replace '\\','/')"
+dbt build --profiles-dir . --select staging
+dbt show  --profiles-dir . --select staging_quality_summary --limit 200   # data-quality summary
+```
+
+The warehouse is a single DuckDB file, `data/warehouse/esg_lens.duckdb`. Open it from Python
+(`duckdb.connect("data/warehouse/esg_lens.duckdb", read_only=True).sql("...").df()`) or any
+DuckDB client, and try:
+
+```sql
+-- 1. Scope 1 emissions (tCO2e) per company for FY2025-26, company-wide, current period
+select f.symbol, x.value_num as scope1_tco2e, u.unit_label
+from stg_facts x
+join stg_filings f using (filing_id)
+join stg_contexts c on c.filing_id = x.filing_id and c.context_id = x.context_ref
+join stg_units u on u.filing_id = x.filing_id and u.unit_id = x.unit_ref
+where f.fiscal_year_label = 'FY2025-26' and x.concept = 'TotalScope1Emissions'
+  and not c.has_dimensions and c.start_date = f.period_start and c.end_date = f.period_end
+order by scope1_tco2e desc;
+
+-- 2. Filings whose main period is not 12 months
+select symbol, fiscal_year_label, period_start, period_end, period_months
+from stg_filings where is_non_standard_period;
+
+-- 3. Which questions are most often answered "not applicable"?
+select concept, count(*) as n_na
+from stg_facts where is_na_text
+group by concept order by n_na desc limit 10;
+```
+
+Staging only cleans, types and flags. Current/prior-year roles, unit conversions and the metric
+mapping come in the intermediate layer (week 5).
 
 ## Repository layout
 

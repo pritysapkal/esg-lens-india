@@ -41,3 +41,36 @@ jobs:
         run: |
           dbt deps --profiles-dir .
           dbt parse --profiles-dir .
+
+  # dbt staging on a tiny synthetic dataset built from tests/fixtures (CI has no real NSE data).
+  # Tests tagged `realdata` (exact HDFC / NESTLE values, full row counts) are excluded here.
+  dbt-staging-synthetic:
+    runs-on: ubuntu-latest
+    env:
+      DBT_SEND_ANONYMOUS_USAGE_STATS: "false"
+      ESG_DATA_DIR: ${{ runner.temp }}/esg_data
+      DUCKDB_PATH: ${{ runner.temp }}/esg_data/ci.duckdb
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Build synthetic data
+        run: python scripts/make_ci_data.py "$ESG_DATA_DIR"
+
+      - name: dbt build staging (synthetic)
+        working-directory: dbt
+        run: |
+          dbt deps --profiles-dir .
+          dbt build --profiles-dir . --select staging --exclude tag:realdata

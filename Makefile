@@ -1,13 +1,15 @@
 # Linux / macOS / CI task runner. On Windows use:  .\scripts\dev.ps1 <target>
-.PHONY: help setup lint test intake todo parse load build app
+.PHONY: help setup lint test intake todo parse load build dbt-build dbt-docs app
 
 VENV   ?= .venv
 PY     ?= $(VENV)/bin/python
 DBT    ?= $(abspath $(VENV))/bin/dbt
 DBTARGS = --profiles-dir .
+# Absolute data path: dbt staging views read the files at query time (see dbt/models/staging).
+export ESG_DATA_DIR ?= $(abspath data)
 
 help:
-	@echo "targets: setup lint test intake todo parse load build app"
+	@echo "targets: setup lint test intake todo parse load dbt-build dbt-docs app"
 
 setup:
 	python3.12 -m venv $(VENV)
@@ -19,7 +21,7 @@ setup:
 lint:
 	$(PY) -m ruff check .
 	$(PY) -m ruff format --check .
-	$(PY) -m sqlfluff lint dbt/models
+	$(PY) -m sqlfluff lint dbt/models dbt/tests dbt/analyses dbt/macros
 
 test:
 	$(PY) -m pytest -q
@@ -39,8 +41,11 @@ parse:
 load:
 	$(PY) -m ingestion.load_raw
 
-build:
+build dbt-build:
 	cd dbt && $(DBT) deps $(DBTARGS) && $(DBT) build $(DBTARGS)
+
+dbt-docs:
+	cd dbt && $(DBT) docs generate $(DBTARGS) && $(DBT) docs serve $(DBTARGS)
 
 app:
 	$(PY) -m streamlit run app/streamlit_app.py

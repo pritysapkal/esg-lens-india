@@ -25,9 +25,9 @@ repos:
     rev: 4.4.0 # keep in step with sqlfluff in requirements-dev.txt
     hooks:
       - id: sqlfluff-lint
-        files: ^dbt/(models|snapshots|analyses|macros)/.*\.sql$
+        files: ^dbt/(models|snapshots|analyses|macros|tests)/.*\.sql$
       - id: sqlfluff-fix
-        files: ^dbt/(models|snapshots|analyses|macros)/.*\.sql$
+        files: ^dbt/(models|snapshots|analyses|macros|tests)/.*\.sql$
 
   - repo: local
     hooks:

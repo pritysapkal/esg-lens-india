@@ -1,6 +1,7 @@
 [sqlfluff]
 dialect = duckdb
-# Plain jinja templater for now; switch to `dbt` templater once models exist and CI has a profile.
+# Jinja templater with dummy dbt builtins + the project macros: lints without a database or data
+# (the dbt templater would need sqlfluff-templater-dbt and a built profile).
 templater = jinja
 max_line_length = 100
 exclude_rules = ST06
@@ -8,6 +9,7 @@ exclude_rules = ST06
 [sqlfluff:templater:jinja]
 # Provides dummy ref() / source() / config() / var() so dbt models lint without dbt.
 apply_dbt_builtins = True
+load_macros_from_path = dbt/macros
 
 [sqlfluff:indentation]
 tab_space_size = 4
@@ -26,3 +28,7 @@ capitalisation_policy = lower
 
 [sqlfluff:rules:capitalisation.types]
 extended_capitalisation_policy = lower
+
+[sqlfluff:rules:references.keywords]
+# Column names fixed by the parser output / model contract (facts.sequence, stg_text_facts.text).
+ignore_words = sequence, text

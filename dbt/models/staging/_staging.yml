@@ -1,0 +1,413 @@
+version: 2
+
+# Staging = clean, rename, type-cast and flag only. No business logic: current/prior-year roles,
+# unit conversions and the concept -> metric mapping come in the intermediate layer.
+
+models:
+  - name: stg_filings
+    description: >
+      One row per BRSR filing that was received and parsed. Shows which company filed it, which
+      version of SEBI's reporting template (taxonomy) it uses, the main period it reports on, and
+      how big it is. A filing normally covers one Indian financial year (April to March).
+    tests:
+      - dbt_expectations.expect_table_row_count_to_equal_other_table:
+          arguments:
+            compare_model: source('brsr_raw', 'filings')
+    columns:
+      - name: filing_id
+        description: Unique ID of the filing (a fingerprint of its NSE file address). Links all tables.
+        tests: [unique, not_null]
+      - name: symbol
+        description: NSE trading symbol of the company, e.g. HDFCBANK.
+        tests: [not_null]
+      - name: isin
+        description: >
+          ISIN of the company's shares - the international code that identifies the company in
+          this project.
+        tests: [not_null]
+      - name: isin_source
+        description: >
+          Where the ISIN came from - "xbrl" (written in the filing itself), "xbrl_same_symbol"
+          (from another filing of the same company) or "universe" (from the NIFTY 50 list).
+          Older filings identify the company by CIN instead of ISIN.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [xbrl, xbrl_same_symbol, universe]
+      - name: entity_identifier
+        description: The company identifier exactly as written in the filing (an ISIN or a CIN).
+      - name: entity_identifier_scheme
+        description: What kind of identifier the filing uses, e.g. ISIN or CorporateIdentityNumber.
+      - name: taxonomy_version
+        description: >
+          Version of SEBI's BRSR reporting template the filing follows, as a date label
+          (e.g. 2026-02-28). Concept names can change between versions.
+        tests: [not_null]
+      - name: file_path
+        description: Where the original XBRL file is stored locally (inside the git-ignored data folder).
+      - name: main_context_id
+        description: >
+          The filing's main period context - the company-wide period with the latest end date.
+          Most values in the filing refer to it.
+      - name: period_start
+        description: First day of the main reporting period.
+      - name: period_end
+        description: Last day of the main reporting period.
+        tests: [not_null]
+      - name: period_days
+        description: Length of the main period in days, counting both the first and the last day.
+      - name: period_months
+        description: Length of the main period in whole months (365 days = 12, 456 days = 15).
+      - name: is_non_standard_period
+        description: >
+          True when the main period is not 12 months long - e.g. a 15-month transition year.
+          Values from such filings are not directly comparable with a normal year.
+      - name: reporting_year_label
+        description: >
+          The year label NSE shows in its listing, e.g. "2025-2026" (from the listing; falls back
+          to the label used when the file was received).
+        tests: [not_null]
+      - name: fiscal_year_label
+        description: >
+          Indian financial year (April to March) in which the main period ends, e.g. "FY2025-26"
+          for a period ending 31 March 2026. For calendar-year or 15-month periods it is still
+          based on the end date - check is_non_standard_period.
+        tests: [not_null]
+      - name: label_matches_period
+        description: >
+          True when NSE's year label agrees with the financial year of the period end date
+          (e.g. "2025-2026" and FY2025-26). False points to a mislabelled or unusual filing.
+      - name: n_facts
+        description: Total number of reported values (facts) in the filing, text and numbers.
+      - name: n_numeric
+        description: How many of the facts are numbers with a unit (rupees, tonnes, percentages...).
+      - name: n_text
+        description: How many facts are long text (narrative sections or values over 1,000 characters).
+      - name: n_nil
+        description: How many facts were explicitly left empty by the filer (marked "nil" in XBRL).
+      - name: n_concepts
+        description: How many different reporting items (concepts) the filing uses.
+      - name: n_contexts
+        description: How many contexts (combinations of period and breakdown) the filing defines.
+      - name: n_units
+        description: How many units of measure the filing defines.
+      - name: n_dimension_axes
+        description: How many different breakdown types (e.g. by gender, by employee type) the filing uses.
+      - name: parse_seconds
+        description: Seconds the parser needed for this file (technical, for monitoring).
+      - name: parser_version
+        description: Version of the XBRL parser that produced the data (technical, for lineage).
+
+  - name: stg_contexts
+    description: >
+      One row per context. A context says what a reported value is about - which company, which
+      period (a span of time or a single date) and, optionally, which slice (e.g. women
+      employees only). Every fact points to one context.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [filing_id, context_id]
+      - dbt_expectations.expect_table_row_count_to_equal_other_table:
+          arguments:
+            compare_model: source('brsr_raw', 'contexts')
+    columns:
+      - name: filing_id
+        description: The filing this context belongs to.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_filings')
+                field: filing_id
+      - name: context_id
+        description: Name of the context inside the filing, e.g. DCYMain (unique only within one filing).
+        tests: [not_null]
+      - name: reporting_year_label
+        description: NSE year label of the filing, e.g. "2025-2026" (from the folder the data is stored in).
+      - name: identifier_scheme
+        description: Kind of company identifier used in the context (full scheme address as filed).
+      - name: identifier_value
+        description: The company identifier as filed (ISIN or CIN).
+      - name: period_type
+        description: >
+          "duration" for a span of time (e.g. emissions during the year) or "instant" for a single
+          date (e.g. number of employees on 31 March).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [duration, instant]
+      - name: start_date
+        description: First day of the period (duration contexts only).
+      - name: end_date
+        description: Last day of the period (duration contexts only).
+      - name: instant_date
+        description: The date the value refers to (instant contexts only).
+      - name: dimension_key
+        description: >
+          Readable summary of the slice, sorted by breakdown name, e.g.
+          "EmployeesAndWorkersAxis=EmployeesMember|GenderAxis=FemaleMember". Empty text when the
+          value covers the whole company.
+        tests: [not_null]
+      - name: n_dimensions
+        description: How many breakdowns the context applies (0 = whole company).
+      - name: has_dimensions
+        description: True when the value is for a slice (e.g. only women) rather than the whole company.
+      - name: dimensions
+        description: >
+          The breakdowns as filed, in JSON: a list of {axis, member, member_type}. member_type is
+          "explicit" (a fixed choice such as Female) or "typed" (free text such as a row number).
+
+  - name: stg_units
+    description: >
+      One row per unit of measure defined in a filing, e.g. rupees (INR), tonnes of CO2
+      equivalent (tCO2e), or ratios such as tCO2e per rupee of turnover.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [filing_id, unit_id]
+      - dbt_expectations.expect_table_row_count_to_equal_other_table:
+          arguments:
+            compare_model: source('brsr_raw', 'units')
+    columns:
+      - name: filing_id
+        description: The filing this unit belongs to.
+        tests: [not_null]
+      - name: unit_id
+        description: Name of the unit inside the filing, e.g. INR or tCO2ePerINR.
+        tests: [not_null]
+      - name: reporting_year_label
+        description: NSE year label of the filing.
+      - name: numerator_measures
+        description: >
+          What is being measured (the top part of a ratio), without technical prefixes - e.g.
+          ["tCO2e"]. For simple units this is the whole unit.
+      - name: denominator_measures
+        description: The "per ..." part of a ratio unit, e.g. ["INR"]. Empty for simple units.
+      - name: unit_label
+        description: Readable unit, e.g. "INR", "tCO2e" or "tCO2e/INR" (per rupee).
+        tests: [not_null]
+      - name: is_ratio_unit
+        description: True for "per" units (e.g. per rupee of turnover), i.e. units with a denominator.
+      - name: is_pure
+        description: True for "pure" - a plain number without a unit (counts, shares, percentages).
+      - name: numerator_measures_qname
+        description: The numerator measures exactly as filed, with prefixes (e.g. "Non-SI:tCO2e").
+      - name: denominator_measures_qname
+        description: The denominator measures exactly as filed, with prefixes (e.g. "iso4217:INR").
+
+  - name: stg_facts
+    description: >
+      One row per reported value (fact), numbers and short text. The original text is kept in
+      raw_value; numbers are also given as value_num. Flags mark empty, "not applicable",
+      zero and unreadable values. Long narrative text is in stg_text_facts. Built as a table.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_equal_other_table:
+          arguments:
+            compare_model: source('brsr_raw', 'facts')
+      - relationships_composite:
+          arguments:
+            columns: [filing_id, context_ref]
+            to: ref('stg_contexts')
+            to_columns: [filing_id, context_id]
+      - relationships_composite:
+          arguments:
+            columns: [filing_id, unit_ref]
+            to: ref('stg_units')
+            to_columns: [filing_id, unit_id]
+          config:
+            where: is_numeric # text facts have no unit
+    columns:
+      - name: fact_id
+        description: Unique ID of the fact (stable across re-runs of the parser).
+        tests: [unique, not_null]
+      - name: filing_id
+        description: The filing the fact comes from.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_filings')
+                field: filing_id
+      - name: reporting_year_label
+        description: NSE year label of the filing.
+      - name: sequence
+        description: Position of the fact in the original file (1 = first).
+      - name: concept
+        description: >
+          The reporting item, e.g. TotalScope1Emissions. Names come from SEBI's taxonomy and can
+          change between taxonomy versions.
+        tests: [not_null]
+      - name: namespace
+        description: Technical address of the taxonomy the concept belongs to (includes the version date).
+      - name: prefix
+        description: Short alias of the namespace used in the file, e.g. in-capmkt.
+      - name: context_ref
+        description: Which context (period and slice) the value is about - see stg_contexts.
+        tests: [not_null]
+      - name: unit_ref
+        description: Unit of the value - see stg_units. Empty for text values.
+      - name: raw_value
+        description: >
+          The value exactly as written in the filing, as text. Never changed - every other value
+          column is derived from it. Empty only when the filer marked the fact nil.
+      - name: is_nil
+        description: True when the filer explicitly left the value empty (XBRL "nil").
+      - name: is_numeric
+        description: True for numbers (facts that carry a unit); false for text, dates and yes/no answers.
+      - name: decimals_raw
+        description: The precision attribute exactly as filed (e.g. "2", "0", "INF").
+      - name: value_num
+        description: >
+          The number, for numeric facts (raw_value read as a floating-point number). Empty for
+          text, nil values, or when the text cannot be read as a number (see is_cast_failed).
+      - name: value_text
+        description: The value as text, for non-numeric facts only (names, dates, yes/no, short answers).
+      - name: decimals
+        description: >
+          How many decimal places the filer says the number is accurate to (negative = rounded to
+          tens, hundreds...). Empty when the filer wrote INF (exact).
+      - name: decimals_is_inf
+        description: True when the filer marked the number as exact (decimals = INF).
+      - name: is_na_text
+        description: >
+          True when the value means "not applicable" or "not available" - e.g. NA, N.A., N/A,
+          Not Applicable or a dash. The patterns are listed in the na_text_patterns macro.
+          "Nil", "None" and "No" are NOT counted: in BRSR they are real answers (zero / no).
+      - name: is_cast_failed
+        description: >
+          True for a numeric fact that is not empty or "not applicable" but still could not be read
+          as a number. These need a manual look (see the staging_quality_summary analysis).
+      - name: is_zero
+        description: True when the number is exactly 0.
+
+  - name: stg_text_facts
+    description: >
+      One row per long text value - narrative sections ("TextBlock" items) or any value longer than
+      1,000 characters. The full text is kept.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_equal_other_table:
+          arguments:
+            compare_model: source('brsr_raw', 'text_facts')
+      - relationships_composite:
+          arguments:
+            columns: [filing_id, context_ref]
+            to: ref('stg_contexts')
+            to_columns: [filing_id, context_id]
+    columns:
+      - name: fact_id
+        description: Unique ID of the fact (stable across re-runs of the parser).
+        tests: [unique, not_null]
+      - name: filing_id
+        description: The filing the text comes from.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_filings')
+                field: filing_id
+      - name: reporting_year_label
+        description: NSE year label of the filing.
+      - name: sequence
+        description: Position of the fact in the original file (1 = first).
+      - name: concept
+        description: The reporting item, e.g. DetailsOfBusinessActivitiesExplanatoryTextBlock.
+        tests: [not_null]
+      - name: context_ref
+        description: Which context (period and slice) the text is about - see stg_contexts.
+      - name: is_nil
+        description: True when the filer explicitly left the value empty (XBRL "nil").
+      - name: text
+        description: The full text exactly as filed. Narrative sections often contain HTML markup.
+      - name: text_length
+        description: Number of characters in the text.
+
+  - name: stg_listing
+    description: >
+      NSE's list of BRSR filings - one row per filing NSE shows, whether or not we have the file.
+      The NSE web links are left out on purpose: published outputs must not link to NSE filings.
+    columns:
+      - name: filing_id
+        description: Unique ID of the filing (same as in stg_filings).
+        tests: [unique, not_null]
+      - name: symbol
+        description: NSE trading symbol of the company.
+        tests: [not_null]
+      - name: company_name
+        description: Company name as shown by NSE.
+      - name: reporting_year_label
+        description: Year label NSE shows, e.g. "2025-2026".
+      - name: is_non_standard_period
+        description: True when NSE's from-year/to-year span is not exactly one year.
+      - name: xbrl_file_name
+        description: File name of the machine-readable (XBRL) version of the filing.
+      - name: source_file
+        description: Which downloaded listing CSV this row came from.
+      - name: fy_from
+        description: First year of NSE's year label (2025 in "2025-2026").
+      - name: fy_to
+        description: Second year of NSE's year label (2026 in "2025-2026").
+      - name: submission_date
+        description: Date the company first submitted the filing to NSE.
+      - name: revision_date
+        description: Date of the latest revision, if the filing was revised; empty otherwise.
+      - name: in_universe
+        description: >
+          True when the company is in the current official NIFTY 50 list. Companies that left the
+          index (e.g. WIPRO) are kept but marked false.
+      - name: is_received
+        description: True when the XBRL file has been downloaded and taken in (it is in the manifest).
+
+  - name: stg_manifest
+    description: >
+      The intake log - one row per XBRL file that was downloaded by hand and filed into the local
+      store, with its checksum and how the company's ISIN was determined.
+    columns:
+      - name: filing_id
+        description: Unique ID of the filing.
+        tests: [unique, not_null]
+      - name: symbol
+        description: NSE trading symbol of the company.
+      - name: isin
+        description: ISIN used to file the document (see isin_source).
+      - name: isin_source
+        description: Where the ISIN came from - xbrl, xbrl_same_symbol or universe.
+      - name: reporting_year_label
+        description: NSE year label of the filing.
+      - name: taxonomy_version
+        description: SEBI reporting template version the file uses.
+      - name: entity_identifier
+        description: Company identifier exactly as written in the filing.
+      - name: entity_identifier_scheme
+        description: Kind of identifier the filing uses (ISIN or CorporateIdentityNumber).
+      - name: file_name
+        description: Original file name as downloaded from NSE.
+      - name: file_path
+        description: Where the file is stored locally (inside the git-ignored data folder).
+      - name: sha256
+        description: Checksum of the file - proves the file has not changed since intake.
+        tests: [unique, not_null]
+      - name: file_bytes
+        description: File size in bytes.
+      - name: received_at
+        description: When the file was taken in (timestamp with time zone).
+      - name: matched_listing
+        description: True when the file was matched to a row in NSE's listing.
+
+  - name: stg_universe
+    description: >
+      The official NIFTY 50 constituents list (niftyindices.com), saved by hand - the 50
+      companies this project covers.
+    columns:
+      - name: symbol
+        description: NSE trading symbol.
+        tests: [unique, not_null]
+      - name: company_name
+        description: Company name as given by NSE Indices.
+      - name: industry
+        description: Industry classification given by NSE Indices.
+      - name: series
+        description: Trading series on NSE (EQ = normal equity shares).
+      - name: isin
+        description: ISIN of the company's shares.
+        tests: [unique, not_null]

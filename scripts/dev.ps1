@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'app')]
+    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'app')]
     [string]$Task = 'help'
 )
 
@@ -18,6 +18,9 @@ $Venv = Join-Path $Root '.venv'
 $Py = Join-Path $Venv 'Scripts\python.exe'
 $Dbt = Join-Path $Venv 'Scripts\dbt.exe'
 $DbtDir = Join-Path $Root 'dbt'
+# dbt staging views read the Parquet/CSV files at query time, so give dbt an ABSOLUTE data path;
+# a relative one would only resolve when the warehouse is queried from dbt/.
+if (-not $env:ESG_DATA_DIR) { $env:ESG_DATA_DIR = (Join-Path $Root 'data') -replace '\\', '/' }
 
 function Invoke-Step {
     param([string]$Exe, [string[]]$Arguments)
@@ -34,7 +37,7 @@ Push-Location $Root
 try {
     switch ($Task) {
         'help' {
-            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|build|app>'
+            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|app>'
         }
         'setup' {
             if (-not (Test-Path $Py)) { Invoke-Step 'py' @('-3.12', '-m', 'venv', $Venv) }
@@ -49,7 +52,7 @@ try {
             Assert-Venv
             Invoke-Step $Py @('-m', 'ruff', 'check', '.')
             Invoke-Step $Py @('-m', 'ruff', 'format', '--check', '.')
-            Invoke-Step $Py @('-m', 'sqlfluff', 'lint', 'dbt/models')
+            Invoke-Step $Py @('-m', 'sqlfluff', 'lint', 'dbt/models', 'dbt/tests', 'dbt/analyses', 'dbt/macros')
         }
         'test' {
             Assert-Venv
@@ -74,12 +77,20 @@ try {
             Assert-Venv
             Invoke-Step $Py @('-m', 'ingestion.load_raw')
         }
-        'build' {
+        { $_ -in 'build', 'dbt-build' } {
             Assert-Venv
             Push-Location $DbtDir
             try {
                 Invoke-Step $Dbt @('deps', '--profiles-dir', '.')
                 Invoke-Step $Dbt @('build', '--profiles-dir', '.')
+            } finally { Pop-Location }
+        }
+        'dbt-docs' {
+            Assert-Venv
+            Push-Location $DbtDir
+            try {
+                Invoke-Step $Dbt @('docs', 'generate', '--profiles-dir', '.')
+                Invoke-Step $Dbt @('docs', 'serve', '--profiles-dir', '.')
             } finally { Pop-Location }
         }
         'app' {

@@ -2,3 +2,5 @@ dbt/target/
 dbt/dbt_packages/
 dbt/logs/
 .venv/
+# {% test %} blocks are not understood by sqlfluff's jinja templater
+dbt/tests/generic/
