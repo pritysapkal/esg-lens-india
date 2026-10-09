@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'build', 'app')]
+    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'app')]
     [string]$Task = 'help'
 )
 
@@ -34,7 +34,7 @@ Push-Location $Root
 try {
     switch ($Task) {
         'help' {
-            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|build|app>'
+            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|build|app>'
         }
         'setup' {
             if (-not (Test-Path $Py)) { Invoke-Step 'py' @('-3.12', '-m', 'venv', $Venv) }
@@ -69,6 +69,10 @@ try {
         'parse' {
             Assert-Venv
             Invoke-Step $Py @('-m', 'ingestion.parse_xbrl')
+        }
+        'load' {
+            Assert-Venv
+            Invoke-Step $Py @('-m', 'ingestion.load_raw')
         }
         'build' {
             Assert-Venv

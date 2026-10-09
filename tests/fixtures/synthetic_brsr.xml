@@ -40,6 +40,40 @@
     </xbrli:scenario>
   </xbrli:context>
 
+  <xbrli:context id="DPYMain">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://www.sebi.gov.in/in-capmkt/ISIN">INE000X00000</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-04-01</xbrli:startDate>
+      <xbrli:endDate>2025-03-31</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+  <xbrli:context id="ICYMaleEmployees">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://www.sebi.gov.in/in-capmkt/ISIN">INE000X00000</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:instant>2026-03-31</xbrli:instant>
+    </xbrli:period>
+    <xbrli:scenario>
+      <xbrldi:explicitMember dimension="in-capmkt:GenderAxis">in-capmkt:MaleMember</xbrldi:explicitMember>
+      <xbrldi:explicitMember dimension="in-capmkt:EmployeesAndWorkersAxis">in-capmkt:EmployeesMember</xbrldi:explicitMember>
+    </xbrli:scenario>
+  </xbrli:context>
+  <xbrli:context id="D_AssuranceProvider1">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://www.sebi.gov.in/in-capmkt/ISIN">INE000X00000</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-04-01</xbrli:startDate>
+      <xbrli:endDate>2026-03-31</xbrli:endDate>
+    </xbrli:period>
+    <xbrli:scenario>
+      <xbrldi:typedMember dimension="in-capmkt:AssessmentOrAssuranceProviderAxis"><in-capmkt:AssessmentOrAssuranceProviderDomain>Provider1</in-capmkt:AssessmentOrAssuranceProviderDomain></xbrldi:typedMember>
+    </xbrli:scenario>
+  </xbrli:context>
+
   <xbrli:unit id="INR">
     <xbrli:measure>iso4217:INR</xbrli:measure>
   </xbrli:unit>
@@ -48,6 +82,16 @@
   </xbrli:unit>
   <xbrli:unit id="tCO2e">
     <xbrli:measure>in-capmkt:tCO2e</xbrli:measure>
+  </xbrli:unit>
+  <xbrli:unit id="tCO2ePerINR">
+    <xbrli:divide>
+      <xbrli:unitNumerator>
+        <xbrli:measure>in-capmkt:tCO2e</xbrli:measure>
+      </xbrli:unitNumerator>
+      <xbrli:unitDenominator>
+        <xbrli:measure>iso4217:INR</xbrli:measure>
+      </xbrli:unitDenominator>
+    </xbrli:divide>
   </xbrli:unit>
 
   <in-capmkt:NameOfTheCompany contextRef="DCYMain">Example Ltd</in-capmkt:NameOfTheCompany>
@@ -58,4 +102,10 @@
   <in-capmkt:TotalScope1Emissions contextRef="DCYMain" unitRef="tCO2e" decimals="2">12345.67</in-capmkt:TotalScope1Emissions>
   <in-capmkt:TotalScope2Emissions contextRef="DCYMain" unitRef="tCO2e" decimals="2">23456.78</in-capmkt:TotalScope2Emissions>
   <in-capmkt:TotalScope3Emissions contextRef="DCYMain" unitRef="tCO2e" decimals="2" xsi:nil="true"/>
+  <in-capmkt:TotalScope1Emissions contextRef="DPYMain" unitRef="tCO2e" decimals="2">11111.10</in-capmkt:TotalScope1Emissions>
+  <in-capmkt:NumberOfEmployees contextRef="ICYMaleEmployees" unitRef="pure" decimals="0">900</in-capmkt:NumberOfEmployees>
+  <in-capmkt:TotalScope1EmissionsPerRupeeOfTurnover contextRef="DCYMain" unitRef="tCO2ePerINR" decimals="INF">0.0000000888</in-capmkt:TotalScope1EmissionsPerRupeeOfTurnover>
+  <in-capmkt:NameOfAssessmentOrAssuranceProvider contextRef="D_AssuranceProvider1">Example Assurance LLP</in-capmkt:NameOfAssessmentOrAssuranceProvider>
+  <in-capmkt:DetailsOfMaterialIssuesExplanatoryTextBlock contextRef="DCYMain">&lt;p&gt;Short block&lt;/p&gt;</in-capmkt:DetailsOfMaterialIssuesExplanatoryTextBlock>
+  <in-capmkt:PolicyDetailsExplanatoryTextBlock contextRef="DCYMain">&lt;p&gt;Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. Synthetic policy text for testing only. &lt;/p&gt;</in-capmkt:PolicyDetailsExplanatoryTextBlock>
 </xbrli:xbrl>

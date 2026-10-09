@@ -36,10 +36,10 @@ def test_cin_scheme_has_no_isin(synthetic_xml: Path, tmp_path: Path) -> None:
 
 def test_count_instance(synthetic_xml: Path) -> None:
     counts = count_instance(synthetic_xml)
-    assert counts.facts == 8
-    assert counts.concepts == 7
-    assert counts.contexts == 3
-    assert counts.units == 3
+    assert counts.facts == 14
+    assert counts.concepts == 11
+    assert counts.contexts == 6
+    assert counts.units == 4
     assert counts.nil_facts == 1
 
 

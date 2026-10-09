@@ -1,5 +1,5 @@
 # Linux / macOS / CI task runner. On Windows use:  .\scripts\dev.ps1 <target>
-.PHONY: help setup lint test intake todo parse build app
+.PHONY: help setup lint test intake todo parse load build app
 
 VENV   ?= .venv
 PY     ?= $(VENV)/bin/python
@@ -7,7 +7,7 @@ DBT    ?= $(abspath $(VENV))/bin/dbt
 DBTARGS = --profiles-dir .
 
 help:
-	@echo "targets: setup lint test intake todo parse build app"
+	@echo "targets: setup lint test intake todo parse load build app"
 
 setup:
 	python3.12 -m venv $(VENV)
@@ -35,6 +35,9 @@ todo:
 
 parse:
 	$(PY) -m ingestion.parse_xbrl
+
+load:
+	$(PY) -m ingestion.load_raw
 
 build:
 	cd dbt && $(DBT) deps $(DBTARGS) && $(DBT) build $(DBTARGS)

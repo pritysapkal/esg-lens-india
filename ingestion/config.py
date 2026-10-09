@@ -37,6 +37,8 @@ DUCKDB_PATH: Path = _resolve(os.getenv("DUCKDB_PATH", "data/warehouse/esg_lens.d
 MANIFEST_PATH: Path = RAW_DIR / "manifest.csv"  # sha256 intake manifest (append-only)
 LISTING_PARQUET: Path = PROCESSED_DIR / "listing.parquet"
 TAXONOMY_VERSIONS_CSV: Path = PROCESSED_DIR / "taxonomy_versions.csv"
+PARSED_DIR: Path = PROCESSED_DIR / "parsed"  # <table>/reporting_year_label=<y>/<filing_id>.parquet
+PARSE_ERRORS_CSV: Path = PROCESSED_DIR / "parse_errors.csv"
 
 # --- Repo assets ---------------------------------------------------------------------------
 FIXTURES_DIR: Path = REPO_ROOT / "fixtures"

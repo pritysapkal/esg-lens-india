@@ -28,3 +28,11 @@ repos:
         files: ^dbt/(models|snapshots|analyses|macros)/.*\.sql$
       - id: sqlfluff-fix
         files: ^dbt/(models|snapshots|analyses|macros)/.*\.sql$
+
+  - repo: local
+    hooks:
+      - id: strip-notebook-outputs # notebooks show real NSE-derived data; never commit outputs
+        name: strip notebook outputs
+        entry: python scripts/strip_notebook_outputs.py
+        language: system # stdlib-only script; uses the active (venv) python
+        files: \.ipynb$

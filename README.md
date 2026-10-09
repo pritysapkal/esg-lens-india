@@ -43,8 +43,8 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
                        todo.py ──► docs/data_status.md                         ▼
                                                         parse_xbrl.py (lxml)
                                                                │
-                                       data/processed/{contexts,units,facts,text_facts}.parquet
-                                                               │
+          data/processed/parsed/{filings,contexts,units,facts,text_facts}/reporting_year_label=*/
+                                                               │  (load_raw.py -> raw_* tables)
  ┌──────────────────────────── dbt Core on DuckDB (data/warehouse/esg_lens.duckdb) ───────────┐
  │  seeds (concept_metric_map, nic_sector_map)                                                │
  │  bronze/staging (views) ─► silver/intermediate (views) ─► gold/marts (tables, Kimball star) │
@@ -64,8 +64,8 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 |---|---|---|
 | Scaffold, CI, pre-commit | repo root | ✅ Week 1 |
 | Module 1 - Manual intake pipeline (listing, universe, taxonomy scan, intake, status) | `ingestion/{discover,universe,taxonomy,intake,todo}.py` | ✅ Done |
-| XBRL parser -> Parquet | `ingestion/parse_xbrl.py` | 🔲 Stub |
-| dbt staging / intermediate / marts | `dbt/models/` | 🔲 Sources placeholder only |
+| Module 2 - XBRL parser (done) -> Parquet + DuckDB raw tables | `ingestion/{parse_xbrl,load_raw}.py` | ✅ Done - HDFC Bank FY2025-26: 2,182 facts, 618 concepts, 658 contexts, 11 units, 12-month period; Arelle cross-check on 5 filings: all counts and every fact/context identical ([validation](docs/parser_validation.md)) |
+| dbt staging / intermediate / marts | `dbt/models/` | 🔲 Sources point at the parsed Parquet; models next |
 | Concept -> metric mapping | `dbt/seeds/concept_metric_map.csv` | 🟡 6 seed rows |
 | Snapshots (restatement tracker) | `dbt/snapshots/` | 🔲 Not started |
 | Data quality (tests, Elementary) | `dbt/` | 🔲 Packages installed |
@@ -98,7 +98,7 @@ dbt seed  --profiles-dir .
 cd ..
 ```
 
-Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|build|app`
+Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|load|build|app`
 (Linux/CI: `make <target>`). To add filings, see [docs/how_to_add_filings.md](docs/how_to_add_filings.md).
 
 > dbt always runs from `dbt/` with `--profiles-dir .` - the profile lives in the repo, not in `~/.dbt`.
@@ -115,6 +115,7 @@ ingestion/     Python: listing -> manual intake -> status report -> parse XBRL -
 dbt/           dbt project `esg_lens` (DuckDB), seeds, snapshots, tests
 data/          raw / processed / warehouse (git-ignored contents)
 tests/fixtures/ synthetic test data (no real filings are committed)
+notebooks/     learning notebooks (outputs are never committed)
 app/           Streamlit report-card app
 dashboards/    Power BI / Excel
 ai/            MCP-based AI analyst

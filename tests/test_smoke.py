@@ -16,6 +16,7 @@ INGESTION_MODULES = [
     "ingestion.discover",
     "ingestion.instance",
     "ingestion.intake",
+    "ingestion.load_raw",
     "ingestion.parse_xbrl",
     "ingestion.taxonomy",
     "ingestion.todo",
