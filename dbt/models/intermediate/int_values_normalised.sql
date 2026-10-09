@@ -5,6 +5,9 @@
 --   duration: ISO 8601 'P59D' -> 59 days
 --   turnover: corrected scale from int_turnover_corrected
 --   old-taxonomy 'pure' quantities: unit from int_implied_units
+--   manual overrides (seeds/manual_overrides.csv): approved corrections, applied AFTER the
+--   automatic steps to every value of that metric in that filing: value_std = value_std_auto x
+--   override multiplier. value_num (filed), value_std_auto and value_std (final) are all kept.
 -- raw_value and value_num are kept; every changed or inferred value has a normalisation_flag,
 -- and corrections a correction_reason. NA text / zero stay distinct; missing = no row.
 
@@ -28,6 +31,10 @@ implied as (
 
 turnover as (
     select * from {{ ref('int_turnover_corrected') }}
+),
+
+overrides as (
+    select * from {{ ref('manual_overrides') }}
 ),
 
 mapped as (
@@ -80,7 +87,7 @@ converted as (
             when resolved.metric_id = 'turnover_inr' and turnover.turnover_inr is not null
                 then turnover.turnover_inr
             else {{ round_sig("resolved.value_in * units.multiplier") }}
-        end as value_std
+        end as value_std_auto
     from resolved
     left join units
         on
@@ -92,6 +99,23 @@ converted as (
             and resolved.metric_id = 'turnover_inr'
             and resolved.period_role = 'CY'
             and not resolved.has_dimensions
+),
+
+overridden as (
+    select
+        converted.*,
+        overrides.override_id,
+        overrides.multiplier as override_multiplier,
+        overrides.reason as override_reason,
+        coalesce(
+            {{ round_sig("converted.value_std_auto * overrides.multiplier") }},
+            converted.value_std_auto
+        ) as value_std
+    from converted
+    left join overrides
+        on
+            converted.filing_id = overrides.filing_id
+            and converted.metric_id = overrides.metric_id
 )
 
 select
@@ -126,6 +150,9 @@ select
     unit_label_effective,
     unit_std,
     multiplier,
+    value_std_auto,
+    override_id,
+    override_multiplier,
     value_std,
     case when unit_std = 'pct' then value_std end as value_pct,
     is_nil,
@@ -135,9 +162,11 @@ select
         '|',
         case when unit_std = 'pct' and value_in > 1 then 'pct_given_as_0_100' end,
         case when value_kind = 'text' and value_in is not null then 'numeric_from_text' end,
-        case when value_kind = 'duration' and value_std is not null then 'iso_duration_parsed' end,
         case
-            when value_kind = 'duration' and value_std is null and not is_nil
+            when value_kind = 'duration' and value_std_auto is not null then 'iso_duration_parsed'
+        end,
+        case
+            when value_kind = 'duration' and value_std_auto is null and not is_nil
                 then 'iso_duration_unparsed'
         end,
         case
@@ -155,13 +184,18 @@ select
             when value_in is not null and multiplier is null and value_kind != 'duration'
                 then 'unit_not_in_map'
         end,
-        case when turnover_scale_applied then 'turnover_scale_corrected' end
+        case when turnover_scale_applied then 'turnover_scale_corrected' end,
+        case when override_id is not null then 'manual_override' end
     ) as normalisation_flag,
     case
+        when override_id is not null
+            then
+                override_id || ' (approved): ' || override_reason || '; value x'
+                || override_multiplier
         when turnover_scale_applied then turnover_correction_reason
         when implied_unit_source is not null and multiplier != 1
             then
                 'unit ' || unit_label_effective || ' inferred (' || implied_unit_source
                 || '); value x' || multiplier
     end as correction_reason
-from converted
+from overridden

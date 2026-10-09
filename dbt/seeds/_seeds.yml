@@ -94,3 +94,46 @@ seeds:
         tests: [not_null]
       - name: note
         description: Comment on the mapping.
+
+  - name: manual_overrides
+    description: >
+      Approved manual corrections for scale errors the automatic rules cannot fix (megatonnes
+      filed as "MtCO2e", turnover filed 10-1000x too small). One row per filing and metric; the
+      multiplier is applied to every value of that metric in that filing, after the automatic
+      normalisation. Evidence and approval are recorded per row; see docs/business_rules.md.
+    columns:
+      - name: override_id
+        description: Stable ID of the override, e.g. OVR-001.
+        tests: [unique, not_null]
+      - name: symbol
+        description: NSE symbol of the company (must match the filing).
+        tests: [not_null]
+      - name: fiscal_year_label
+        description: Financial year of the filing (must match the filing).
+        tests: [not_null]
+      - name: filing_id
+        description: The filing whose values are corrected.
+        tests: [not_null]
+      - name: metric_id
+        description: Catalogue metric to correct (turnover = turnover_inr).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('concept_metric_map')
+                field: metric_id
+      - name: multiplier
+        description: Factor applied to the automatically normalised value (e.g. 1000000 for megatonnes).
+        tests: [not_null]
+      - name: reason
+        description: Why the filed value is wrong, in plain English.
+        tests: [not_null]
+      - name: evidence
+        description: The numbers that support the correction (company's other years, text units, peers).
+        tests: [not_null]
+      - name: approved_by
+        description: Who approved the override.
+        tests: [not_null]
+      - name: approved_on
+        description: Date of approval.
+        tests: [not_null]

@@ -51,17 +51,17 @@ FY2025-26).
 | ULTRACEMCO | FY2025-26 | crore |
 | BSE | FY2025-26 | lakh |
 
-**Not corrected, but flagged for review.** These look plausible (>= 10^9) but are far from the
-company's other years. The < 10^9 rule cannot see them:
+**Not corrected automatically, flagged for review.** These look plausible (>= 10^9) but are far
+from the company's other years. The < 10^9 rule cannot see them:
 
-| Filing | Filed turnover | x other years | Confidence | Likely cause |
+| Filing | Filed turnover | x other years | Confidence | Outcome |
 |---|---|---|---|---|
-| TCS FY2022-23 | 2.25e9 | 0.001 | low | filed in thousands (x1000) |
-| BEL FY2023-24 | 1.98e9 | 0.009 | low | ~x100 off |
-| BAJAJFINSV FY2023-24 | 1.73e10 | 0.02 | low | standalone (holding company) vs consolidated |
-| BAJAJFINSV FY2022-23 / FY2024-25 / FY2025-26 | | 5.5 / 8.9 / 0.18 | medium | boundary changes between years |
-| JSWSTEEL FY2022-23 | 1.30e11 | 0.10 | medium | ~x10 off |
-| BSE FY2022-23 / FY2024-25 | | 0.33 / 3.2 | medium | fast growth |
+| TCS FY2022-23 | 2.25e9 | 0.001 | low | **manual override x1000** (OVR-012, section 10) |
+| BEL FY2023-24 | 1.98e9 | 0.009 | low | **manual override x100** (OVR-013) |
+| JSWSTEEL FY2022-23 | 1.30e11 | 0.10 | medium | **manual override x10** (OVR-014) |
+| BAJAJFINSV FY2023-24 | 1.73e10 | 0.02 | low | kept: standalone (holding company) vs consolidated, not a scale error |
+| BAJAJFINSV FY2022-23 / FY2024-25 / FY2025-26 | | 5.5 / 8.9 / 0.18 | medium | kept: boundary changes between years |
+| BSE FY2022-23 / FY2024-25 | | 0.33 / 3.2 | medium | kept: fast growth |
 
 Turnover is filed only for the current year (there is no PY comparative to cross-check).
 
@@ -87,10 +87,13 @@ peers (at least 3 other companies). A value 10^4 or more below a reference is fl
 | TATASTEEL FY2024-25 | 61 MtCO2e | 10^-6 x peers | megatonnes |
 | TATASTEEL FY2025-26 | 64 MtCO2e | 10^-6 x peers | megatonnes |
 
-One more filing is flagged as implausible (BEL FY2023-24: 150x its other years), but the cause
-there is the turnover (section 1), not the unit. **Decision needed:** these 4 filings still use
-x1 in `int_metric_values`. Correcting them (x10^6) needs an explicit override, which is not
-built yet.
+BEL FY2023-24 was also flagged (150x its other years); the cause was its turnover (section 1).
+
+**Decision (2026-10-10, Prity):** the 4 megatonne filings are corrected x10^6 by approved manual
+overrides (section 10). For NTPC FY2023-24 this covers Scope 1 and 2 only: its Scope 3
+(3,266,221.74 "MtCO2e") is already in tonnes, between FY2022-23 (4.36e6 t) and FY2024-25
+(1.97e6 t). After the overrides and the BEL turnover fix, the check finds **0 implausible
+filings** (77 checked).
 
 ## 3. Old-taxonomy units (`int_implied_units`)
 
@@ -147,6 +150,9 @@ A value above 1 is taken as already in percent: it is not multiplied again and i
 | TECHM FY2023-24 (urban) | job_creation_small_towns_pct | 8.2399 | 8.24 % |
 | POWERGRID FY2023-24 (PY2, permanent employees) | attrition_rate_pct | 4.88 | 4.88 % (ambiguous: could be 488 %) |
 
+**Decision (2026-10-10, Prity):** the 3 values are accepted as percentages (59.62 %, 8.24 %,
+4.88 %). They stay flagged `pct_given_as_0_100` so they remain visible.
+
 A small percentage typed as a whole number below 1 (e.g. "0.5" meaning 0.5 %) cannot be told
 apart from a decimal and is read as 50 %. The values that equal exactly 1.0 (100 %) are kept.
 
@@ -197,3 +203,54 @@ This keeps NESTLEIND right:
 Of 399,499 facts: CY 309,463, PY 78,577, INSTANT_CY 5,623, INSTANT_PY 4,276, PY2 1,544 and
 OTHER 16. The 16 OTHER values are attrition PY2 values with mistyped end dates (JIOFIN FY2024-25:
 2023-04-01; INDIGO FY2024-25: 2023-03-01). They are kept but not treated as a comparative year.
+
+## 10. Approved manual overrides (`seeds/manual_overrides.csv`)
+
+Some scale errors cannot be fixed by an automatic rule without breaking it for other companies,
+e.g. "MtCO2e" means metric tonnes for most filers but megatonnes for two. These are corrected by
+**approved overrides**: one row per filing and metric, with the multiplier, reason, evidence,
+approver and date.
+
+How they are applied (`int_values_normalised`):
+
+- after all automatic steps: `value_std = value_std_auto x multiplier`;
+- to every value of that metric in that filing, so the comparative (PY) value in the same filing is
+  corrected too (it was filed in the same unit);
+- `value_num` (as filed), `value_std_auto` (automatic) and `value_std` (final) are all kept, with
+  `override_id`, flag `manual_override` and the reason in `correction_reason`;
+- each overridden value is listed in `int_normalisation_exceptions` (`exception_type =
+  manual_override`) so it can count against the Disclosure Quality Score.
+
+Tests: every override matches exactly one filing + metric with values, and its symbol and fiscal
+year agree with the filing (`assert_overrides_match_one_filing_metric`). Every corrected
+current-year value is within 3x of the company's adjacent years
+(`assert_overrides_within_3x_adjacent_years`). A unit test checks the arithmetic.
+
+| ID | Filing | Metric | Multiplier | CY filed -> automatic -> final | Adjacent years (final) |
+|---|---|---|---|---|---|
+| OVR-001 | NTPC FY2023-24 | Scope 1 | x10^6 | 352.47 MtCO2e -> 352.47 t -> 3.52e8 t | FY23 3.36e8, FY25 3.27e8 |
+| OVR-002 | NTPC FY2023-24 | Scope 2 | x10^6 | 0.07 -> 0.07 t -> 70,000 t | FY23 70,000, FY25 64,980 |
+| OVR-003 | TATASTEEL FY2023-24 | Scope 1 | x10^6 | 56 -> 56 t -> 5.6e7 t | FY23 7.58e7, FY25 6.1e7 |
+| OVR-004 | TATASTEEL FY2023-24 | Scope 2 | x10^6 | 7 -> 7 t -> 7.0e6 t | FY23 5.2e6, FY25 5.0e6 |
+| OVR-005 | TATASTEEL FY2023-24 | Scope 3 | x10^6 | 15 -> 15 t -> 1.5e7 t | FY23 1.31e7, FY25 2.3e7 |
+| OVR-006 | TATASTEEL FY2024-25 | Scope 1 | x10^6 | 61 -> 61 t -> 6.1e7 t | FY24 5.6e7, FY26 6.4e7 |
+| OVR-007 | TATASTEEL FY2024-25 | Scope 2 | x10^6 | 5 -> 5 t -> 5.0e6 t | FY24 7.0e6, FY26 5.0e6 |
+| OVR-008 | TATASTEEL FY2024-25 | Scope 3 | x10^6 | 23 -> 23 t -> 2.3e7 t | FY24 1.5e7, FY26 2.8e7 |
+| OVR-009 | TATASTEEL FY2025-26 | Scope 1 | x10^6 | 64 -> 64 t -> 6.4e7 t | FY25 6.1e7 |
+| OVR-010 | TATASTEEL FY2025-26 | Scope 2 | x10^6 | 5 -> 5 t -> 5.0e6 t | FY25 5.0e6 |
+| OVR-011 | TATASTEEL FY2025-26 | Scope 3 | x10^6 | 28 -> 28 t -> 2.8e7 t | FY25 2.3e7 |
+| OVR-012 | TCS FY2022-23 | Turnover | x1000 | 2.25e9 -> 2.25e9 -> 2.25e12 INR | FY24 2.41e12 |
+| OVR-013 | BEL FY2023-24 | Turnover | x100 | 1.98e9 -> 1.98e9 -> 1.98e11 INR | FY23 1.73e11, FY25 2.30e11 |
+| OVR-014 | JSWSTEEL FY2022-23 | Turnover | x10 | 1.30e11 -> 1.30e11 -> 1.30e12 INR | FY24 1.34e12 |
+
+How the multipliers were chosen:
+
+- **Megatonnes:** the earlier filing's text unit says "million tonnes" for the same company, and
+  the overridden filing's PY value equals that earlier "million" value (NTPC 335.72; TATASTEEL
+  Scope 3 13 vs 13.1).
+- **Turnover:** the power of 10 that brings the value closest to the median of the company's other
+  years. TCS: 0.00088x -> x1000 (0.88x after). BEL: 0.0086x -> x100 (0.86x), and the filer's own
+  intensity arithmetic shifts by exactly 2 decades in that year. JSWSTEEL: 0.10x -> x10 (1.01x).
+
+To add an override: append a row with the evidence, run `dbt build`, and check that both override
+tests pass.

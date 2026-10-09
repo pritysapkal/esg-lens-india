@@ -51,6 +51,18 @@ seeds:
         unit_std: varchar
         multiplier: double
         note: varchar
+    manual_overrides:
+      +column_types:
+        override_id: varchar
+        symbol: varchar
+        fiscal_year_label: varchar
+        filing_id: varchar
+        metric_id: varchar
+        multiplier: double
+        reason: varchar
+        evidence: varchar
+        approved_by: varchar
+        approved_on: date
     text_unit_normalisation:
       +column_types:
         unit_text: varchar

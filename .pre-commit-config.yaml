@@ -24,9 +24,9 @@ repos:
   - repo: https://github.com/sqlfluff/sqlfluff
     rev: 4.4.0 # keep in step with sqlfluff in requirements-dev.txt
     hooks:
+      # lint only: `sqlfluff fix` once silently dropped a VALUES column alias (week 5), so fixes
+      # are run by hand and reviewed:  sqlfluff fix <path>
       - id: sqlfluff-lint
-        files: ^dbt/(models|snapshots|analyses|macros|tests)/.*\.sql$
-      - id: sqlfluff-fix
         files: ^dbt/(models|snapshots|analyses|macros|tests)/.*\.sql$
 
   - repo: local

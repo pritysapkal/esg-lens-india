@@ -139,8 +139,16 @@ models:
         description: Unit used for the conversion - the filed label, or the inferred one for old filings.
       - name: multiplier
         description: Factor from seeds/unit_normalisation.csv applied to the filed value.
+      - name: value_std_auto
+        description: >
+          The value in unit_std after the automatic rules only (rounded to 15 significant digits
+          to drop float noise).
+      - name: override_id
+        description: Approved manual override applied to this value (seeds/manual_overrides.csv), if any.
+      - name: override_multiplier
+        description: The override's multiplier, applied on top of value_std_auto.
       - name: value_std
-        description: The value in unit_std (rounded to 15 significant digits to drop float noise).
+        description: Final value in unit_std = value_std_auto x override_multiplier (if any).
       - name: value_pct
         description: >
           For percent metrics, the value in percent (0.2036 -> 20.36). Values filed above 1 are
@@ -150,7 +158,7 @@ models:
           "|"-separated flags, e.g. pct_given_as_0_100, numeric_from_text, iso_duration_parsed,
           unit_bridged_from_next_filing, unit_from_text, unit_format_default,
           unit_conflict_text_vs_bridge, mtco2e_read_as_metric_tonnes, unit_grams_converted,
-          unit_not_in_map, turnover_scale_corrected. Empty = taken as filed.
+          unit_not_in_map, turnover_scale_corrected, manual_override. Empty = taken as filed.
       - name: correction_reason
         description: Why the value differs from the filed number by more than a unit conversion.
 
@@ -197,7 +205,11 @@ models:
         description: The breakdown, e.g. "EmployeesAndWorkersAxis=WorkersMember"; empty = company-wide.
         tests: [not_null]
       - name: value_std
-        description: The value in unit_std.
+        description: The final value in unit_std (after automatic rules and approved overrides).
+      - name: value_std_auto
+        description: The value after the automatic rules only, before any manual override.
+      - name: override_id
+        description: Approved manual override applied to this value, if any.
       - name: unit_std
         description: Standard unit of the metric.
       - name: value_pct
@@ -277,14 +289,15 @@ models:
   - name: int_normalisation_exceptions
     description: >
       Everything flagged, inferred or corrected, in one table for review - value flags, turnover
-      scale decisions and MtCO2e plausibility findings.
+      scale decisions, MtCO2e plausibility findings and approved manual overrides (which will
+      count against the Disclosure Quality Score).
     columns:
       - name: exception_type
-        description: value_flag, turnover_scale or mtco2e_check.
+        description: value_flag, turnover_scale, mtco2e_check or manual_override.
         tests:
           - accepted_values:
               arguments:
-                values: [value_flag, turnover_scale, mtco2e_check]
+                values: [value_flag, turnover_scale, mtco2e_check, manual_override]
       - name: exception_code
         description: The specific flag or finding.
       - name: detail
@@ -309,6 +322,8 @@ unit_tests:
         rows: []
       - input: ref('int_turnover_corrected')
         rows: []
+      - input: ref('manual_overrides')
+        rows: []
     expect:
       rows:
         - {fact_id: f1, value_std: 20.36, value_pct: 20.36, normalisation_flag: ""}
@@ -331,6 +346,8 @@ unit_tests:
         rows: []
       - input: ref('int_turnover_corrected')
         rows: []
+      - input: ref('manual_overrides')
+        rows: []
     expect:
       rows:
         - {fact_id: f1, value_std: 0.888, unit_std: tCO2e/INR cr}
@@ -351,6 +368,8 @@ unit_tests:
       - input: ref('int_implied_units')
         rows: []
       - input: ref('int_turnover_corrected')
+        rows: []
+      - input: ref('manual_overrides')
         rows: []
     expect:
       rows:
@@ -373,9 +392,42 @@ unit_tests:
         rows: []
       - input: ref('int_turnover_corrected')
         rows: []
+      - input: ref('manual_overrides')
+        rows: []
     expect:
       rows:
         - {fact_id: f1, value_std: 91849.5, multiplier: 1, normalisation_flag: mtco2e_read_as_metric_tonnes}
+
+  - name: test_manual_override_applied
+    description: >
+      An approved override multiplies the automatic value of that filing's metric (CY and PY);
+      other filings and metrics are untouched. Original and automatic values are kept.
+    model: int_values_normalised
+    given:
+      - input: ref('int_period_role')
+        rows:
+          - {fact_id: cy, filing_id: F24, taxonomy_version: "2026-02-28", concept: TotalScope1Emissions, unit_label: MtCO2e, value_num: 56, has_dimensions: false, dimension_key: "", period_role: CY}
+          - {fact_id: py, filing_id: F24, taxonomy_version: "2026-02-28", concept: TotalScope1Emissions, unit_label: MtCO2e, value_num: 55, has_dimensions: false, dimension_key: "", period_role: PY}
+          - {fact_id: other, filing_id: F25, taxonomy_version: "2026-02-28", concept: TotalScope1Emissions, unit_label: tCO2e, value_num: 61000000, has_dimensions: false, dimension_key: "", period_role: CY}
+      - input: ref('concept_metric_map')
+        rows:
+          - {taxonomy_version: "2026-02-28", concept: TotalScope1Emissions, metric_id: ghg_scope1_tco2e, unit_std: tCO2e, value_kind: numeric, allowed_dimension_axes: ""}
+      - input: ref('unit_normalisation')
+        rows:
+          - {unit_label_raw: MtCO2e, unit_std: tCO2e, multiplier: 1}
+          - {unit_label_raw: tCO2e, unit_std: tCO2e, multiplier: 1}
+      - input: ref('int_implied_units')
+        rows: []
+      - input: ref('int_turnover_corrected')
+        rows: []
+      - input: ref('manual_overrides')
+        rows:
+          - {override_id: OVR-T, filing_id: F24, metric_id: ghg_scope1_tco2e, multiplier: 1000000, reason: megatonnes}
+    expect:
+      rows:
+        - {fact_id: cy, value_num: 56, value_std_auto: 56, value_std: 56000000, override_id: OVR-T}
+        - {fact_id: py, value_num: 55, value_std_auto: 55, value_std: 55000000, override_id: OVR-T}
+        - {fact_id: other, value_num: 61000000, value_std_auto: 61000000, value_std: 61000000, override_id: null}
 
   - name: test_turnover_crore_scale
     description: Turnover 14700.05 next to a plausible 1.28e11 year is read as crore -> 1.47e11.

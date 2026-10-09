@@ -50,6 +50,8 @@ select
     allowed.role,
     allowed.dimension_key,
     allowed.value_std,
+    allowed.value_std_auto,
+    allowed.override_id,
     allowed.unit_std,
     allowed.value_pct,
     allowed.value_text,

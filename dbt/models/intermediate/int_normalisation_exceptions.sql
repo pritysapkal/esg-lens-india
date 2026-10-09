@@ -3,6 +3,8 @@
 --   turnover_scale    a turnover read as crore / million / lakh, or a plausible-looking turnover
 --                     that is far from the company's other years (confidence not high)
 --   mtco2e_check      a MtCO2e filing whose intensity is > 100x off company or peers
+--   manual_override   an approved correction from seeds/manual_overrides.csv (one row per
+--                     overridden value); counts against the Disclosure Quality Score later
 
 with flagged_values as (
     select
@@ -24,7 +26,28 @@ with flagged_values as (
         null as confidence
     from {{ ref('int_values_normalised') }} as values_normalised
     cross join unnest(string_split(values_normalised.normalisation_flag, '|')) as flag (flag)
-    where values_normalised.normalisation_flag != ''
+    where
+        values_normalised.normalisation_flag != ''
+        and flag.flag != 'manual_override'
+),
+
+overrides as (
+    select
+        'manual_override' as exception_type,
+        values_normalised.override_id as exception_code,
+        values_normalised.symbol,
+        values_normalised.fiscal_year_label,
+        values_normalised.filing_id,
+        values_normalised.metric_id,
+        values_normalised.fact_id,
+        values_normalised.period_role,
+        values_normalised.raw_value,
+        values_normalised.value_std,
+        values_normalised.correction_reason || '; automatic value '
+        || values_normalised.value_std_auto as detail,
+        'approved' as confidence
+    from {{ ref('int_values_normalised') }} as values_normalised
+    where values_normalised.override_id is not null
 ),
 
 turnover as (
@@ -74,6 +97,8 @@ mtco2e as (
 )
 
 select * from flagged_values
+union all
+select * from overrides
 union all
 select * from turnover
 union all
