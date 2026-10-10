@@ -36,3 +36,40 @@ Checked against the SEBI taxonomy files in `data/raw/taxonomy/` on 2026-10-10.
 | 2021-09-30 | PercentageOfDirectlySourcedFromMSMEsOrSmallProducers | Percentage of directly sourced from MSMEs or small producers | Yes |
 
 Result: 12/12 correct, 0 issues.
+
+## Gold KPIs (`fct_company_year`, Week 7)
+
+Computed by us from the latest current-year values and the corrected turnover
+(`turnover_cr` = turnover in INR / 1e7). Any division by zero or by a missing value gives empty;
+intensities are empty when turnover is missing. Percent columns are on a 0-100 scale.
+
+| KPI | Formula | Better | Notes |
+|---|---|---|---|
+| `ghg_intensity_tco2e_per_cr` | (Scope 1 + Scope 2) / `turnover_cr` | Lower | The filed intensity is kept as `ghg_intensity_filed_per_cr`; `ghg_intensity_filed_vs_computed_ratio` = filed / computed, expected near 1. In the current data only 89 of 196 company-years are within 0.9-1.1, because filed intensities use different denominators and units. |
+| `renewable_share_pct` | renewable energy / total energy x 100 | Higher | |
+| `energy_intensity_gj_per_cr` | total energy / `turnover_cr` | Lower | |
+| `water_intensity_kl_per_cr` | water consumption / `turnover_cr` | Lower | Consumption, not withdrawal. |
+| `waste_recovery_rate_pct` | waste recovered / waste generated x 100 | Higher | Above 100 means recovered includes past stock; flagged by the warn test. |
+| `waste_intensity_t_per_cr` | waste generated / `turnover_cr` | Lower | |
+| `waste_balance_gap_pct` | (generated - recovered - disposed) / generated x 100 | Near 0 | A consistency check: far from 0 means the three waste figures do not add up. |
+| `fatalities_per_10k_workforce` | fatalities (employees + workers) / `headcount_total` x 10,000 | Lower | `any_fatality` = fatalities > 0. |
+| `female_workforce_pct` | female employees + workers / `headcount_total` x 100 | Higher | **Headcount basis:** employees + workers, permanent and other than permanent (the "Employees" and "Workers" totals). |
+| `pay_equity_gap_pp` | `female_wage_share_pct` - `female_workforce_pct` | Higher (closer to 0) | Percentage points. Negative = women receive a smaller share of wages than their share of headcount. Empty before FY2023-24 (wage share is a BRSR Core metric). |
+| `attrition_gap_pp` | female - male attrition rate, permanent employees | Lower | Percentage points. |
+| `recordable_injuries_total`, `fatalities_total` | employees + workers | Lower | Empty only if both are missing. |
+| `*_annualised` | quantity x 12 / `period_months` | | Only filled for years that are not 12 months (NESTLEIND FY2023-24, 15 months). |
+
+### Peer percentile (`fct_company_kpi_percentile`)
+
+Each company is placed within its **ranking group** (peer group of at least 5 companies, else
+sector group) for each year and KPI, with 100 = best:
+
+- percent rank = (rank - 1) / (n - 1), ties share the lower rank, among companies with a value;
+- lower-is-better KPIs are ranked from the highest value down, so the lowest value scores 100;
+- only given when the group has at least 5 companies with a value, the KPI is material for the
+  group (`metric_materiality`), and the KPI has a direction; otherwise empty with
+  `percentile_null_reason` (`group_n_lt_5`, `not_material`, `no_direction`, `no_value`).
+
+`fct_peer_benchmark` holds the group distribution (n, median, 25th / 75th percentile, min, max) for
+the same KPIs. Levels include years with a comparability break; only year-on-year comparisons
+should exclude them.

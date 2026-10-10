@@ -1,0 +1,41 @@
+version: 2
+
+exposures:
+  - name: power_bi_esg_lens
+    label: ESG Lens India - Power BI report
+    type: dashboard
+    maturity: low
+    owner:
+      name: Prity Sapkal
+      email: sapkalprity01@gmail.com
+    description: >
+      Power BI report over the gold star schema: company report cards, peer benchmarks, KPI
+      percentiles and disclosure quality. Reads the facts and dimensions below; no logic lives
+      in the report.
+    depends_on:
+      - ref('fct_company_year')
+      - ref('fct_esg_value')
+      - ref('fct_peer_benchmark')
+      - ref('fct_company_kpi_percentile')
+      - ref('dim_company')
+      - ref('dim_company_year')
+      - ref('dim_company_history')
+      - ref('dim_metric')
+      - ref('dim_assurer')
+      - ref('bridge_company_year_assurer')
+
+  - name: restatement_report
+    label: ESG Lens India - restatement report
+    type: dashboard
+    maturity: low
+    owner:
+      name: Prity Sapkal
+      email: sapkalprity01@gmail.com
+    description: >
+      Restatement tracker report: which prior-year BRSR figures were revised in the next report,
+      how large, whether explained, and which flatter the trend. Restatement is not wrongdoing.
+    depends_on:
+      - ref('fct_restatement')
+      - ref('rpt_restatement_summary')
+      - ref('dim_company')
+      - ref('dim_metric')

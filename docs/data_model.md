@@ -1,7 +1,111 @@
-# Data model - identity layer
+# Data model
 
-How the company and time dimensions relate to each other and to the metric values. Built by dbt
-on DuckDB; details of each column are in `dbt/models/marts/_marts.yml`.
+Two views of the same warehouse: the **gold star schema** (what reports and Power BI read) and the
+identity layer underneath it. Built by dbt on DuckDB; column-level documentation and enforced
+contracts are in `dbt/models/marts/_marts.yml`.
+
+## Gold star schema
+
+```mermaid
+erDiagram
+    dim_company ||--o{ fct_company_year : "isin"
+    dim_company_year ||--|| fct_company_year : "isin + fiscal_year_label"
+    dim_fiscal_year ||--o{ fct_company_year : "fiscal_year_label"
+    dim_company ||--o{ fct_esg_value : "isin"
+    dim_metric ||--o{ fct_esg_value : "metric_id"
+    dim_fiscal_year ||--o{ fct_esg_value : "value_fiscal_year_label"
+    dim_company ||--o{ fct_restatement : "isin"
+    dim_metric ||--o{ fct_restatement : "metric_id"
+    dim_company ||--o{ fct_company_kpi_percentile : "isin"
+    fct_company_year ||--o{ fct_company_kpi_percentile : "isin + fiscal_year_label"
+    fct_company_year }o--o{ fct_peer_benchmark : "ranking_group + fiscal_year_label"
+    dim_company ||--o{ bridge_company_year_assurer : "isin"
+    dim_assurer ||--o{ bridge_company_year_assurer : "assurer_key"
+    dim_company ||--o{ dim_company_history : "isin"
+
+    fct_esg_value {
+        string isin FK
+        string metric_id FK
+        string value_fiscal_year_label FK
+        string dimension_key
+        string source_filing_id
+        double value_std
+        bool is_latest_value
+        string source_citation
+    }
+    fct_company_year {
+        string isin FK
+        string fiscal_year_label FK
+        double ghg_intensity_tco2e_per_cr
+        double renewable_share_pct
+        double pay_equity_gap_pp
+        string ranking_group
+    }
+    fct_peer_benchmark {
+        string ranking_group
+        string fiscal_year_label
+        string kpi_name
+        double median_value
+        int n_companies
+    }
+    fct_company_kpi_percentile {
+        string isin FK
+        string fiscal_year_label
+        string kpi_name
+        double percentile_in_group
+    }
+    fct_restatement {
+        string isin FK
+        string metric_id FK
+        string value_fiscal_year_label
+        string restating_filing_id
+        double original_value
+        double restated_value
+        string classification
+    }
+    dim_company {
+        string isin PK
+        string peer_group
+        string sector_group
+    }
+    dim_metric {
+        string metric_id PK
+        string unit_type
+        string direction
+    }
+    dim_assurer {
+        string assurer_key PK
+        string assurer_name
+    }
+```
+
+### Grains
+
+| Table | Grain | Key |
+|---|---|---|
+| `fct_esg_value` | company x metric x year of the value x breakdown x source filing | `isin`, `metric_id`, `value_fiscal_year_label`, `dimension_key`, `source_filing_id` |
+| `fct_company_year` | company x financial year (wide, KPIs) | `isin`, `fiscal_year_label` |
+| `fct_peer_benchmark` | ranking group x financial year x KPI | `ranking_group`, `fiscal_year_label`, `kpi_name` |
+| `fct_company_kpi_percentile` | company x financial year x KPI | `isin`, `fiscal_year_label`, `kpi_name` |
+| `fct_restatement` | company x metric x breakdown x year restated x restating filing | `isin`, `metric_id`, `dimension_key`, `value_fiscal_year_label`, `restating_filing_id` |
+| `rpt_restatement_summary` | level (overall / metric / peer group / company) x key | `level`, `group_key` |
+| `dim_metric` | one per catalogue metric | `metric_id` |
+| `dim_assurer` | one per assurance provider (variants merged) | `assurer_key` |
+| `bridge_company_year_assurer` | company-year x assurer | `isin`, `fiscal_year_label`, `assurer_key` |
+
+Every `dim_` and `fct_` model has an enforced dbt contract. Gold tables carry no links to the
+exchange: `source_citation` is plain text (company, report, year, filing date).
+
+### Which value is "the" value
+
+`fct_esg_value.is_latest_value` marks, for each company, metric, year and breakdown, the
+current-year value from the latest revision of the filing for that year. Prior-year comparatives
+(PY, PY2) are kept for the restatement tracker but are never latest. Restatement logic:
+[restatement_method.md](restatement_method.md); KPI formulas: [kpi_definitions.md](kpi_definitions.md).
+
+## Identity layer
+
+How the company and time dimensions relate to each other and to the metric values.
 
 ```mermaid
 erDiagram

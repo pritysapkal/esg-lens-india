@@ -1,0 +1,20 @@
+kpi_name,kpi_label,metric_id,unit_type,direction
+ghg_intensity_tco2e_per_cr,GHG intensity (Scope 1+2 per Rs crore turnover),ghg_intensity_filed_tco2e_per_inr_cr,intensity,lower_better
+renewable_share_pct,Renewable share of energy (%),energy_renewable_gj,pct,higher_better
+energy_intensity_gj_per_cr,Energy intensity (GJ per Rs crore),energy_intensity_filed_gj_per_inr_cr,intensity,lower_better
+water_intensity_kl_per_cr,Water intensity (kl per Rs crore),water_intensity_filed_kl_per_inr_cr,intensity,lower_better
+waste_intensity_t_per_cr,Waste intensity (t per Rs crore),waste_generated_t,intensity,lower_better
+waste_recovery_rate_pct,Waste recovery rate (%),waste_recovered_t,pct,higher_better
+ltifr_employees,LTIFR - employees,ltifr,intensity,lower_better
+ltifr_workers,LTIFR - workers,ltifr,intensity,lower_better
+fatalities_per_10k_workforce,"Fatalities per 10,000 workforce",fatalities_count,intensity,lower_better
+female_workforce_pct,Women in workforce (%),headcount,pct,higher_better
+female_wage_share_pct,Women share of gross wages (%),female_wage_share_pct,pct,higher_better
+pay_equity_gap_pp,Wage share minus workforce share (pp),female_wage_share_pct,pct,higher_better
+attrition_gap_pp,Female minus male attrition (pp),attrition_rate_pct,pct,lower_better
+wellbeing_cost_pct_revenue,Well-being spend (% of revenue),wellbeing_cost_pct_revenue,pct,higher_better
+msme_sourcing_pct,Sourcing from MSMEs (%),msme_sourcing_pct,pct,higher_better
+days_payable,Days of accounts payable,days_payable,days,lower_better
+rpt_purchases_pct,Purchases from related parties (%),rpt_purchases_pct,pct,lower_better
+rpt_sales_pct,Sales to related parties (%),rpt_sales_pct,pct,lower_better
+posh_complaints_pct_female,POSH complaints (% of female staff),posh_complaints_pct_female,pct,context

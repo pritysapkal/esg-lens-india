@@ -1,4 +1,6 @@
 fiscal_year_label,fy_sort,start_date,end_date,is_brsr_core_year,assurance_fields_available,note
+FY2020-21,-1,2020-04-01,2021-03-31,false,false,Comparative (second prior-year) values only; no filings for this year in the data
+FY2021-22,0,2021-04-01,2022-03-31,false,false,Comparative (prior-year) values only; no filings for this year in the data
 FY2022-23,1,2022-04-01,2023-03-31,false,false,First BRSR year in the data; taxonomy 2021-09-30 / 2023-06-30; no BRSR Core
 FY2023-24,2,2023-04-01,2024-03-31,true,false,BRSR Core mandatory (assured) for the top 150 listed companies
 FY2024-25,3,2024-04-01,2025-03-31,true,true,Assurance status and type fields filed in the taxonomy
