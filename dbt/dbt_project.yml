@@ -18,19 +18,73 @@ vars:
   # required by dbt_date (dependency of dbt_expectations)
   "dbt_date:time_zone": "Asia/Kolkata"
 
+# Tags (see selectors.yml): core = the pipeline every report needs; quality = data-quality lists;
+# restatement, benchmark, public = optional gold families built on top of core.
 models:
   esg_lens:
     staging:
       +materialized: view
+      +tags: [core]
     intermediate:
       +materialized: view # heavy models set materialized='table' in their config
+      +tags: [core]
+      int_normalisation_exceptions:
+        +tags: [quality]
+      int_unmapped_concepts:
+        +tags: [quality]
+      int_mtco2e_check:
+        +tags: [quality]
+      int_yoy_anomalies:
+        +tags: [quality]
+      int_scale_error_suspects:
+        +tags: [quality]
+      int_kpi_flags:
+        +tags: [quality]
     marts:
       +materialized: table
+      +tags: [core]
+      fct_restatement:
+        +tags: [restatement]
+      rpt_restatement_summary:
+        +tags: [restatement]
+      rpt_public_restatement_summary:
+        +tags: [restatement, public]
+      fct_peer_benchmark:
+        +tags: [benchmark]
+      fct_company_kpi_percentile:
+        +tags: [benchmark]
+      rpt_public_company_year:
+        +tags: [public]
   elementary:
     +schema: elementary
 
 seeds:
   esg_lens:
+    +tags: [core]
+    kpi_catalogue:
+      +column_types:
+        kpi_name: varchar
+        label: varchar
+        formula_text: varchar
+        numerator: varchar
+        denominator: varchar
+        unit: varchar
+        unit_type: varchar
+        direction: varchar
+        materiality_metric_id: varchar
+        public_safe: boolean
+        is_benchmarked: boolean
+        definition_plain: varchar
+    known_kpi_exceptions:
+      +column_types:
+        isin: varchar
+        symbol: varchar
+        fiscal_year_label: varchar
+        check_name: varchar
+        value: double
+        reason: varchar
+        accepted_by: varchar
+        accepted_on: date
     concept_metric_map:
       +column_types:
         taxonomy_version: varchar # keep as text: it is a taxonomy label, not a reporting date

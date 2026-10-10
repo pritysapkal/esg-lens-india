@@ -395,25 +395,78 @@ seeds:
 
   - name: kpi_catalogue
     description: >
-      Comparable KPIs of fct_company_year used for peer benchmarks and percentiles: the catalogue
-      metric that decides materiality, the unit type and the direction (context = not ranked).
+      Single source of truth for the KPIs of fct_company_year: one row per numeric column, with
+      label, formula, unit, direction, the catalogue metric that decides materiality, whether the
+      value may be published (public_safe) and a plain-English definition. Drives the peer
+      benchmarks, the public model and the KPI table in docs/kpi_definitions.md
+      (scripts/build_kpi_docs.py).
     columns:
       - name: kpi_name
         description: Column of fct_company_year.
         tests: [unique, not_null]
-      - name: kpi_label
+      - name: label
         tests: [not_null]
-      - name: metric_id
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('concept_metric_map')
-                field: metric_id
+      - name: formula_text
+        description: How the value is obtained ("as filed" or the formula).
+        tests: [not_null]
+      - name: numerator
+        description: Numerator of a computed KPI; empty for filed values.
+      - name: denominator
+        description: Denominator of a computed KPI; empty for filed values.
+      - name: unit
+        tests: [not_null]
       - name: unit_type
-        tests: [not_null]
+        tests:
+          - accepted_values:
+              arguments:
+                values: [pct, count, quantity, intensity, days, ratio]
       - name: direction
         tests:
           - accepted_values:
               arguments:
-                values: [lower_better, higher_better, context]
+                values: [lower_better, higher_better, context, n/a]
+      - name: materiality_metric_id
+        description: Catalogue metric whose materiality applies to the KPI; empty if none.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('concept_metric_map')
+                field: metric_id
+      - name: public_safe
+        description: >
+          true = a value we calculate (ratio, percentage, intensity, flag) that may be published;
+          false = a raw filed quantity, count or amount (docs/publication_policy.md).
+        tests: [not_null]
+      - name: is_benchmarked
+        description: true if the KPI is in fct_peer_benchmark and fct_company_kpi_percentile.
+        tests: [not_null]
+      - name: definition_plain
+        tests: [not_null]
+
+  - name: known_kpi_exceptions
+    description: >
+      KPI sanity findings that a person has reviewed and accepted (one row per company-year and
+      check). assert_kpi_sanity_exceptions fails the build for any finding that is not listed here,
+      so new problems are noticed and known ones do not produce a standing warning.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, fiscal_year_label, check_name]
+    columns:
+      - name: isin
+        tests: [not_null]
+      - name: symbol
+        description: NSE symbol, for readability.
+      - name: fiscal_year_label
+        tests: [not_null]
+      - name: check_name
+        description: Which sanity check found it.
+        tests: [not_null]
+      - name: value
+        description: The value at the time it was accepted (information only; not part of the key).
+      - name: reason
+        tests: [not_null]
+      - name: accepted_by
+        tests: [not_null]
+      - name: accepted_on
+        tests: [not_null]

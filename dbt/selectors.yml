@@ -1,0 +1,25 @@
+# Named selections:  dbt build --selector daily   |   dbt build --selector full
+# daily = the core pipeline and the data-quality lists (what a report needs after new filings);
+# full  = everything, including the restatement tracker, peer benchmarks and public models.
+selectors:
+  - name: daily
+    description: Core pipeline (staging, intermediate, core gold, seeds) plus data-quality lists.
+    definition:
+      union:
+        - method: tag
+          value: core
+        - method: tag
+          value: quality
+        - exclude:
+            - method: tag
+              value: restatement
+            - method: tag
+              value: benchmark
+            - method: tag
+              value: public
+
+  - name: full
+    description: Every model, seed and test in the project.
+    definition:
+      method: fqn
+      value: "*"

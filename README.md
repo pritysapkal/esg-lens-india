@@ -1,5 +1,7 @@
 # ESG Lens India
 
+> **New here? Read [docs/START_HERE.md](docs/START_HERE.md) first** - the project on one page.
+
 **Open, reproducible ESG analytics on SEBI BRSR filings of the NIFTY 50 companies.**
 
 ESG Lens India turns the machine-readable BRSR (Business Responsibility and Sustainability Report)
@@ -69,6 +71,7 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Module 4 - Metric catalogue + normalisation (done) | `dbt/models/intermediate/`, `dbt/seeds/` | ✅ Done - 34 metrics / 148 catalogue rows over 5 taxonomies, 21,730 metric values; 24 automatic turnover scale corrections + 14 approved manual overrides (megatonnes, turnover), old-taxonomy units inferred ([rules](docs/business_rules.md), [metrics](docs/metric_definitions.md)) |
 | Module 5 - Company identity & sectors (done) | `dbt/models/marts/`, `dbt/seeds/` | ✅ Done - `dim_company` (51 companies, ISIN key, peer group, NIC sector, 5 conglomerates), derived SCD2 `dim_company_history`, 9 peer groups, metric materiality, 42 NIC divisions ([method](docs/company_identity.md), [ADR 0003](docs/adr/0003-company-history-scd2.md)) |
 | Module 6 - Gold star schema + restatement tracker (done) | `dbt/models/marts/` | ✅ Done - 5 facts, 4 dims, contracts on every model; 21,706 metric values, 196 company-year KPI rows, 3,313 peer percentiles. Restatements: 4,115 compared pairs (suspected scale errors excluded), 6.7% material, 61 red flags; on headline totals 8 of 48 companies restated materially FY2023-24 -> FY2024-25 (24 of 50 over all three pairs) ([method](docs/restatement_method.md), [data model](docs/data_model.md)) |
+| Pre-Week-8 hardening | `docs/`, `dbt/` | ✅ Done - [publication policy](docs/publication_policy.md) with `public_safe` on every fact column and two public models; accepted KPI exceptions in a seed (build ends with 0 warnings); KPI catalogue as single source ([KPIs](docs/kpi_definitions.md)); dbt tags and selectors (`daily`, `full`). Full build and test (`dev.ps1 dbt-build`): 434 steps in 2.5 to 3 minutes (147-172 s over three runs, laptop, 2026-10-10) |
 | Other dbt marts (scores) | `dbt/models/marts/` | 🔲 Not started |
 | Snapshots (restatement tracker) | `dbt/snapshots/` | 🔲 Not started |
 | Data quality (tests, Elementary) | `dbt/` | 🔲 Packages installed |

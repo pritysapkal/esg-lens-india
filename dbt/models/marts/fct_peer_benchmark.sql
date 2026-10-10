@@ -29,7 +29,7 @@ with long as (
 with_meta as (
     select
         long.*,
-        kpi_catalogue.kpi_label,
+        kpi_catalogue.label as kpi_label,
         kpi_catalogue.unit_type,
         kpi_catalogue.direction,
         coalesce(metric_materiality.is_material, false) as is_material
@@ -39,7 +39,7 @@ with_meta as (
     left join {{ ref('metric_materiality') }} as metric_materiality
         on
             long.peer_group = metric_materiality.peer_group
-            and kpi_catalogue.metric_id = metric_materiality.metric_id
+            and kpi_catalogue.materiality_metric_id = metric_materiality.metric_id
     where long.ranking_group is not null
 )
 
