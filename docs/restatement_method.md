@@ -31,10 +31,13 @@ overrides. Breakdown member names are identical in all five taxonomy versions (c
 1. **`unit_inferred_from_restating_filing`** - the original's unit was inferred from the next filing
    (`unit_resolution_method = bridged-from-next-filing`). Comparing it with that same filing is
    circular. **Excluded from all statistics.**
-2. **`suspected_scale_error`** - `ratio` above 100 or below 0.01, whatever the exact magnitude. A
-   number that changes more than a hundredfold between two reports is a unit or scale mistake in
-   one of them (tonnes typed as million tonnes, GJ as TJ), not a restatement. **Excluded from all
-   statistics**, listed in `int_scale_error_suspects` for the Disclosure Quality Score.
+2. **`suspected_scale_error`** - `ratio` above 100 or below 0.01, whatever the exact magnitude;
+   for **percent metrics** (`unit_type = 'pct'`) the threshold is tighter: ratio >= 10 or <= 0.1.
+   A number that changes more than a hundredfold between two reports is a unit or scale mistake
+   in one of them (tonnes typed as million tonnes, GJ as TJ), not a restatement. A percentage
+   cannot plausibly move tenfold; the usual slip is a fraction filed where a percent is meant
+   (attrition 0.5 in one report, 8.8 in the next). **Excluded from all statistics**, listed in
+   `int_scale_error_suspects` for the Disclosure Quality Score.
 3. **`unit_inconsistency`** - ratio within 5% of 10^k for k in +-2, +-3, +-5, +-6, +-7 (after rule 2
    only the +-2 band, ratio 95-100 or 0.0100-0.0105, can still apply).
 4. **`from_zero`** / **`to_zero`** - original 0 and restated not, or the reverse.
@@ -59,8 +62,8 @@ a newer taxonomy with explicit units. `fct_company_year`, `fct_peer_benchmark` a
 replaced (their denominators differ by design, see `ghg_intensity_filed_basis`). The latest year
 (FY2025-26) has no later report, so its scale errors cannot be caught this way.
 
-Current data: 25 values replaced in 14 company-years (17 in FY2022-23, 6 in FY2023-24, 2 in
-FY2024-25), mostly total and renewable energy. Example: AXISBANK FY2022-23 total energy 1,005 GJ as
+Current data: 39 values replaced in 19 company-years: 21 quantities (mostly total and renewable
+energy, FY2022-23) and 18 percentages (13 of them attrition rates). Example: AXISBANK FY2022-23 total energy 1,005 GJ as
 filed, 1,994,830 GJ in the next report; renewable share goes from 1,143% to 0.58%.
 
 ## Explained or unexplained (`explained_by`)
@@ -99,7 +102,7 @@ A red flag is a prompt to read the two filings, not a conclusion.
 
 | Threshold | Value |
 |---|---|
-| Suspected scale error | ratio > 100 or < 0.01 |
+| Suspected scale error | ratio > 100 or < 0.01; percent metrics: ratio >= 10 or <= 0.1 |
 | Rounding tolerance (no change) | 1% |
 | Material change | > 5% (and > 1 pp for percent metrics, >= 2 for counts) |
 | Unit inconsistency | ratio within 5% of 10^k, k in {+-2, +-3, +-5, +-6, +-7} |
@@ -107,13 +110,13 @@ A red flag is a prompt to read the two filings, not a conclusion.
 
 ## Headline numbers (build of 2026-10-10)
 
-- 4,399 pairs; 245 circular and 25 suspected scale errors excluded; **4,129 compared**.
-- no change 87.2%, minor 3.6%, **material 7.0% (288)**, from zero 1.9%, to zero 0.3%, unit
+- 4,399 pairs; 245 circular and 39 suspected scale errors excluded; **4,115 compared**.
+- no change 87.5%, minor 3.6%, **material 6.7% (274)**, from zero 1.9%, to zero 0.3%, unit
   inconsistency 2 pairs.
-- Of the 288 material restatements: 136 (47.2%) unexplained, 96 with only a weak note, 56 explained
-  by a merger / demerger or boundary change; 122 (42.4%) flatter the trend.
-- **63 red flags, 102 strict red flags.**
-- All metrics and breakdowns: 43 of 50 companies (86%) have at least one material restatement.
+- Of the 274 material restatements: 128 unexplained, 93 with only a weak note, 53 explained by a
+  merger / demerger or boundary change.
+- **61 red flags, 98 strict red flags.**
+- All metrics and breakdowns: 42 of 50 companies (84%) have at least one material restatement.
 
 ### Comparable with KPMG (`level = 'kpmg_comparable'`)
 
@@ -137,10 +140,12 @@ evidence that the two measures are the same.
 - **Only three comparison pairs** (FY23 -> FY24, FY24 -> FY25, FY25 -> FY26). FY2021-22 originals
   are out of scope; the second comparative (PY2) is kept in `fct_esg_value` but not compared.
 - **FY2022-23 originals are noisy.** Units for old-taxonomy filings were inferred, so the first
-  pair holds most circular pairs and most scale errors, and still 124 of the 288 material
+  pair holds most circular pairs and most scale errors, and still a large share of the material
   restatements. Treat FY2022-23 material restatements as a data-quality list first.
-- **The scale-error rule is blunt.** A real hundredfold change (a start-up year) would be excluded
-  and its value replaced; a tenfold unit slip is still read as a material restatement.
+- **The scale-error rule is blunt.** A real hundredfold change (a start-up year), or a real tenfold
+  change in a percentage, would be excluded and its value replaced; a tenfold unit slip in a
+  quantity (for example ITC waste recovered 71,800 -> 718,000 t) is still read as a material
+  restatement.
 - **No comparatives are filed** for turnover, headcount and women on the board, so those metrics
   have no pairs.
 - **Explanations are weak evidence.** The text match is per filing, and boundary / event flags

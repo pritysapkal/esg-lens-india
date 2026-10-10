@@ -12,10 +12,18 @@
 {%- endmacro %}
 
 
-{% macro is_scale_error(ratio) -%}
+{% macro is_scale_error(ratio, is_pct) -%}
     {#- A later comparative more than 100 times, or less than a hundredth of, the value first
-        filed: almost certainly a unit / scale mistake in one of the two, not a restatement. -#}
-    coalesce({{ ratio }} > 100 or {{ ratio }} < 0.01, false)
+        filed: almost certainly a unit / scale mistake in one of the two, not a restatement.
+        Percent metrics use 10 times / a tenth: a percentage cannot plausibly move tenfold, and
+        the usual slip is a fraction filed where a percent is meant (0.5 vs 8.8). -#}
+    coalesce(
+        case
+            when {{ is_pct }} then {{ ratio }} >= 10 or {{ ratio }} <= 0.1
+            else {{ ratio }} > 100 or {{ ratio }} < 0.01
+        end,
+        false
+    )
 {%- endmacro %}
 
 

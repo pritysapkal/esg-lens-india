@@ -1,6 +1,7 @@
 -- Suspected scale errors: the value a company filed for year Y (current-year value, latest
 -- revision) against the comparative for Y in its next report (prior-year value of the Y+1 filing,
--- latest revision), where one is more than 100 times the other. That is a unit / scale mistake in
+-- latest revision), where one is more than 100 times the other (10 times for percent metrics).
+-- That is a unit / scale mistake in
 -- one of the two filings, not a restatement. Gold uses the later comparative as the "best
 -- available value" for these, and the restatement tracker leaves them out of its statistics.
 -- Filed intensities are not tested: companies change the denominator (per rupee, per crore)
@@ -29,6 +30,7 @@ originals as (
         value_fiscal_year_label,
         max(filing_id) as original_filing_id,
         max(value_std) as original_value,
+        max(unit_std) as unit_std,
         max({{ unit_resolution_method('normalisation_flag') }}) as unit_resolution_method
     from metric_values
     where period_role = 'CY'
@@ -70,4 +72,6 @@ inner join comparatives
 where
     originals.original_value > 0
     and comparatives.restated_value > 0
-    and {{ is_scale_error('comparatives.restated_value / originals.original_value') }}
+    and {{ is_scale_error(
+        'comparatives.restated_value / originals.original_value', "originals.unit_std = 'pct'"
+    ) }}

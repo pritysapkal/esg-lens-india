@@ -77,9 +77,9 @@ should exclude them.
 ### Values used (best available value)
 
 KPIs are computed from `fct_esg_value.best_value_std`: the filed value, except where it is a
-suspected scale error (more than 100 times apart from the comparative in the next report), in
-which case the later comparative is used. `n_values_replaced` counts such values per company-year
-(25 values in 14 company-years). Policy and reasons: [restatement_method.md](restatement_method.md).
+suspected scale error (more than 100 times apart from the comparative in the next report; 10
+times for percent metrics), in which case the later comparative is used. `n_values_replaced`
+counts such values per company-year (39 values in 19 company-years). Policy and reasons: [restatement_method.md](restatement_method.md).
 
 ### Implausible zeros and KPI flags (`kpi_flags`, `int_kpi_flags`)
 
@@ -97,7 +97,7 @@ list; `int_kpi_flags` has one row per flag with a plain-English detail.
 | `scale_error_values_replaced` | `n_values_replaced` > 0 | information only |
 
 Current data: wage share 2 (INDIGO and ITC FY2025-26), water withdrawal 2 (INDIGO and TRENT
-FY2022-23), energy 0, headcount 0, waste recovery over 100% 8, values replaced 14 company-years.
+FY2022-23), energy 0, headcount 0, waste recovery over 100% 8, values replaced 19 company-years.
 
 ### Filed intensity basis (`*_intensity_filed_basis`)
 

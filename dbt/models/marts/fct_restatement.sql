@@ -4,7 +4,8 @@
 --   restated_value = PY value of year Y from the filing for Y+1 (latest revision)
 -- Only headline / input / secondary numeric metrics, same breakdown, both after normalisation and
 -- overrides. Pairs: FY2022-23 -> FY2023-24, FY2023-24 -> FY2024-25, FY2024-25 -> FY2025-26.
--- Classification order: circular unit -> suspected scale error (> 100x apart) -> unit
+-- Classification order: circular unit -> suspected scale error (> 100x apart; 10x for percent
+-- metrics) -> unit
 -- inconsistency -> from/to zero -> no change (<= 1%) -> material -> minor. The first two are
 -- not restatements and are excluded from statistics (is_compared = false).
 -- Method and thresholds: docs/restatement_method.md.
@@ -133,7 +134,7 @@ classified as (
         case
             when original_unit_method = 'bridged-from-next-filing'
                 then 'unit_inferred_from_restating_filing'
-            when {{ is_scale_error('ratio') }} then 'suspected_scale_error'
+            when {{ is_scale_error('ratio', "unit_type = 'pct'") }} then 'suspected_scale_error'
             when
                 ratio is not null
                 and (
