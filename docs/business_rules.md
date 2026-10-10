@@ -254,3 +254,30 @@ How the multipliers were chosen:
 
 To add an override: append a row with the evidence, run `dbt build`, and check that both override
 tests pass.
+
+## Materiality vs disclosure requirement
+
+Two different questions, two seeds:
+
+> **Materiality = whether to RANK a metric. Requirement = whether it MUST be disclosed (used for
+> completeness in the Disclosure Quality Score).**
+
+| | `metric_materiality` | `metric_disclosure_requirement` |
+|---|---|---|
+| Question | Is the metric meaningful to compare within this peer group? | Does SEBI require the company to file it, and from which year? |
+| Grain | peer group x metric | metric |
+| "No" means | shown, not ranked | not expected (a gap is not a defect) |
+| Used by | rankings, report cards | Disclosure Quality Score (completeness) |
+
+A metric can be required but not material (a bank must file water use; it is not ranked) and
+material but not required (Scope 3 is a leadership indicator).
+
+Requirement rules (`dbt/seeds/metric_disclosure_requirement.csv`, every catalogue metric has a row):
+
+- **BRSR Core attributes** (GHG, water, energy, waste, employee wellbeing and safety, gender,
+  inclusive development, fairness, openness, and the Core assurance fields): essential, mandatory
+  from **FY2023-24**, `brsr_core = true`.
+- **Other essential indicators** (turnover, headcount, attrition, women on the board, NIC code,
+  reporting boundary): mandatory from **FY2022-23**, `brsr_core = false`.
+- **Scope 3 emissions**: leadership (voluntary), no mandatory year, `brsr_core = false`.
+- The assignment is the analyst's reading of the BRSR format and is not yet verified line by line.

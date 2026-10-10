@@ -90,7 +90,44 @@ seeds:
         peer_group: varchar
         sector_group: varchar
         sub_industry: varchar
+        peer_group_sort: integer
+        sector_group_sort: integer
         assigned_by: varchar
+    corporate_events:
+      +column_types:
+        isin: varchar
+        symbol: varchar
+        event_date: date
+        event_type: varchar
+        description: varchar
+        affected_fiscal_year_label: varchar
+        comparability_break: boolean
+        source_note: varchar
+        verified: boolean
+    dim_fiscal_year:
+      +column_types:
+        fiscal_year_label: varchar
+        fy_sort: integer
+        start_date: date
+        end_date: date
+        is_brsr_core_year: boolean
+        assurance_fields_available: boolean
+        note: varchar
+    metric_disclosure_requirement:
+      +column_types:
+        metric_id: varchar
+        indicator_type: varchar
+        mandatory_from_fy: varchar
+        brsr_core: boolean
+        note: varchar
+    company_attributes:
+      +column_types:
+        symbol: varchar
+        display_name: varchar
+        ownership_type: varchar
+        business_group: varchar
+        source_note: varchar
+        verified: boolean
     metric_materiality:
       +column_types:
         peer_group: varchar

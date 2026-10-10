@@ -155,6 +155,88 @@ Gender, wellbeing, attrition, POSH, data breaches, related-party %, assurance an
 are material for every group. `int_metric_values_enriched` adds `company_name`, `peer_group`
 and `is_material` to every metric value (21,730 rows).
 
+## Company-year grain (`dim_company_year`)
+
+One row per company (ISIN) and financial year, from the latest filing of that year: 196 rows
+(= the 196 filings). It is the grain every yearly fact and score joins to.
+
+| Column group | Columns |
+|---|---|
+| Keys | `isin`, `fiscal_year_label`, `filing_id` (latest filing of the year) |
+| Names and groups | `symbol`, `display_name`, `peer_group`, `sector_group`, `ranking_group`, sort keys `peer_group_sort`, `sector_group_sort` |
+| Period | `period_start`, `period_end`, `period_months`, `is_non_standard_period`, `annualisation_factor` (12 / months), `taxonomy_version` |
+| Basis | `reporting_boundary` (standalone / consolidated) |
+| Size | `turnover_inr` (corrected), `total_headcount`, `size_band`, `size_band_basis` |
+| Quality | `brsr_core_assurance_status` (assured / assessed / not disclosed), `has_comparability_break` |
+
+- **Annualisation:** NESTLEIND's 15-month year (FY2023-24) has factor 0.8. Multiply flows by it to
+  compare with 12-month years; ratios need no change.
+- **Headcount** = employees + workers, permanent and other than permanent (the "Employees" and
+  "Workers" totals of the headcount table; checked to equal the sum of the four parts).
+- **Assurance** is only filed in FY2024-25 and FY2025-26 (`dim_fiscal_year.assurance_fields_available`);
+  earlier years show "not disclosed", which is *not applicable*, not a failure.
+- **Boundary changes within a company** exist (NTPC, POWERGRID, TATACONSUM, TATASTEEL, WIPRO
+  switch between standalone and consolidated); values across such years are not like for like.
+
+### Size band method
+
+Tercile of the size measure **within sector group and fiscal year** (Large = top third, Mid,
+Small), with `size_band_basis` saying which measure:
+
+- **Asset-light and Asset-heavy:** `turnover_inr`.
+- **Financials:** `total_headcount`, because a bank's "turnover" (interest income plus fees) is not
+  comparable with an insurer's or an exchange's.
+- Ties break by ISIN; a company with a missing measure has no band and does not distort the
+  terciles. Terciles are relative to the NIFTY 50 sample, not to the market.
+
+Example split over all years (INR crore): Asset-light Small < 20,500, Mid up to 55,000, Large above;
+Asset-heavy Small < 81,000, Mid up to 138,000, Large above; Financials by headcount Small < 43,200,
+Mid up to 124,300, Large above (ranges overlap slightly because terciles are cut per year).
+
+## Structural breaks (`corporate_events`)
+
+Seed of mergers, demergers, renames and acquisitions. `comparability_break = true` on the
+affected year sets `has_comparability_break` in `dim_company_year`; downstream trend and
+restatement logic must not treat that year-on-year change as performance.
+
+| Company | Event | Effective | Affects | Break |
+|---|---|---|---|---|
+| HDFCBANK | Merger with HDFC Ltd | 2023-07-01 | FY2023-24 | true |
+| RELIANCE | Demerger of financial services (Jio Financial) | 2023-07-01 | FY2023-24 | true |
+| JIOFIN | Demerged from Reliance; first filing year | 2023-07-01 | FY2023-24 | false (no prior year) |
+| ITC | Hotels demerger (ITC Hotels) | 2025-01-01 | FY2024-25 | true |
+| TMPV | Commercial-vehicle demerger; keeps INE155A01022 | not given | FY2025-26 | true |
+| ETERNAL | Zomato renamed Eternal | 2025 (day not given) | FY2024-25 | false |
+| SHRIRAMFIN | Merger of Shriram Transport and Shriram City Union | 2022-12 | FY2022-23 | true |
+
+All rows have `verified = false`; they come from the analyst brief and have not been checked
+against company announcements. No other rename was found in `dim_company_history`. Suspected
+further events (large year-on-year jumps) are listed in the build report for review, not added.
+
+## Ownership and business group (`company_attributes`)
+
+`display_name` (short name for charts), `ownership_type` (Government 7, Private Indian 41,
+MNC subsidiary 3) and `business_group` (Tata 6, Independent 27, Bajaj 3, Aditya Birla 3, HDFC 2,
+Mahindra 2, Reliance 2, SBI 2, Adani 2, Bharti 1, JSW 1). Seed values come from the analyst brief;
+"Independent" is the default for companies not in the brief's group list, and the doubtful cases
+(SBILIFE, ITC, TITAN, SHRIRAMFIN, EICHERMOT, MAXHEALTH) say so in `source_note`.
+All rows have `verified = false`.
+
+WIPRO's `sub_industry` (Information Technology) is **verified** by the project owner (2026-10-10).
+
+## Fiscal years (`dim_fiscal_year`)
+
+FY2022-23 to FY2025-26, April to March, with `is_brsr_core_year` (FY2023-24 onwards) and
+`assurance_fields_available` (FY2024-25 onwards). `dim_company_year` and `corporate_events` relate
+to it on `fiscal_year_label`. Whether a metric must be disclosed in a year is in
+`metric_disclosure_requirement` (see [business rules](business_rules.md)).
+
+## Power BI columns
+
+`display_name`, `peer_group_sort`, `sector_group_sort` (Financials 1, Asset-light 2, Asset-heavy 3;
+peer groups in the order of the groups table) are in `dim_company` and `dim_company_year` so visuals
+can sort and label without extra tables.
+
 ## Known limitations
 
 - **Survivorship bias.** `universe_basis` is *NIFTY 50 constituents as of 2026-10 (applied to all
@@ -168,6 +250,8 @@ and `is_material` to every metric value (21,730 rows).
   sector group; Asset-heavy rankings mix them with Industrials & others.
 - **Sector is an NSE-industry mapping**, not a company's exact business; NIC data only cross-checks it.
 - NIC division names and code corrections are unverified (`verified_by` empty).
+- **Event, ownership and group seeds need human verification** (`verified = false`): the structural-break flags and groups rest on the analyst brief, and TMPV, ETERNAL and SHRIRAMFIN have no exact effective date.
+- **Comparability beyond the listed events is not detected.** Large jumps in turnover or headcount can also come from boundary changes (standalone vs consolidated) or filing errors, e.g. BAJAJFINSV turnover swings between about 1,700 and 134,000 crore across years and is a data-quality question, not a business change.
 
 ## Tests
 

@@ -227,6 +227,12 @@ seeds:
           Financials: Banks, NBFC, Insurance or Market infrastructure. Others: the NSE industry
           (WIPRO is not in the NIFTY file; Information Technology is set by hand).
         tests: [not_null]
+      - name: peer_group_sort
+        description: Sort order of the peer group (for Power BI).
+        tests: [not_null]
+      - name: sector_group_sort
+        description: Sort order of the sector group (for Power BI).
+        tests: [not_null]
       - name: assigned_by
         description: Source of the assignment.
 
@@ -256,4 +262,118 @@ seeds:
       - name: is_material
         tests: [not_null]
       - name: reason
+        tests: [not_null]
+
+  - name: corporate_events
+    description: >
+      Mergers, demergers, renames and acquisitions that break the comparability of a company
+      numbers between years. Pre-filled from the analyst brief; verified is false until checked
+      against company announcements. Only events in this table are flagged; nothing is inferred.
+    columns:
+      - name: isin
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_company')
+                field: isin
+              config:
+                tags: [realdata] # events are about real companies, absent from the synthetic data
+      - name: symbol
+        tests: [not_null]
+      - name: event_date
+        description: Effective date; empty where the brief did not give one.
+      - name: event_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [merger, demerger, rename, acquisition]
+      - name: description
+        tests: [not_null]
+      - name: affected_fiscal_year_label
+        description: First financial year in which the event shows in the numbers.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_fiscal_year')
+                field: fiscal_year_label
+      - name: comparability_break
+        description: true if values are not comparable with the previous year.
+        tests: [not_null]
+      - name: source_note
+        description: Where the event comes from and what is missing.
+      - name: verified
+        tests: [not_null]
+
+  - name: dim_fiscal_year
+    description: Financial years in the data (April-March) with regulatory flags.
+    columns:
+      - name: fiscal_year_label
+        tests: [unique, not_null]
+      - name: fy_sort
+        description: 1 = oldest year.
+        tests: [unique, not_null]
+      - name: start_date
+        tests: [not_null]
+      - name: end_date
+        tests: [not_null]
+      - name: is_brsr_core_year
+        description: true from FY2023-24 (BRSR Core in force).
+      - name: assurance_fields_available
+        description: true from FY2024-25 (assurance fields in the taxonomy).
+      - name: note
+        description: What is new in that year.
+
+  - name: metric_disclosure_requirement
+    description: >
+      Whether a metric MUST be disclosed, from which year (completeness input for the Disclosure
+      Quality Score). Different from metric_materiality, which says whether to RANK it.
+    columns:
+      - name: metric_id
+        tests: [unique, not_null]
+      - name: indicator_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [essential, leadership]
+      - name: mandatory_from_fy
+        description: First year of mandatory disclosure; empty for voluntary (leadership) metrics.
+      - name: brsr_core
+        tests: [not_null]
+      - name: note
+        description: Why.
+
+  - name: company_attributes
+    description: >
+      Display name, ownership and business group per symbol. Pre-filled from the analyst brief;
+      verified is false until checked by hand.
+    tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('peer_groups')
+    columns:
+      - name: symbol
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('peer_groups')
+                field: symbol
+      - name: display_name
+        tests: [not_null]
+      - name: ownership_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [Government, Private Indian, MNC subsidiary]
+      - name: business_group
+        tests: [not_null]
+      - name: source_note
+        description: Basis of the assignment and any doubt.
+      - name: verified
         tests: [not_null]

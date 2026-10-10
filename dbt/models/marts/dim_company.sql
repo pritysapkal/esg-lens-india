@@ -139,6 +139,11 @@ assembled as (
         peer_groups.peer_group,
         peer_groups.sector_group,
         peer_groups.sub_industry,
+        peer_groups.peer_group_sort,
+        peer_groups.sector_group_sort,
+        coalesce(company_attributes.display_name, current_identity.current_name) as display_name,
+        company_attributes.ownership_type,
+        company_attributes.business_group,
         primary_nic.nic_primary_code,
         left(primary_nic.nic_primary_code, 2) as nic_division_2d,
         nic_sector_map.nic_division_name,
@@ -159,6 +164,8 @@ assembled as (
     left join universe on current_identity.isin = universe.isin
     left join {{ ref('peer_groups') }} as peer_groups
         on current_identity.current_symbol = peer_groups.symbol
+    left join {{ ref('company_attributes') }} as company_attributes
+        on current_identity.current_symbol = company_attributes.symbol
     left join primary_nic on current_identity.isin = primary_nic.isin
     left join nic_latest_fy on current_identity.isin = nic_latest_fy.isin
     left join division_summary on current_identity.isin = division_summary.isin

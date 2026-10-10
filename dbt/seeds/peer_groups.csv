@@ -1,52 +1,52 @@
-symbol,peer_group,sector_group,sub_industry,assigned_by
-BSE,Financials,Financials,Market infrastructure,analyst proposal v1
-JIOFIN,Financials,Financials,NBFC,analyst proposal v1
-SBILIFE,Financials,Financials,Insurance,analyst proposal v1
-HDFCLIFE,Financials,Financials,Insurance,analyst proposal v1
-BAJAJFINSV,Financials,Financials,NBFC,analyst proposal v1
-BAJFINANCE,Financials,Financials,NBFC,analyst proposal v1
-SHRIRAMFIN,Financials,Financials,NBFC,analyst proposal v1
-HDFCBANK,Financials,Financials,Banks,analyst proposal v1
-ICICIBANK,Financials,Financials,Banks,analyst proposal v1
-AXISBANK,Financials,Financials,Banks,analyst proposal v1
-KOTAKBANK,Financials,Financials,Banks,analyst proposal v1
-SBIN,Financials,Financials,Banks,analyst proposal v1
-TCS,IT services,Asset-light,Information Technology,analyst proposal v1
-INFY,IT services,Asset-light,Information Technology,analyst proposal v1
-HCLTECH,IT services,Asset-light,Information Technology,analyst proposal v1
-TECHM,IT services,Asset-light,Information Technology,analyst proposal v1
-WIPRO,IT services,Asset-light,Information Technology,analyst proposal v1
-RELIANCE,Energy & utilities,Asset-heavy,Oil Gas & Consumable Fuels,analyst proposal v1
-ONGC,Energy & utilities,Asset-heavy,Oil Gas & Consumable Fuels,analyst proposal v1
-COALINDIA,Energy & utilities,Asset-heavy,Oil Gas & Consumable Fuels,analyst proposal v1
-NTPC,Energy & utilities,Asset-heavy,Power,analyst proposal v1
-POWERGRID,Energy & utilities,Asset-heavy,Power,analyst proposal v1
-TATASTEEL,Metals & mining,Asset-heavy,Metals & Mining,analyst proposal v1
-JSWSTEEL,Metals & mining,Asset-heavy,Metals & Mining,analyst proposal v1
-HINDALCO,Metals & mining,Asset-heavy,Metals & Mining,analyst proposal v1
-ADANIENT,Metals & mining,Asset-heavy,Metals & Mining,analyst proposal v1
-ULTRACEMCO,Cement & construction,Asset-heavy,Construction Materials,analyst proposal v1
-GRASIM,Cement & construction,Asset-heavy,Construction Materials,analyst proposal v1
-LT,Cement & construction,Asset-heavy,Construction,analyst proposal v1
-MARUTI,Automobiles,Asset-heavy,Automobile and Auto Components,analyst proposal v1
-M&M,Automobiles,Asset-heavy,Automobile and Auto Components,analyst proposal v1
-BAJAJ-AUTO,Automobiles,Asset-heavy,Automobile and Auto Components,analyst proposal v1
-EICHERMOT,Automobiles,Asset-heavy,Automobile and Auto Components,analyst proposal v1
-TMPV,Automobiles,Asset-heavy,Automobile and Auto Components,analyst proposal v1
-HINDUNILVR,Consumer,Asset-light,Fast Moving Consumer Goods,analyst proposal v1
-ITC,Consumer,Asset-light,Fast Moving Consumer Goods,analyst proposal v1
-NESTLEIND,Consumer,Asset-light,Fast Moving Consumer Goods,analyst proposal v1
-TATACONSUM,Consumer,Asset-light,Fast Moving Consumer Goods,analyst proposal v1
-ASIANPAINT,Consumer,Asset-light,Consumer Durables,analyst proposal v1
-TITAN,Consumer,Asset-light,Consumer Durables,analyst proposal v1
-TRENT,Consumer,Asset-light,Consumer Services,analyst proposal v1
-ETERNAL,Consumer,Asset-light,Consumer Services,analyst proposal v1
-SUNPHARMA,Healthcare,Asset-light,Healthcare,analyst proposal v1
-DRREDDY,Healthcare,Asset-light,Healthcare,analyst proposal v1
-CIPLA,Healthcare,Asset-light,Healthcare,analyst proposal v1
-APOLLOHOSP,Healthcare,Asset-light,Healthcare,analyst proposal v1
-MAXHEALTH,Healthcare,Asset-light,Healthcare,analyst proposal v1
-BEL,Industrials & others,Asset-heavy,Capital Goods,analyst proposal v1
-ADANIPORTS,Industrials & others,Asset-heavy,Services,analyst proposal v1
-INDIGO,Industrials & others,Asset-heavy,Services,analyst proposal v1
-BHARTIARTL,Industrials & others,Asset-heavy,Telecommunication,analyst proposal v1
+symbol,peer_group,sector_group,sub_industry,peer_group_sort,sector_group_sort,assigned_by
+BSE,Financials,Financials,Market infrastructure,1,1,analyst proposal v1
+JIOFIN,Financials,Financials,NBFC,1,1,analyst proposal v1
+SBILIFE,Financials,Financials,Insurance,1,1,analyst proposal v1
+HDFCLIFE,Financials,Financials,Insurance,1,1,analyst proposal v1
+BAJAJFINSV,Financials,Financials,NBFC,1,1,analyst proposal v1
+BAJFINANCE,Financials,Financials,NBFC,1,1,analyst proposal v1
+SHRIRAMFIN,Financials,Financials,NBFC,1,1,analyst proposal v1
+HDFCBANK,Financials,Financials,Banks,1,1,analyst proposal v1
+ICICIBANK,Financials,Financials,Banks,1,1,analyst proposal v1
+AXISBANK,Financials,Financials,Banks,1,1,analyst proposal v1
+KOTAKBANK,Financials,Financials,Banks,1,1,analyst proposal v1
+SBIN,Financials,Financials,Banks,1,1,analyst proposal v1
+TCS,IT services,Asset-light,Information Technology,2,2,analyst proposal v1
+INFY,IT services,Asset-light,Information Technology,2,2,analyst proposal v1
+HCLTECH,IT services,Asset-light,Information Technology,2,2,analyst proposal v1
+TECHM,IT services,Asset-light,Information Technology,2,2,analyst proposal v1
+WIPRO,IT services,Asset-light,Information Technology,2,2,analyst proposal v1; sub_industry verified by user 2026-10-10
+RELIANCE,Energy & utilities,Asset-heavy,Oil Gas & Consumable Fuels,3,3,analyst proposal v1
+ONGC,Energy & utilities,Asset-heavy,Oil Gas & Consumable Fuels,3,3,analyst proposal v1
+COALINDIA,Energy & utilities,Asset-heavy,Oil Gas & Consumable Fuels,3,3,analyst proposal v1
+NTPC,Energy & utilities,Asset-heavy,Power,3,3,analyst proposal v1
+POWERGRID,Energy & utilities,Asset-heavy,Power,3,3,analyst proposal v1
+TATASTEEL,Metals & mining,Asset-heavy,Metals & Mining,4,3,analyst proposal v1
+JSWSTEEL,Metals & mining,Asset-heavy,Metals & Mining,4,3,analyst proposal v1
+HINDALCO,Metals & mining,Asset-heavy,Metals & Mining,4,3,analyst proposal v1
+ADANIENT,Metals & mining,Asset-heavy,Metals & Mining,4,3,analyst proposal v1
+ULTRACEMCO,Cement & construction,Asset-heavy,Construction Materials,5,3,analyst proposal v1
+GRASIM,Cement & construction,Asset-heavy,Construction Materials,5,3,analyst proposal v1
+LT,Cement & construction,Asset-heavy,Construction,5,3,analyst proposal v1
+MARUTI,Automobiles,Asset-heavy,Automobile and Auto Components,6,3,analyst proposal v1
+M&M,Automobiles,Asset-heavy,Automobile and Auto Components,6,3,analyst proposal v1
+BAJAJ-AUTO,Automobiles,Asset-heavy,Automobile and Auto Components,6,3,analyst proposal v1
+EICHERMOT,Automobiles,Asset-heavy,Automobile and Auto Components,6,3,analyst proposal v1
+TMPV,Automobiles,Asset-heavy,Automobile and Auto Components,6,3,analyst proposal v1
+HINDUNILVR,Consumer,Asset-light,Fast Moving Consumer Goods,7,2,analyst proposal v1
+ITC,Consumer,Asset-light,Fast Moving Consumer Goods,7,2,analyst proposal v1
+NESTLEIND,Consumer,Asset-light,Fast Moving Consumer Goods,7,2,analyst proposal v1
+TATACONSUM,Consumer,Asset-light,Fast Moving Consumer Goods,7,2,analyst proposal v1
+ASIANPAINT,Consumer,Asset-light,Consumer Durables,7,2,analyst proposal v1
+TITAN,Consumer,Asset-light,Consumer Durables,7,2,analyst proposal v1
+TRENT,Consumer,Asset-light,Consumer Services,7,2,analyst proposal v1
+ETERNAL,Consumer,Asset-light,Consumer Services,7,2,analyst proposal v1
+SUNPHARMA,Healthcare,Asset-light,Healthcare,8,2,analyst proposal v1
+DRREDDY,Healthcare,Asset-light,Healthcare,8,2,analyst proposal v1
+CIPLA,Healthcare,Asset-light,Healthcare,8,2,analyst proposal v1
+APOLLOHOSP,Healthcare,Asset-light,Healthcare,8,2,analyst proposal v1
+MAXHEALTH,Healthcare,Asset-light,Healthcare,8,2,analyst proposal v1
+BEL,Industrials & others,Asset-heavy,Capital Goods,9,3,analyst proposal v1
+ADANIPORTS,Industrials & others,Asset-heavy,Services,9,3,analyst proposal v1
+INDIGO,Industrials & others,Asset-heavy,Services,9,3,analyst proposal v1
+BHARTIARTL,Industrials & others,Asset-heavy,Telecommunication,9,3,analyst proposal v1

@@ -1,0 +1,35 @@
+metric_id,indicator_type,mandatory_from_fy,brsr_core,note
+attrition_rate_pct,essential,FY2022-23,false,Essential indicator (not BRSR Core); mandatory from FY2022-23
+brsr_core_assurance_status,essential,FY2023-24,true,BRSR Core assurance disclosure; filed from the year Core became mandatory
+brsr_core_assurance_type,essential,FY2023-24,true,BRSR Core assurance disclosure; filed from the year Core became mandatory
+data_breaches_count,essential,FY2023-24,true,BRSR Core attribute 8 Fairness; mandatory from FY2023-24
+days_payable,essential,FY2023-24,true,BRSR Core attribute 8 Fairness; mandatory from FY2023-24
+energy_intensity_filed_gj_per_inr_cr,essential,FY2023-24,true,BRSR Core attribute 3 Energy; mandatory from FY2023-24
+energy_renewable_gj,essential,FY2023-24,true,BRSR Core attribute 3 Energy; mandatory from FY2023-24
+energy_total_gj,essential,FY2023-24,true,BRSR Core attribute 3 Energy; mandatory from FY2023-24
+fatalities_count,essential,FY2023-24,true,BRSR Core attribute 5 Safety; mandatory from FY2023-24
+female_board_pct,essential,FY2022-23,false,Essential indicator (not BRSR Core); mandatory from FY2022-23
+female_wage_share_pct,essential,FY2023-24,true,BRSR Core attribute 6 Gender; mandatory from FY2023-24
+ghg_intensity_filed_tco2e_per_inr_cr,essential,FY2023-24,true,BRSR Core attribute 1 GHG; mandatory from FY2023-24
+ghg_scope1_tco2e,essential,FY2023-24,true,BRSR Core attribute 1 GHG; mandatory from FY2023-24
+ghg_scope2_tco2e,essential,FY2023-24,true,BRSR Core attribute 1 GHG; mandatory from FY2023-24
+ghg_scope3_tco2e,leadership,,false,"Scope 3 is a leadership (voluntary) indicator, not BRSR Core"
+headcount,essential,FY2022-23,false,Essential indicator (not BRSR Core); mandatory from FY2022-23
+job_creation_small_towns_pct,essential,FY2023-24,true,BRSR Core attribute 7 Inclusive; mandatory from FY2023-24
+ltifr,essential,FY2023-24,true,BRSR Core attribute 5 Safety; mandatory from FY2023-24
+msme_sourcing_pct,essential,FY2023-24,true,BRSR Core attribute 7 Inclusive; mandatory from FY2023-24
+nic_code,essential,FY2022-23,false,Essential indicator (not BRSR Core); mandatory from FY2022-23
+posh_complaints_pct_female,essential,FY2023-24,true,BRSR Core attribute 6 Gender; mandatory from FY2023-24
+posh_complaints_upheld_count,essential,FY2023-24,true,BRSR Core attribute 6 Gender; mandatory from FY2023-24
+recordable_injuries_count,essential,FY2023-24,true,BRSR Core attribute 5 Safety; mandatory from FY2023-24
+reporting_boundary,essential,FY2022-23,false,Essential indicator (not BRSR Core); mandatory from FY2022-23
+rpt_purchases_pct,essential,FY2023-24,true,BRSR Core attribute 9 Openness; mandatory from FY2023-24
+rpt_sales_pct,essential,FY2023-24,true,BRSR Core attribute 9 Openness; mandatory from FY2023-24
+turnover_inr,essential,FY2022-23,false,Essential indicator (not BRSR Core); mandatory from FY2022-23
+waste_disposed_t,essential,FY2023-24,true,BRSR Core attribute 4 Waste; mandatory from FY2023-24
+waste_generated_t,essential,FY2023-24,true,BRSR Core attribute 4 Waste; mandatory from FY2023-24
+waste_recovered_t,essential,FY2023-24,true,BRSR Core attribute 4 Waste; mandatory from FY2023-24
+water_consumption_kl,essential,FY2023-24,true,BRSR Core attribute 2 Water; mandatory from FY2023-24
+water_intensity_filed_kl_per_inr_cr,essential,FY2023-24,true,BRSR Core attribute 2 Water; mandatory from FY2023-24
+water_withdrawal_kl,essential,FY2023-24,true,BRSR Core attribute 2 Water; mandatory from FY2023-24
+wellbeing_cost_pct_revenue,essential,FY2023-24,true,BRSR Core attribute 5 Wellbeing; mandatory from FY2023-24

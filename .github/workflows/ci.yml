@@ -77,4 +77,4 @@ jobs:
         working-directory: dbt
         run: |
           dbt deps --profiles-dir .
-          dbt build --profiles-dir . --select "staging +intermediate marts" --exclude tag:realdata
+          dbt build --profiles-dir . --select "staging +intermediate +marts resource_type:seed" --exclude tag:realdata

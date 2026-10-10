@@ -82,6 +82,17 @@ models:
           the peer group itself comes from the NSE industry via the seed).
       - name: universe_basis
         description: Which companies the data covers and for which years.
+      - name: display_name
+        description: Short name for charts (company_attributes seed), else the current name.
+        tests: [not_null]
+      - name: peer_group_sort
+        description: Sort order of the peer group for Power BI.
+      - name: sector_group_sort
+        description: Sort order of the sector group for Power BI.
+      - name: ownership_type
+        description: Government, Private Indian or MNC subsidiary (company_attributes seed; unverified).
+      - name: business_group
+        description: Business group or Independent (company_attributes seed; unverified).
       - name: nic_primary_code
         description: NIC code with the highest turnover share in the latest filing with NIC data.
       - name: nic_division_2d
@@ -132,3 +143,81 @@ models:
         description: Last financial year filed under this name and symbol; empty for the current row.
       - name: is_current
         tests: [not_null]
+
+  - name: dim_company_year
+    description: >
+      One row per company (ISIN) and financial year, from the latest filing of that year: period,
+      boundary, annualisation factor, turnover, headcount, assurance status, structural-break flag
+      and size band. Size band = tercile of turnover within sector group and year (Financials:
+      total headcount). Method: docs/company_identity.md.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, fiscal_year_label]
+    columns:
+      - name: isin
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_company')
+                field: isin
+      - name: fiscal_year_label
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_fiscal_year')
+                field: fiscal_year_label
+      - name: filing_id
+        description: The latest filing of that company and year.
+        tests: [unique, not_null]
+      - name: symbol
+        description: NSE symbol in that filing.
+      - name: display_name
+        description: Short name for charts (company_attributes seed).
+      - name: peer_group
+        description: Peer group (seed peer_groups).
+        tests:
+          - not_null:
+              config:
+                tags: [realdata] # the synthetic CI company is not in the peer_groups seed
+      - name: sector_group
+        description: Financials, Asset-light or Asset-heavy.
+      - name: ranking_group
+        description: Group the company is ranked in (see dim_company).
+      - name: peer_group_sort
+        description: Sort order of the peer group for Power BI.
+      - name: sector_group_sort
+        description: Sort order of the sector group for Power BI.
+      - name: reporting_boundary
+        description: standalone or consolidated.
+      - name: period_start
+        description: First day of the reporting period.
+      - name: period_end
+        description: Last day of the reporting period.
+        tests: [not_null]
+      - name: period_months
+        description: Length of the reporting period in months.
+      - name: is_non_standard_period
+        description: true if the period is not a 12-month April-March year.
+      - name: annualisation_factor
+        description: 12 / period_months, e.g. 0.8 for a 15-month year.
+      - name: taxonomy_version
+        description: SEBI BRSR taxonomy version of the filing.
+      - name: turnover_inr
+        description: Corrected turnover in INR.
+      - name: total_headcount
+        description: Employees plus workers, permanent and other than permanent.
+      - name: brsr_core_assurance_status
+        description: assured, assessed or not disclosed.
+      - name: has_comparability_break
+        description: true if a corporate event breaks comparability with the previous year.
+      - name: size_band
+        description: Large, Mid or Small (terciles); empty if the size measure is missing.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [Large, Mid, Small]
+      - name: size_band_basis
+        description: total_headcount (Financials) or turnover_inr.
