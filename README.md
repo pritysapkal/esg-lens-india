@@ -52,7 +52,7 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
  ┌──────────────────────────── dbt Core on DuckDB (data/warehouse/esg_lens.duckdb) ───────────┐
  │  seeds (concept_metric_map, nic_sector_map, peer_groups...)                                 │
  │  bronze/staging (views) ─► silver/intermediate (views) ─► gold/marts (tables, Kimball star) │
- │  snapshots (SCD2 restatements) · dbt tests + dbt-expectations + Elementary                  │
+ │  restatement tracker (prior-year comparatives in later filings) · dbt tests + Elementary    │
  │  MetricFlow semantic layer                                                                  │
  └───────────────┬───────────────────┬───────────────────┬───────────────────┬────────────────┘
                  ▼                   ▼                   ▼                   ▼
@@ -171,7 +171,7 @@ mapping live in the intermediate layer: `int_metric_values` (one row per metric 
 
 ```
 ingestion/     Python: listing -> manual intake -> status report -> parse XBRL -> Parquet
-dbt/           dbt project `esg_lens` (DuckDB), seeds, snapshots, tests
+dbt/           dbt project `esg_lens` (DuckDB), seeds, tests
 data/          raw / processed / warehouse (git-ignored contents)
 tests/fixtures/ synthetic test data (no real filings are committed)
 notebooks/     learning notebooks (outputs are never committed)
