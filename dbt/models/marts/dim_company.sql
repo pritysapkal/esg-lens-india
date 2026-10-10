@@ -2,6 +2,9 @@
 -- NSE industry, peer group and NIC sector (from the latest filing with a usable NIC code).
 -- Primary NIC = the code with the highest turnover share (ties -> lowest code). Conglomerate =
 -- top NIC division below 60% of turnover, or three or more divisions with at least 15% each.
+-- Sector comes from the NSE industry via the peer_groups seed; NIC is only a cross-check
+-- (nic_agrees_with_peer_group). Ranking rule: rank within the peer group when it has at least 5
+-- companies and is not "Industrials & others", else within the broader sector group.
 
 with names as (
     select
@@ -119,42 +122,73 @@ universe as (
         isin,
         industry
     from {{ ref('stg_universe') }}
+),
+
+assembled as (
+    select
+        current_identity.isin,
+        current_identity.current_name,
+        current_identity.current_symbol,
+        latest_cin.cin,
+        coverage.all_symbols,
+        coverage.first_fy,
+        coverage.last_fy,
+        coverage.n_filings,
+        universe.isin is not null as in_universe,
+        universe.industry as nse_industry,
+        peer_groups.peer_group,
+        peer_groups.sector_group,
+        peer_groups.sub_industry,
+        primary_nic.nic_primary_code,
+        left(primary_nic.nic_primary_code, 2) as nic_division_2d,
+        nic_sector_map.nic_division_name,
+        nic_sector_map.expected_peer_group = peer_groups.peer_group as nic_agrees_with_peer_group,
+        nic_latest_fy.nic_fiscal_year_label,
+        division_summary.top_division_share as nic_top_division_share,
+        division_summary.n_divisions_ge_15pct as nic_n_divisions_ge_15pct,
+        top_codes.top_3_nic_codes,
+        case
+            when division_summary.isin is null then null
+            else
+                division_summary.top_division_share < 0.6
+                or division_summary.n_divisions_ge_15pct >= 3
+        end as is_conglomerate
+    from current_identity
+    left join latest_cin on current_identity.isin = latest_cin.isin
+    left join coverage on current_identity.isin = coverage.isin
+    left join universe on current_identity.isin = universe.isin
+    left join {{ ref('peer_groups') }} as peer_groups
+        on current_identity.current_symbol = peer_groups.symbol
+    left join primary_nic on current_identity.isin = primary_nic.isin
+    left join nic_latest_fy on current_identity.isin = nic_latest_fy.isin
+    left join division_summary on current_identity.isin = division_summary.isin
+    left join top_codes on current_identity.isin = top_codes.isin
+    left join {{ ref('nic_sector_map') }} as nic_sector_map
+        on left(primary_nic.nic_primary_code, 2) = nic_sector_map.nic_division_2d
+),
+
+sized as (
+    select
+        *,
+        case
+            when peer_group is not null then count(*) over (partition by peer_group)
+        end as peer_group_n
+    from assembled
 )
 
 select
-    current_identity.isin,
-    current_identity.current_name,
-    current_identity.current_symbol,
-    latest_cin.cin,
-    coverage.all_symbols,
-    coverage.first_fy,
-    coverage.last_fy,
-    coverage.n_filings,
-    universe.isin is not null as in_universe,
-    universe.industry as nse_industry,
-    peer_groups.peer_group,
-    primary_nic.nic_primary_code,
-    left(primary_nic.nic_primary_code, 2) as nic_division_2d,
-    nic_sector_map.nic_division_name,
-    nic_latest_fy.nic_fiscal_year_label,
-    division_summary.top_division_share as nic_top_division_share,
-    division_summary.n_divisions_ge_15pct as nic_n_divisions_ge_15pct,
-    top_codes.top_3_nic_codes,
+    *,  -- noqa: AM04
     case
-        when division_summary.isin is null then null
-        else
-            division_summary.top_division_share < 0.6
-            or division_summary.n_divisions_ge_15pct >= 3
-    end as is_conglomerate
-from current_identity
-left join latest_cin on current_identity.isin = latest_cin.isin
-left join coverage on current_identity.isin = coverage.isin
-left join universe on current_identity.isin = universe.isin
-left join {{ ref('peer_groups') }} as peer_groups
-    on current_identity.current_symbol = peer_groups.symbol
-left join primary_nic on current_identity.isin = primary_nic.isin
-left join nic_latest_fy on current_identity.isin = nic_latest_fy.isin
-left join division_summary on current_identity.isin = division_summary.isin
-left join top_codes on current_identity.isin = top_codes.isin
-left join {{ ref('nic_sector_map') }} as nic_sector_map
-    on left(primary_nic.nic_primary_code, 2) = nic_sector_map.nic_division_2d
+        when peer_group_n >= 5 and peer_group != 'Industrials & others' then peer_group
+        else sector_group
+    end as ranking_group,
+    case
+        when peer_group_n >= 5 and peer_group != 'Industrials & others' then 'peer_group'
+        else 'sector_group'
+    end as ranking_basis,
+    case
+        when peer_group = 'Industrials & others'
+            then 'heterogeneous group: defence, ports, airline, telecom - not peer-ranked'
+    end as caution_note,
+    'NIFTY 50 constituents as of 2026-10 (applied to all years)' as universe_basis
+from sized

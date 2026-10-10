@@ -3,6 +3,7 @@
 How a company is identified, named and classified in the warehouse (Module 5). Built by
 `int_company_names`, `int_company_nic`, `dim_company` and `dim_company_history`, with the seeds
 `nic_sector_map`, `nic_code_corrections`, `peer_groups` and `metric_materiality`.
+Sector grouping, ranking rule and materiality were refined on 2026-10-10 (see below).
 Numbers below are from the build of 2026-10-10 (51 companies, 196 filings).
 
 ## Identity
@@ -82,63 +83,91 @@ The division names are written from NIC-2008 from memory and **need your check**
 APOLLOHOSP and CIPLA are flagged only because pharmacy / wholesale (464907, about 43%) sits next
 to their main business; BEL because `2008` could not be used (23% unclassified).
 
-## Peer groups
+## Source priority
 
-Seed `peer_groups` (symbol -> group), nine groups, your proposal v1. All 51 symbols are assigned
-exactly once; **no symbol was missing from your list**, and none is assigned twice.
+1. **Peer group and sector group come from the NSE industry**, assigned in the `peer_groups` seed
+   (an analyst mapping of the NSE industry to nine groups). This is the primary source.
+2. **NIC primary division is a cross-check only.** It is never used to assign a group. The column
+   `nic_agrees_with_peer_group` in `dim_company` says whether the division points to the same
+   group (via `expected_peer_group` in `nic_sector_map`).
+3. **Decision (reviewed 2026-10-10):** the sector conflicts below were reviewed and **all current
+   peer groups are kept**. Conflicts are expected for conglomerates and for consumer brands that
+   file chemical NIC codes (paints, soaps).
 
-| Peer group | Companies | Symbols |
-|---|---:|---|
-| Financials | 12 | AXISBANK, BAJAJFINSV, BAJFINANCE, BSE, HDFCBANK, HDFCLIFE, ICICIBANK, JIOFIN, KOTAKBANK, SBILIFE, SBIN, SHRIRAMFIN |
-| Consumer | 8 | ASIANPAINT, ETERNAL, HINDUNILVR, ITC, NESTLEIND, TATACONSUM, TITAN, TRENT |
-| IT services | 5 | HCLTECH, INFY, TCS, TECHM, WIPRO |
-| Healthcare | 5 | APOLLOHOSP, CIPLA, DRREDDY, MAXHEALTH, SUNPHARMA |
-| Energy & utilities | 5 | COALINDIA, NTPC, ONGC, POWERGRID, RELIANCE |
-| Automobiles | 5 | BAJAJ-AUTO, EICHERMOT, M&M, MARUTI, TMPV |
-| Metals & mining | 4 | ADANIENT, HINDALCO, JSWSTEEL, TATASTEEL |
-| Industrials & others | 4 | ADANIPORTS, BEL, BHARTIARTL, INDIGO |
-| Cement & construction | 3 | GRASIM, LT, ULTRACEMCO |
-| **Total** | **51** | |
+## Peer groups, sector groups and the ranking rule
 
-WIPRO is not in the NIFTY 50 file (`in_universe = false`, `nse_industry` empty); its peer group
-comes from the seed like all the others. The peer group is **never** derived from NIC or NSE
-industry: those are only used to flag conflicts.
+Two levels: nine **peer groups**, rolled up into three **sector groups**. A company is ranked in
+its peer group only if that has **at least 5 companies and is not "Industrials & others"**;
+otherwise it is ranked in its sector group (`ranking_group`, `ranking_basis`).
 
-## Sector conflicts (for your review)
+| Peer group | Sector group | n | Ranking group | Ranking basis | Symbols |
+|---|---|---:|---|---|---|
+| Financials | Financials | 12 | Financials | peer_group | AXISBANK, BAJAJFINSV, BAJFINANCE, BSE, HDFCBANK, HDFCLIFE, ICICIBANK, JIOFIN, KOTAKBANK, SBILIFE, SBIN, SHRIRAMFIN |
+| Consumer | Asset-light | 8 | Consumer | peer_group | ASIANPAINT, ETERNAL, HINDUNILVR, ITC, NESTLEIND, TATACONSUM, TITAN, TRENT |
+| IT services | Asset-light | 5 | IT services | peer_group | HCLTECH, INFY, TCS, TECHM, WIPRO |
+| Healthcare | Asset-light | 5 | Healthcare | peer_group | APOLLOHOSP, CIPLA, DRREDDY, MAXHEALTH, SUNPHARMA |
+| Energy & utilities | Asset-heavy | 5 | Energy & utilities | peer_group | COALINDIA, NTPC, ONGC, POWERGRID, RELIANCE |
+| Automobiles | Asset-heavy | 5 | Automobiles | peer_group | BAJAJ-AUTO, EICHERMOT, M&M, MARUTI, TMPV |
+| Metals & mining | Asset-heavy | 4 | Asset-heavy | sector_group | ADANIENT, HINDALCO, JSWSTEEL, TATASTEEL |
+| Cement & construction | Asset-heavy | 3 | Asset-heavy | sector_group | GRASIM, LT, ULTRACEMCO |
+| Industrials & others | Asset-heavy | 4 | Asset-heavy | sector_group | ADANIPORTS, BEL, BHARTIARTL, INDIGO |
 
-Companies whose primary NIC division does not point to their peer group (`expected_peer_group`
-column of `nic_sector_map`, an analyst hint), plus the conglomerates. Nothing is changed
-automatically.
+Resulting ranking groups: Financials 12, Asset-heavy 11, Consumer 8, Healthcare 5, IT services 5,
+Energy & utilities 5, Automobiles 5 - none below 5 (tested). "Industrials & others" carries
+`caution_note`: *heterogeneous group: defence, ports, airline, telecom - not peer-ranked*.
 
-| Symbol | Peer group | NSE industry | Primary NIC | NIC division | Division would suggest | Top 3 NIC codes (share) |
-|---|---|---|---|---|---|---|
-| ADANIENT | Metals & mining | Metals & Mining | 46610 | 46 Wholesale trade | Consumer | 46610 (28.4%); 27900 (15.3%); 24201 (15.2%) |
-| ASIANPAINT | Consumer | Consumer Durables | 202 | 20 Chemicals | Industrials & others | 202 (94.7%) |
-| ETERNAL | Consumer | Consumer Services | 63999 | 63 Information service activities | IT services | 63999 (93.0%) |
-| GRASIM | Cement & construction | Construction Materials | 2030 | 20 Chemicals | Industrials & others | 2030 (42.0%); 4690 (31.0%); 2011 (23.0%) |
-| HINDUNILVR | Consumer | Fast Moving Consumer Goods | 202302 | 20 Chemicals | Industrials & others | 202302 (36.9%); 107601 (23.9%); 202306 (21.7%) |
-| BEL | Industrials & others | Capital Goods | 2630 | 26 Electronics | Industrials & others | 2630 (30.0%); 2927 (20.0%); 2651 (17.0%) - conglomerate |
-| ITC | Consumer | Fast Moving Consumer Goods | 120004 | 12 Tobacco | Consumer | 120004 (45.9%); 103003 (29.9%); 102099 (15.2%) - conglomerate |
-| APOLLOHOSP | Healthcare | Healthcare | 861001 | 86 Human health | Healthcare | 861001 (56.7%); 464907 (42.3%) - conglomerate |
-| CIPLA | Healthcare | Healthcare | 210002 | 21 Pharmaceuticals | Healthcare | 210002 (55.6%); 464907 (42.8%); 210001 (1.6%) - conglomerate |
+WIPRO is not in the NIFTY 50 file (`in_universe = false`, `nse_industry` empty); its group and
+`sub_industry` (Information Technology, set by hand) come from the seed.
 
-Reading: the five hard conflicts are the ones to decide. ASIANPAINT, GRASIM and HINDUNILVR file
-chemicals (division 20) codes for products you group under Consumer / Cement. ETERNAL files an
-information-service code for a food-delivery platform; Consumer is the better group. ADANIENT's
-largest line is trading (46), not metals.
+**Sub-industry** (`sub_industry`): Financials are split into Banks (5: HDFCBANK, ICICIBANK,
+AXISBANK, KOTAKBANK, SBIN), NBFC (4: BAJFINANCE, SHRIRAMFIN, BAJAJFINSV, JIOFIN), Insurance (2:
+SBILIFE, HDFCLIFE) and Market infrastructure (1: BSE). Other companies carry their NSE industry.
+Ranking stays at Financials level; the sub-industry is for filtering and context.
+
+## Sector conflicts (cross-check, reviewed - all peer groups kept)
+
+Companies where `nic_agrees_with_peer_group = false`. Nothing is changed automatically.
+
+| Symbol | Peer group | NSE industry | Primary NIC | NIC division | Top 3 NIC codes (share) |
+|---|---|---|---|---|---|
+| ADANIENT | Metals & mining | Metals & Mining | 46610 | 46 Wholesale trade | 46610 (28.4%); 27900 (15.3%); 24201 (15.2%) |
+| ASIANPAINT | Consumer | Consumer Durables | 202 | 20 Chemicals | 202 (94.7%) |
+| ETERNAL | Consumer | Consumer Services | 63999 | 63 Information service activities | 63999 (93.0%) |
+| GRASIM | Cement & construction | Construction Materials | 2030 | 20 Chemicals | 2030 (42.0%); 4690 (31.0%); 2011 (23.0%) |
+| HINDUNILVR | Consumer | Fast Moving Consumer Goods | 202302 | 20 Chemicals | 202302 (36.9%); 107601 (23.9%); 202306 (21.7%) |
+
+The conglomerates (ADANIENT, BEL, ITC, APOLLOHOSP, CIPLA) are listed above under NIC sector; only
+ADANIENT also disagrees on division.
 
 ## Materiality
 
-Seed `metric_materiality` (peer group x metric, 306 rows; edit the CSV to change):
+Seed `metric_materiality` (peer group x metric, 306 rows; edit the CSV to change). **Not
+material = shown but not ranked.** Default is material; each row has a `reason`.
 
-- Not material (shown, not ranked) for **Financials** and **IT services**: energy
-  (`energy_*`), water (`water_*`), waste (`waste_*`) quantities and filed intensities, and GHG
-  intensity (`ghg_intensity_*`). That is 10 metrics x 2 groups = 20 rows set to `false`.
-- Everything else is material for every group: absolute GHG emissions, all social and
-  governance metrics (safety, gender, wellbeing, inclusion, fairness, openness), turnover and
-  the disclosure-quality metrics.
-- `int_metric_values_enriched` adds `company_name`, `peer_group` and `is_material` to every
-  metric value (21,730 rows, 1,337 not material).
+| Peer group | Not material (27 rows in total) | Why |
+|---|---|---|
+| Financials | GHG Scope 1, 2, 3 and intensity; energy (total, renewable, intensity); water (withdrawal, consumption, intensity); waste (generated, recovered, disposed); LTIFR, fatalities, recordable injuries; MSME sourcing; days payable (18 metrics) | Own operations are office-based; financed emissions are not in BRSR |
+| IT services | Water (3); waste (3); LTIFR, fatalities, recordable injuries (3) | Office-based: small, not decision-relevant. GHG Scope 1/2, intensity, energy and renewable energy **are material** (electricity is the main footprint; SASB treats energy as material for software and IT services) |
+| Healthcare | none | Effluents, hazardous and biomedical waste: all environmental metrics material, safety material |
+| Consumer, Energy & utilities, Metals & mining, Cement & construction, Automobiles, Industrials & others | none | Everything material |
+
+Gender, wellbeing, attrition, POSH, data breaches, related-party %, assurance and boundary metrics
+are material for every group. `int_metric_values_enriched` adds `company_name`, `peer_group`
+and `is_material` to every metric value (21,730 rows).
+
+## Known limitations
+
+- **Survivorship bias.** `universe_basis` is *NIFTY 50 constituents as of 2026-10 (applied to all
+  years)*. Companies that left the index before October 2026 are not in the data, and companies
+  that joined recently (JIOFIN, ETERNAL, TMPV, BSE) are held to the same list for years in which
+  they were not constituents. Averages and rankings over FY2022-23 to FY2025-26 therefore describe
+  today's large companies, not the index as it was; weak or delisted companies are missing.
+- **Industrials & others is heterogeneous** (defence, ports, an airline, telecom). It is not
+  peer-ranked; these four are ranked in the Asset-heavy sector group and carry a caution note.
+- **Small peer groups.** Metals & mining (4) and Cement & construction (3) fall back to the
+  sector group; Asset-heavy rankings mix them with Industrials & others.
+- **Sector is an NSE-industry mapping**, not a company's exact business; NIC data only cross-checks it.
+- NIC division names and code corrections are unverified (`verified_by` empty).
 
 ## Tests
 

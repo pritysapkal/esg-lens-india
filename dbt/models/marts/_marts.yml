@@ -50,6 +50,38 @@ models:
                   - Consumer
                   - Healthcare
                   - Industrials & others
+      - name: sector_group
+        description: Financials, Asset-light or Asset-heavy (seed peer_groups).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [Financials, Asset-light, Asset-heavy]
+      - name: sub_industry
+        description: Financials sub-industry (Banks, NBFC, Insurance, Market infrastructure) or the NSE industry.
+      - name: peer_group_n
+        description: Number of companies in the peer group.
+      - name: ranking_group
+        description: >
+          Group a company is ranked in: its peer group if that has at least 5 companies and is not
+          "Industrials & others", else its sector group.
+        tests:
+          - not_null:
+              config:
+                tags: [realdata] # the synthetic CI company is not in the peer_groups seed
+      - name: ranking_basis
+        description: peer_group or sector_group - which level ranking_group is.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [peer_group, sector_group]
+      - name: caution_note
+        description: Warning shown with the ranking, set for the heterogeneous group.
+      - name: nic_agrees_with_peer_group
+        description: >
+          true if the NIC primary division points to the company's peer group (cross-check only;
+          the peer group itself comes from the NSE industry via the seed).
+      - name: universe_basis
+        description: Which companies the data covers and for which years.
       - name: nic_primary_code
         description: NIC code with the highest turnover share in the latest filing with NIC data.
       - name: nic_division_2d

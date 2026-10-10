@@ -213,6 +213,20 @@ seeds:
           - accepted_values:
               arguments:
                 values: *peer_groups
+      - name: sector_group
+        description: >
+          Broader group used when a peer group is too small to rank: Financials, Asset-light or
+          Asset-heavy.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [Financials, Asset-light, Asset-heavy]
+      - name: sub_industry
+        description: >
+          Financials: Banks, NBFC, Insurance or Market infrastructure. Others: the NSE industry
+          (WIPRO is not in the NIFTY file; Information Technology is set by hand).
+        tests: [not_null]
       - name: assigned_by
         description: Source of the assignment.
 

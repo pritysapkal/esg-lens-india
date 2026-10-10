@@ -88,6 +88,8 @@ seeds:
       +column_types:
         symbol: varchar
         peer_group: varchar
+        sector_group: varchar
+        sub_industry: varchar
         assigned_by: varchar
     metric_materiality:
       +column_types:
