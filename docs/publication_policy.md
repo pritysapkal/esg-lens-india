@@ -6,17 +6,20 @@ without legal training. **We assume we have no permission from NSE to republish 
 
 ## The rule in one line
 
-**Publish only what we calculate. Never publish what we copied.**
+**Only values we calculate are public; filed values - including filed percentages - stay local
+and are shown publicly only as gaps, percentiles or peer statistics.**
 
 ## Public
 
 Values that are the result of our own work on the filings:
 
-- intensities per Rs crore of turnover (GHG, energy, water, waste);
-- percentages and ratios (renewable share, waste recovery rate, women in workforce, the filed
-  percentages and rates such as wage share, attrition, LTIFR, days payable);
-- gaps we compute (pay-equity gap, attrition gap, filed-versus-computed ratios);
-- percentiles and rankings within a peer group; peer-group medians and quartiles;
+- intensities per Rs crore of turnover that we compute (GHG, energy, water, waste);
+- percentages and ratios that we compute (renewable share, waste recovery rate, women in
+  workforce, waste balance gap, fatalities per 10,000 workforce);
+- gaps we compute (pay-equity gap, attrition gap);
+- percentiles and rankings within a peer group; peer-group medians and quartiles (also for KPIs
+  whose underlying value is filed: the position is ours, the value is not shown);
+- the label of the denominator a company used for its filed intensity (`*_filed_basis`);
 - Disclosure Quality Scores;
 - restatement classifications and counts (how many, what share, which class);
 - yes / no flags (any fatality, Scope 3 disclosed, comparability break, KPI flags);
@@ -28,6 +31,12 @@ Values that are the result of our own work on the filings:
 
 - **Raw filed values copied from filings**: absolute emissions (tCO2e), energy (GJ), water (kl),
   waste (t), turnover (INR), headcounts, and raw counts (injuries, fatalities, complaints);
+- **filed percentages and rates**, which are copied values too: share of wages paid to women,
+  women on the board, attrition rates, LTIFR, days payable, related-party shares, MSME sourcing,
+  well-being spend, POSH complaints, and the intensities as the company filed them;
+- anything that gives a filed value back by simple arithmetic: the filed-versus-computed ratios
+  (ratio x our intensity = the filed intensity), a company's own KPI value in the percentile
+  table, and the minimum and maximum of a peer group (each is one company's value);
 - original and restated values of a restatement, and any text copied from a filing (the
   `stated_reason` snippet);
 - the raw XBRL files, the listing CSV files and everything under `data/`;
@@ -40,7 +49,7 @@ Values that are the result of our own work on the filings:
 | `public_safe` on every column | Each column of `fct_company_year`, `fct_esg_value`, `fct_peer_benchmark`, `fct_company_kpi_percentile` and `fct_restatement` carries `config.meta.public_safe: true / false` in `dbt/models/marts/_marts.yml`. For KPIs the flag comes from the seed `kpi_catalogue.csv`. |
 | `rpt_public_company_year` | The company-year KPIs with **only** public-safe columns. Use this, not `fct_company_year`, for anything published. |
 | `rpt_public_restatement_summary` | Restatement classes, counts and percentages. No original or restated value. |
-| `fct_peer_benchmark`, `fct_company_kpi_percentile` | Already public-safe: they hold only derived KPIs. |
+| `fct_peer_benchmark`, `fct_company_kpi_percentile` | Public: medians, quartiles, counts, percentiles. Not public: `min_value` / `max_value` and the percentile table's `value` column (marked `public_safe: false`). |
 | Tests | `assert_public_models_safe` (dbt) fails the build if a public model gets a non-public column or a column named like a raw quantity; `tests/test_kpi_catalogue.py` checks the flags against the catalogue. |
 | Git | `data/`, Parquet and DuckDB files are never committed (`.gitignore`). |
 
@@ -54,13 +63,17 @@ Values that are the result of our own work on the filings:
 - Every published number carries its plain-text citation and the note that the Disclosure Quality
   Score is not an ESG rating and nothing here is investment advice.
 
-## One judgement call to know about
+## Two things to know
 
-Percentages and rates that companies file themselves (wage share to women, attrition, LTIFR,
-related-party shares) are treated as **public**: they are ratios, not quantities, and they are
-listed under "percentages / ratios" above. If a stricter reading is wanted ("only numbers we
-computed"), set `public_safe` to `false` for those rows in `dbt/seeds/kpi_catalogue.csv`, remove
-them from `rpt_public_company_year.sql`, and the tests will hold the line.
+- **Filed percentages are not public** (decision of 2026-10-10, ADR 0004). A percentage a company
+  filed is as much a copied value as a tonne figure. It is still used: `pay_equity_gap_pp` and
+  `attrition_gap_pp` are our own calculations on top of it, and percentiles and peer medians place
+  a company without showing the number. 14 of the 62 KPIs are public, 48 are not.
+- **Known exceptions.** The 143 rows of `dbt/seeds/known_kpi_exceptions.csv` are not 143 separate
+  problems but **three reviewed categories**: the filed GHG intensity uses another denominator
+  than per rupee (107 company-years, see `ghg_intensity_filed_basis`); the filed waste figures
+  do not add up, i.e. a waste balance gap above 20% (28); and waste recovered exceeds waste
+  generated (8, kept and flagged, not ranked). None of them is published as a value.
 
 ## If in doubt
 

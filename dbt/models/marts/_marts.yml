@@ -876,7 +876,7 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Share of gross wages paid to women, as filed (BRSR Core).
   - name: pay_equity_gap_pp
     data_type: DOUBLE
@@ -889,19 +889,19 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Share of women on the board, as filed.
   - name: attrition_female_pct
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Attrition rate of permanent female employees, as filed.
   - name: attrition_male_pct
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Attrition rate of permanent male employees, as filed.
   - name: attrition_gap_pp
     data_type: DOUBLE
@@ -949,13 +949,13 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Scope 1+2 intensity as the company filed it.
   - name: ghg_intensity_filed_vs_computed_ratio
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Filed / computed intensity; near 1 when consistent.
   - name: ghg_intensity_filed_basis
     data_type: VARCHAR
@@ -992,13 +992,13 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Energy intensity as filed.
   - name: energy_intensity_filed_vs_computed_ratio
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Filed / computed energy intensity.
   - name: energy_intensity_filed_basis
     data_type: VARCHAR
@@ -1028,13 +1028,13 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Water intensity as filed.
   - name: water_intensity_filed_vs_computed_ratio
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Filed / computed water intensity.
   - name: water_intensity_filed_basis
     data_type: VARCHAR
@@ -1082,13 +1082,13 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Lost time injury frequency rate, employees (per million hours).
   - name: ltifr_workers
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Lost time injury frequency rate, workers (per million hours).
   - name: recordable_injuries_total
     data_type: DOUBLE
@@ -1118,7 +1118,7 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: POSH complaints as % of female employees and workers, as filed.
   - name: posh_upheld_count
     data_type: DOUBLE
@@ -1130,31 +1130,31 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Well-being spend as % of revenue, as filed.
   - name: msme_sourcing_pct
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Input sourced directly from MSMEs / small producers, %.
   - name: days_payable
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Days of accounts payable; empty for Financials.
   - name: rpt_purchases_pct
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Purchases from related parties, % of purchases.
   - name: rpt_sales_pct
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Sales to related parties, % of sales.
   - name: ghg_s1_tco2e_annualised
     data_type: DOUBLE
@@ -1352,13 +1352,13 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Lowest value.
   - name: max_value
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: Highest value.
 - name: fct_company_kpi_percentile
   description: Percentile of each company within its ranking group per KPI and year, 0-100 with 100 =
@@ -1415,7 +1415,7 @@ models:
     data_type: DOUBLE
     config:
       meta:
-        public_safe: true
+        public_safe: false
     description: The company's KPI value.
   - name: group_n
     data_type: INTEGER
@@ -1724,27 +1724,15 @@ models:
     description: 12 / period_months.
   - name: female_workforce_pct
     description: headcount_female / headcount_total x 100.
-  - name: female_wage_share_pct
-    description: Share of gross wages paid to women, as filed (BRSR Core).
   - name: pay_equity_gap_pp
     description: female_wage_share_pct - female_workforce_pct, in percentage points; negative = women
       get a smaller share of wages than of headcount.
-  - name: female_board_pct
-    description: Share of women on the board, as filed.
-  - name: attrition_female_pct
-    description: Attrition rate of permanent female employees, as filed.
-  - name: attrition_male_pct
-    description: Attrition rate of permanent male employees, as filed.
   - name: attrition_gap_pp
     description: attrition_female_pct - attrition_male_pct, in percentage points.
   - name: scope3_disclosed
     description: true if a Scope 3 value is filed.
   - name: ghg_intensity_tco2e_per_cr
     description: ghg_s12_tco2e / turnover_cr (computed by us).
-  - name: ghg_intensity_filed_per_cr
-    description: Scope 1+2 intensity as the company filed it.
-  - name: ghg_intensity_filed_vs_computed_ratio
-    description: Filed / computed intensity; near 1 when consistent.
   - name: ghg_intensity_filed_basis
     description: 'Denominator the company used for its filed GHG intensity: per rupee (as required), per
       lakh, per million, per crore or other/unclear.'
@@ -1752,18 +1740,10 @@ models:
     description: energy_renewable_gj / energy_total_gj x 100.
   - name: energy_intensity_gj_per_cr
     description: energy_total_gj / turnover_cr (computed).
-  - name: energy_intensity_filed_gj_per_cr
-    description: Energy intensity as filed.
-  - name: energy_intensity_filed_vs_computed_ratio
-    description: Filed / computed energy intensity.
   - name: energy_intensity_filed_basis
     description: Denominator used for the filed energy intensity.
   - name: water_intensity_kl_per_cr
     description: water_consumption_kl / turnover_cr (computed).
-  - name: water_intensity_filed_kl_per_cr
-    description: Water intensity as filed.
-  - name: water_intensity_filed_vs_computed_ratio
-    description: Filed / computed water intensity.
   - name: water_intensity_filed_basis
     description: Denominator used for the filed water intensity.
   - name: waste_recovery_rate_pct
@@ -1772,26 +1752,10 @@ models:
     description: waste_generated_t / turnover_cr.
   - name: waste_balance_gap_pct
     description: (generated - recovered - disposed) / generated x 100; far from 0 means inconsistent inputs.
-  - name: ltifr_employees
-    description: Lost time injury frequency rate, employees (per million hours).
-  - name: ltifr_workers
-    description: Lost time injury frequency rate, workers (per million hours).
   - name: any_fatality
     description: true if fatalities_total > 0.
   - name: fatalities_per_10k_workforce
     description: fatalities_total / headcount_total x 10,000.
-  - name: posh_complaints_pct_female
-    description: POSH complaints as % of female employees and workers, as filed.
-  - name: wellbeing_cost_pct_revenue
-    description: Well-being spend as % of revenue, as filed.
-  - name: msme_sourcing_pct
-    description: Input sourced directly from MSMEs / small producers, %.
-  - name: days_payable
-    description: Days of accounts payable; empty for Financials.
-  - name: rpt_purchases_pct
-    description: Purchases from related parties, % of purchases.
-  - name: rpt_sales_pct
-    description: Sales to related parties, % of sales.
   - name: any_data_breach
     description: true if the number of data breaches > 0.
   - name: n_values_replaced
