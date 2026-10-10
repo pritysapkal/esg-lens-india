@@ -15,13 +15,14 @@
 | # | Read | To learn |
 |---|---|---|
 | 1 | this page | the shape of the project |
-| 2 | [data_model.md](data_model.md) | the tables and how they join |
-| 3 | [kpi_definitions.md](kpi_definitions.md) | what each KPI means and how it is computed |
-| 4 | [business_rules.md](business_rules.md) | units, scale corrections, overrides, materiality vs requirement |
-| 5 | [company_identity.md](company_identity.md) | companies, peer groups, sectors, structural breaks |
-| 6 | [restatement_method.md](restatement_method.md) | how restatements are found and classified |
-| 7 | [publication_policy.md](publication_policy.md) | what may be published and what may not |
-| 8 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
+| 2 | [project_plan.md](project_plan.md) | what is done, what changed from the first plan, what comes next |
+| 3 | [data_model.md](data_model.md) | the tables and how they join |
+| 4 | [kpi_definitions.md](kpi_definitions.md) | what each KPI means and how it is computed |
+| 5 | [business_rules.md](business_rules.md) | units, scale corrections, overrides, materiality vs requirement |
+| 6 | [company_identity.md](company_identity.md) | companies, peer groups, sectors, structural breaks |
+| 7 | [restatement_method.md](restatement_method.md) | how restatements are found and classified |
+| 8 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
+| 9 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
 
 ## The pipeline in six boxes
 

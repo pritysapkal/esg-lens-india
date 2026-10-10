@@ -1,6 +1,8 @@
 # ESG Lens India
 
 > **New here? Read [docs/START_HERE.md](docs/START_HERE.md) first** - the project on one page.
+> Then: [docs/project_plan.md](docs/project_plan.md) (what is done, what is next) and
+> [docs/publication_policy.md](docs/publication_policy.md) (what may be published).
 
 **Open, reproducible ESG analytics on SEBI BRSR filings of the NIFTY 50 companies.**
 
@@ -72,14 +74,21 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Module 5 - Company identity & sectors (done) | `dbt/models/marts/`, `dbt/seeds/` | ✅ Done - `dim_company` (51 companies, ISIN key, peer group, NIC sector, 5 conglomerates), derived SCD2 `dim_company_history`, 9 peer groups, metric materiality, 42 NIC divisions ([method](docs/company_identity.md), [ADR 0003](docs/adr/0003-company-history-scd2.md)) |
 | Module 6 - Gold star schema + restatement tracker (done) | `dbt/models/marts/` | ✅ Done - 5 facts, 4 dims, contracts on every model; 21,706 metric values, 196 company-year KPI rows, 3,313 peer percentiles. Restatements: 4,115 compared pairs (suspected scale errors excluded), 6.7% material, 61 red flags; on headline totals 8 of 48 companies restated materially FY2023-24 -> FY2024-25 (24 of 50 over all three pairs) ([method](docs/restatement_method.md), [data model](docs/data_model.md)) |
 | Pre-Week-8 hardening | `docs/`, `dbt/` | ✅ Done - [publication policy](docs/publication_policy.md) with `public_safe` on every fact column and two public models; accepted KPI exceptions in a seed (build ends with 0 warnings); KPI catalogue as single source ([KPIs](docs/kpi_definitions.md)); dbt tags and selectors (`daily`, `full`). Full build and test (`dev.ps1 dbt-build`): 434 steps in 2.5 to 3 minutes (147-172 s over three runs, laptop, 2026-10-10) |
-| Other dbt marts (scores) | `dbt/models/marts/` | 🔲 Not started |
-| Snapshots (restatement tracker) | `dbt/snapshots/` | 🔲 Not started |
-| Data quality (tests, Elementary) | `dbt/` | 🔲 Packages installed |
-| Semantic layer (MetricFlow) | `dbt/models/` | 🔲 Not started |
-| Power BI / Excel | `dashboards/` | 🔲 Not started |
-| Streamlit report cards | `app/` | 🟡 Placeholder page |
-| AI analyst (MCP) | `ai/` | 🔲 Not started |
-| Orchestration (Airflow + Cosmos) - watches the inbox, never downloads | `orchestration/` | 🔲 Week 13 |
+
+Weeks 1-7 and the hardening step are done; details and commit hashes are in
+[docs/project_plan.md](docs/project_plan.md).
+
+### Roadmap
+
+| Week | Goal | Status |
+|---|---|---|
+| 8 | Disclosure Quality Score (lean scope: completeness, consistency, assurance) | 🔲 Next |
+| 9 | Semantic layer generated from `kpi_catalogue.csv` (Databricks is a stretch goal) | 🔲 |
+| 10 | SQL business analysis: 12 questions | 🔲 |
+| 11 | Statistics studies | 🔲 |
+| 12 | Power BI and Excel: full local version + public version from `rpt_public_*` | 🔲 |
+| 13 | Airflow (watches the inbox, never downloads), Streamlit report card (reads `rpt_public_*` only), AI analyst | 🟡 Streamlit placeholder page |
+| 14 | Insight report, README polish, 3-minute demo video | 🔲 |
 
 ## Setup (Windows 11, PowerShell)
 
@@ -186,12 +195,21 @@ prohibit automated data collection (clause 9) and redistribution without written
   `nsearchives.nseindia.com`.
 - **No redistribution.** Raw NSE files live under the git-ignored `data/` folder and are never
   committed. Tests use synthetic fixtures. Real-data tests skip when the files are absent.
-- **Derived metrics only, cited as plain text.** Published outputs show computed metrics, never
-  raw files. Each metric cites its source filing as plain text (company, report, financial year,
-  NSE filing date), e.g. "HDFC Bank Limited, BRSR FY2025-26, filed on NSE 11-Sep-2026". There are
-  no hyperlinks to NSE filings or data: no `nsearchives.nseindia.com` URLs (XBRL, PDF, listing
-  files) and no NSE filing or company-filing pages. Citing NSE's public Terms of Use page (linked
-  above) is fine.
+- **Only calculated values are published** ([ADR 0004](docs/adr/0004-publication-policy.md),
+  [publication policy](docs/publication_policy.md)). Public: intensities per Rs crore, computed
+  percentages and ratios, pay-equity and attrition gaps, percentiles, peer medians and quartiles,
+  Disclosure Quality Scores, restatement classes and counts, yes/no flags. Not public: any value
+  copied from a filing - quantities, counts, turnover, headcount, and filed percentages and rates
+  too - which are shown only as gaps, percentiles or peer statistics. We have not asked NSE for
+  permission and do not assume it.
+- **Public outputs read only the `rpt_public_*` models.** That covers GitHub, the Streamlit report
+  card, posts and the insight report. Full dashboards with raw values stay local and are shown
+  through screenshots or a demo video. Tests fail the build if a public model gains a non-public
+  column.
+- **Plain-text citations, no links to filings.** Each number cites its source as plain text
+  (company, report, financial year, NSE filing date). There are no hyperlinks to NSE filings or
+  data: no `nsearchives.nseindia.com` URLs (XBRL, PDF, listing files) and no NSE filing or
+  company-filing pages. Citing NSE's public Terms of Use page (linked above) is fine.
 - **Universe.** The NIFTY 50 constituents list comes from niftyindices.com and is saved locally.
 
 Workflow: [docs/how_to_add_filings.md](docs/how_to_add_filings.md). Status:
