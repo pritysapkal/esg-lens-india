@@ -70,7 +70,28 @@ seeds:
         note: varchar
     nic_sector_map:
       +column_types:
-        nic_code: varchar # preserve leading zeros
+        nic_division_2d: varchar # preserve leading zeros (05, 06, 07)
+        nic_division_name: varchar
         nic_section: varchar
-        nic_division: varchar
-        sector_name: varchar
+        expected_peer_group: varchar
+        source: varchar
+        verified_by: varchar
+    nic_code_corrections:
+      +column_types:
+        symbol: varchar
+        fiscal_year_label: varchar
+        nic_code_raw: varchar # preserve leading zeros
+        nic_code_corrected: varchar
+        reason: varchar
+        verified_by: varchar
+    peer_groups:
+      +column_types:
+        symbol: varchar
+        peer_group: varchar
+        assigned_by: varchar
+    metric_materiality:
+      +column_types:
+        peer_group: varchar
+        metric_id: varchar
+        is_material: boolean
+        reason: varchar

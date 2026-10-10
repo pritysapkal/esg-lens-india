@@ -1,0 +1,307 @@
+peer_group,metric_id,is_material,reason
+Financials,attrition_rate_pct,true,Material for this peer group
+Financials,brsr_core_assurance_status,true,Material for this peer group
+Financials,brsr_core_assurance_type,true,Material for this peer group
+Financials,data_breaches_count,true,Material for this peer group
+Financials,days_payable,true,Material for this peer group
+Financials,energy_intensity_filed_gj_per_inr_cr,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,energy_renewable_gj,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,energy_total_gj,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,fatalities_count,true,Material for this peer group
+Financials,female_board_pct,true,Material for this peer group
+Financials,female_wage_share_pct,true,Material for this peer group
+Financials,ghg_intensity_filed_tco2e_per_inr_cr,false,"Emissions intensity per rupee of turnover is not comparable for an office-based business; shown, not ranked"
+Financials,ghg_scope1_tco2e,true,Material for this peer group
+Financials,ghg_scope2_tco2e,true,Material for this peer group
+Financials,ghg_scope3_tco2e,true,Material for this peer group
+Financials,headcount,true,Material for this peer group
+Financials,job_creation_small_towns_pct,true,Material for this peer group
+Financials,ltifr,true,Material for this peer group
+Financials,msme_sourcing_pct,true,Material for this peer group
+Financials,nic_code,true,Material for this peer group
+Financials,posh_complaints_pct_female,true,Material for this peer group
+Financials,posh_complaints_upheld_count,true,Material for this peer group
+Financials,recordable_injuries_count,true,Material for this peer group
+Financials,reporting_boundary,true,Material for this peer group
+Financials,rpt_purchases_pct,true,Material for this peer group
+Financials,rpt_sales_pct,true,Material for this peer group
+Financials,turnover_inr,true,Material for this peer group
+Financials,waste_disposed_t,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,waste_generated_t,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,waste_recovered_t,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,water_consumption_kl,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,water_intensity_filed_kl_per_inr_cr,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,water_withdrawal_kl,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+Financials,wellbeing_cost_pct_revenue,true,Material for this peer group
+IT services,attrition_rate_pct,true,Material for this peer group
+IT services,brsr_core_assurance_status,true,Material for this peer group
+IT services,brsr_core_assurance_type,true,Material for this peer group
+IT services,data_breaches_count,true,Material for this peer group
+IT services,days_payable,true,Material for this peer group
+IT services,energy_intensity_filed_gj_per_inr_cr,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,energy_renewable_gj,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,energy_total_gj,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,fatalities_count,true,Material for this peer group
+IT services,female_board_pct,true,Material for this peer group
+IT services,female_wage_share_pct,true,Material for this peer group
+IT services,ghg_intensity_filed_tco2e_per_inr_cr,false,"Emissions intensity per rupee of turnover is not comparable for an office-based business; shown, not ranked"
+IT services,ghg_scope1_tco2e,true,Material for this peer group
+IT services,ghg_scope2_tco2e,true,Material for this peer group
+IT services,ghg_scope3_tco2e,true,Material for this peer group
+IT services,headcount,true,Material for this peer group
+IT services,job_creation_small_towns_pct,true,Material for this peer group
+IT services,ltifr,true,Material for this peer group
+IT services,msme_sourcing_pct,true,Material for this peer group
+IT services,nic_code,true,Material for this peer group
+IT services,posh_complaints_pct_female,true,Material for this peer group
+IT services,posh_complaints_upheld_count,true,Material for this peer group
+IT services,recordable_injuries_count,true,Material for this peer group
+IT services,reporting_boundary,true,Material for this peer group
+IT services,rpt_purchases_pct,true,Material for this peer group
+IT services,rpt_sales_pct,true,Material for this peer group
+IT services,turnover_inr,true,Material for this peer group
+IT services,waste_disposed_t,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,waste_generated_t,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,waste_recovered_t,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,water_consumption_kl,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,water_intensity_filed_kl_per_inr_cr,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,water_withdrawal_kl,false,"Energy, water and waste are not decision-relevant for an office-based business; shown, not ranked"
+IT services,wellbeing_cost_pct_revenue,true,Material for this peer group
+Energy & utilities,attrition_rate_pct,true,Material for this peer group
+Energy & utilities,brsr_core_assurance_status,true,Material for this peer group
+Energy & utilities,brsr_core_assurance_type,true,Material for this peer group
+Energy & utilities,data_breaches_count,true,Material for this peer group
+Energy & utilities,days_payable,true,Material for this peer group
+Energy & utilities,energy_intensity_filed_gj_per_inr_cr,true,Material for this peer group
+Energy & utilities,energy_renewable_gj,true,Material for this peer group
+Energy & utilities,energy_total_gj,true,Material for this peer group
+Energy & utilities,fatalities_count,true,Material for this peer group
+Energy & utilities,female_board_pct,true,Material for this peer group
+Energy & utilities,female_wage_share_pct,true,Material for this peer group
+Energy & utilities,ghg_intensity_filed_tco2e_per_inr_cr,true,Material for this peer group
+Energy & utilities,ghg_scope1_tco2e,true,Material for this peer group
+Energy & utilities,ghg_scope2_tco2e,true,Material for this peer group
+Energy & utilities,ghg_scope3_tco2e,true,Material for this peer group
+Energy & utilities,headcount,true,Material for this peer group
+Energy & utilities,job_creation_small_towns_pct,true,Material for this peer group
+Energy & utilities,ltifr,true,Material for this peer group
+Energy & utilities,msme_sourcing_pct,true,Material for this peer group
+Energy & utilities,nic_code,true,Material for this peer group
+Energy & utilities,posh_complaints_pct_female,true,Material for this peer group
+Energy & utilities,posh_complaints_upheld_count,true,Material for this peer group
+Energy & utilities,recordable_injuries_count,true,Material for this peer group
+Energy & utilities,reporting_boundary,true,Material for this peer group
+Energy & utilities,rpt_purchases_pct,true,Material for this peer group
+Energy & utilities,rpt_sales_pct,true,Material for this peer group
+Energy & utilities,turnover_inr,true,Material for this peer group
+Energy & utilities,waste_disposed_t,true,Material for this peer group
+Energy & utilities,waste_generated_t,true,Material for this peer group
+Energy & utilities,waste_recovered_t,true,Material for this peer group
+Energy & utilities,water_consumption_kl,true,Material for this peer group
+Energy & utilities,water_intensity_filed_kl_per_inr_cr,true,Material for this peer group
+Energy & utilities,water_withdrawal_kl,true,Material for this peer group
+Energy & utilities,wellbeing_cost_pct_revenue,true,Material for this peer group
+Metals & mining,attrition_rate_pct,true,Material for this peer group
+Metals & mining,brsr_core_assurance_status,true,Material for this peer group
+Metals & mining,brsr_core_assurance_type,true,Material for this peer group
+Metals & mining,data_breaches_count,true,Material for this peer group
+Metals & mining,days_payable,true,Material for this peer group
+Metals & mining,energy_intensity_filed_gj_per_inr_cr,true,Material for this peer group
+Metals & mining,energy_renewable_gj,true,Material for this peer group
+Metals & mining,energy_total_gj,true,Material for this peer group
+Metals & mining,fatalities_count,true,Material for this peer group
+Metals & mining,female_board_pct,true,Material for this peer group
+Metals & mining,female_wage_share_pct,true,Material for this peer group
+Metals & mining,ghg_intensity_filed_tco2e_per_inr_cr,true,Material for this peer group
+Metals & mining,ghg_scope1_tco2e,true,Material for this peer group
+Metals & mining,ghg_scope2_tco2e,true,Material for this peer group
+Metals & mining,ghg_scope3_tco2e,true,Material for this peer group
+Metals & mining,headcount,true,Material for this peer group
+Metals & mining,job_creation_small_towns_pct,true,Material for this peer group
+Metals & mining,ltifr,true,Material for this peer group
+Metals & mining,msme_sourcing_pct,true,Material for this peer group
+Metals & mining,nic_code,true,Material for this peer group
+Metals & mining,posh_complaints_pct_female,true,Material for this peer group
+Metals & mining,posh_complaints_upheld_count,true,Material for this peer group
+Metals & mining,recordable_injuries_count,true,Material for this peer group
+Metals & mining,reporting_boundary,true,Material for this peer group
+Metals & mining,rpt_purchases_pct,true,Material for this peer group
+Metals & mining,rpt_sales_pct,true,Material for this peer group
+Metals & mining,turnover_inr,true,Material for this peer group
+Metals & mining,waste_disposed_t,true,Material for this peer group
+Metals & mining,waste_generated_t,true,Material for this peer group
+Metals & mining,waste_recovered_t,true,Material for this peer group
+Metals & mining,water_consumption_kl,true,Material for this peer group
+Metals & mining,water_intensity_filed_kl_per_inr_cr,true,Material for this peer group
+Metals & mining,water_withdrawal_kl,true,Material for this peer group
+Metals & mining,wellbeing_cost_pct_revenue,true,Material for this peer group
+Cement & construction,attrition_rate_pct,true,Material for this peer group
+Cement & construction,brsr_core_assurance_status,true,Material for this peer group
+Cement & construction,brsr_core_assurance_type,true,Material for this peer group
+Cement & construction,data_breaches_count,true,Material for this peer group
+Cement & construction,days_payable,true,Material for this peer group
+Cement & construction,energy_intensity_filed_gj_per_inr_cr,true,Material for this peer group
+Cement & construction,energy_renewable_gj,true,Material for this peer group
+Cement & construction,energy_total_gj,true,Material for this peer group
+Cement & construction,fatalities_count,true,Material for this peer group
+Cement & construction,female_board_pct,true,Material for this peer group
+Cement & construction,female_wage_share_pct,true,Material for this peer group
+Cement & construction,ghg_intensity_filed_tco2e_per_inr_cr,true,Material for this peer group
+Cement & construction,ghg_scope1_tco2e,true,Material for this peer group
+Cement & construction,ghg_scope2_tco2e,true,Material for this peer group
+Cement & construction,ghg_scope3_tco2e,true,Material for this peer group
+Cement & construction,headcount,true,Material for this peer group
+Cement & construction,job_creation_small_towns_pct,true,Material for this peer group
+Cement & construction,ltifr,true,Material for this peer group
+Cement & construction,msme_sourcing_pct,true,Material for this peer group
+Cement & construction,nic_code,true,Material for this peer group
+Cement & construction,posh_complaints_pct_female,true,Material for this peer group
+Cement & construction,posh_complaints_upheld_count,true,Material for this peer group
+Cement & construction,recordable_injuries_count,true,Material for this peer group
+Cement & construction,reporting_boundary,true,Material for this peer group
+Cement & construction,rpt_purchases_pct,true,Material for this peer group
+Cement & construction,rpt_sales_pct,true,Material for this peer group
+Cement & construction,turnover_inr,true,Material for this peer group
+Cement & construction,waste_disposed_t,true,Material for this peer group
+Cement & construction,waste_generated_t,true,Material for this peer group
+Cement & construction,waste_recovered_t,true,Material for this peer group
+Cement & construction,water_consumption_kl,true,Material for this peer group
+Cement & construction,water_intensity_filed_kl_per_inr_cr,true,Material for this peer group
+Cement & construction,water_withdrawal_kl,true,Material for this peer group
+Cement & construction,wellbeing_cost_pct_revenue,true,Material for this peer group
+Automobiles,attrition_rate_pct,true,Material for this peer group
+Automobiles,brsr_core_assurance_status,true,Material for this peer group
+Automobiles,brsr_core_assurance_type,true,Material for this peer group
+Automobiles,data_breaches_count,true,Material for this peer group
+Automobiles,days_payable,true,Material for this peer group
+Automobiles,energy_intensity_filed_gj_per_inr_cr,true,Material for this peer group
+Automobiles,energy_renewable_gj,true,Material for this peer group
+Automobiles,energy_total_gj,true,Material for this peer group
+Automobiles,fatalities_count,true,Material for this peer group
+Automobiles,female_board_pct,true,Material for this peer group
+Automobiles,female_wage_share_pct,true,Material for this peer group
+Automobiles,ghg_intensity_filed_tco2e_per_inr_cr,true,Material for this peer group
+Automobiles,ghg_scope1_tco2e,true,Material for this peer group
+Automobiles,ghg_scope2_tco2e,true,Material for this peer group
+Automobiles,ghg_scope3_tco2e,true,Material for this peer group
+Automobiles,headcount,true,Material for this peer group
+Automobiles,job_creation_small_towns_pct,true,Material for this peer group
+Automobiles,ltifr,true,Material for this peer group
+Automobiles,msme_sourcing_pct,true,Material for this peer group
+Automobiles,nic_code,true,Material for this peer group
+Automobiles,posh_complaints_pct_female,true,Material for this peer group
+Automobiles,posh_complaints_upheld_count,true,Material for this peer group
+Automobiles,recordable_injuries_count,true,Material for this peer group
+Automobiles,reporting_boundary,true,Material for this peer group
+Automobiles,rpt_purchases_pct,true,Material for this peer group
+Automobiles,rpt_sales_pct,true,Material for this peer group
+Automobiles,turnover_inr,true,Material for this peer group
+Automobiles,waste_disposed_t,true,Material for this peer group
+Automobiles,waste_generated_t,true,Material for this peer group
+Automobiles,waste_recovered_t,true,Material for this peer group
+Automobiles,water_consumption_kl,true,Material for this peer group
+Automobiles,water_intensity_filed_kl_per_inr_cr,true,Material for this peer group
+Automobiles,water_withdrawal_kl,true,Material for this peer group
+Automobiles,wellbeing_cost_pct_revenue,true,Material for this peer group
+Consumer,attrition_rate_pct,true,Material for this peer group
+Consumer,brsr_core_assurance_status,true,Material for this peer group
+Consumer,brsr_core_assurance_type,true,Material for this peer group
+Consumer,data_breaches_count,true,Material for this peer group
+Consumer,days_payable,true,Material for this peer group
+Consumer,energy_intensity_filed_gj_per_inr_cr,true,Material for this peer group
+Consumer,energy_renewable_gj,true,Material for this peer group
+Consumer,energy_total_gj,true,Material for this peer group
+Consumer,fatalities_count,true,Material for this peer group
+Consumer,female_board_pct,true,Material for this peer group
+Consumer,female_wage_share_pct,true,Material for this peer group
+Consumer,ghg_intensity_filed_tco2e_per_inr_cr,true,Material for this peer group
+Consumer,ghg_scope1_tco2e,true,Material for this peer group
+Consumer,ghg_scope2_tco2e,true,Material for this peer group
+Consumer,ghg_scope3_tco2e,true,Material for this peer group
+Consumer,headcount,true,Material for this peer group
+Consumer,job_creation_small_towns_pct,true,Material for this peer group
+Consumer,ltifr,true,Material for this peer group
+Consumer,msme_sourcing_pct,true,Material for this peer group
+Consumer,nic_code,true,Material for this peer group
+Consumer,posh_complaints_pct_female,true,Material for this peer group
+Consumer,posh_complaints_upheld_count,true,Material for this peer group
+Consumer,recordable_injuries_count,true,Material for this peer group
+Consumer,reporting_boundary,true,Material for this peer group
+Consumer,rpt_purchases_pct,true,Material for this peer group
+Consumer,rpt_sales_pct,true,Material for this peer group
+Consumer,turnover_inr,true,Material for this peer group
+Consumer,waste_disposed_t,true,Material for this peer group
+Consumer,waste_generated_t,true,Material for this peer group
+Consumer,waste_recovered_t,true,Material for this peer group
+Consumer,water_consumption_kl,true,Material for this peer group
+Consumer,water_intensity_filed_kl_per_inr_cr,true,Material for this peer group
+Consumer,water_withdrawal_kl,true,Material for this peer group
+Consumer,wellbeing_cost_pct_revenue,true,Material for this peer group
+Healthcare,attrition_rate_pct,true,Material for this peer group
+Healthcare,brsr_core_assurance_status,true,Material for this peer group
+Healthcare,brsr_core_assurance_type,true,Material for this peer group
+Healthcare,data_breaches_count,true,Material for this peer group
+Healthcare,days_payable,true,Material for this peer group
+Healthcare,energy_intensity_filed_gj_per_inr_cr,true,Material for this peer group
+Healthcare,energy_renewable_gj,true,Material for this peer group
+Healthcare,energy_total_gj,true,Material for this peer group
+Healthcare,fatalities_count,true,Material for this peer group
+Healthcare,female_board_pct,true,Material for this peer group
+Healthcare,female_wage_share_pct,true,Material for this peer group
+Healthcare,ghg_intensity_filed_tco2e_per_inr_cr,true,Material for this peer group
+Healthcare,ghg_scope1_tco2e,true,Material for this peer group
+Healthcare,ghg_scope2_tco2e,true,Material for this peer group
+Healthcare,ghg_scope3_tco2e,true,Material for this peer group
+Healthcare,headcount,true,Material for this peer group
+Healthcare,job_creation_small_towns_pct,true,Material for this peer group
+Healthcare,ltifr,true,Material for this peer group
+Healthcare,msme_sourcing_pct,true,Material for this peer group
+Healthcare,nic_code,true,Material for this peer group
+Healthcare,posh_complaints_pct_female,true,Material for this peer group
+Healthcare,posh_complaints_upheld_count,true,Material for this peer group
+Healthcare,recordable_injuries_count,true,Material for this peer group
+Healthcare,reporting_boundary,true,Material for this peer group
+Healthcare,rpt_purchases_pct,true,Material for this peer group
+Healthcare,rpt_sales_pct,true,Material for this peer group
+Healthcare,turnover_inr,true,Material for this peer group
+Healthcare,waste_disposed_t,true,Material for this peer group
+Healthcare,waste_generated_t,true,Material for this peer group
+Healthcare,waste_recovered_t,true,Material for this peer group
+Healthcare,water_consumption_kl,true,Material for this peer group
+Healthcare,water_intensity_filed_kl_per_inr_cr,true,Material for this peer group
+Healthcare,water_withdrawal_kl,true,Material for this peer group
+Healthcare,wellbeing_cost_pct_revenue,true,Material for this peer group
+Industrials & others,attrition_rate_pct,true,Material for this peer group
+Industrials & others,brsr_core_assurance_status,true,Material for this peer group
+Industrials & others,brsr_core_assurance_type,true,Material for this peer group
+Industrials & others,data_breaches_count,true,Material for this peer group
+Industrials & others,days_payable,true,Material for this peer group
+Industrials & others,energy_intensity_filed_gj_per_inr_cr,true,Material for this peer group
+Industrials & others,energy_renewable_gj,true,Material for this peer group
+Industrials & others,energy_total_gj,true,Material for this peer group
+Industrials & others,fatalities_count,true,Material for this peer group
+Industrials & others,female_board_pct,true,Material for this peer group
+Industrials & others,female_wage_share_pct,true,Material for this peer group
+Industrials & others,ghg_intensity_filed_tco2e_per_inr_cr,true,Material for this peer group
+Industrials & others,ghg_scope1_tco2e,true,Material for this peer group
+Industrials & others,ghg_scope2_tco2e,true,Material for this peer group
+Industrials & others,ghg_scope3_tco2e,true,Material for this peer group
+Industrials & others,headcount,true,Material for this peer group
+Industrials & others,job_creation_small_towns_pct,true,Material for this peer group
+Industrials & others,ltifr,true,Material for this peer group
+Industrials & others,msme_sourcing_pct,true,Material for this peer group
+Industrials & others,nic_code,true,Material for this peer group
+Industrials & others,posh_complaints_pct_female,true,Material for this peer group
+Industrials & others,posh_complaints_upheld_count,true,Material for this peer group
+Industrials & others,recordable_injuries_count,true,Material for this peer group
+Industrials & others,reporting_boundary,true,Material for this peer group
+Industrials & others,rpt_purchases_pct,true,Material for this peer group
+Industrials & others,rpt_sales_pct,true,Material for this peer group
+Industrials & others,turnover_inr,true,Material for this peer group
+Industrials & others,waste_disposed_t,true,Material for this peer group
+Industrials & others,waste_generated_t,true,Material for this peer group
+Industrials & others,waste_recovered_t,true,Material for this peer group
+Industrials & others,water_consumption_kl,true,Material for this peer group
+Industrials & others,water_intensity_filed_kl_per_inr_cr,true,Material for this peer group
+Industrials & others,water_withdrawal_kl,true,Material for this peer group
+Industrials & others,wellbeing_cost_pct_revenue,true,Material for this peer group

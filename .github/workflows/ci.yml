@@ -42,7 +42,7 @@ jobs:
           dbt deps --profiles-dir .
           dbt parse --profiles-dir .
 
-  # dbt staging + intermediate (with seeds and unit tests) on a tiny synthetic dataset built
+  # dbt staging + intermediate + marts (with seeds and unit tests) on a tiny synthetic dataset built
   # from tests/fixtures (CI has no real NSE data).
   # Tests tagged `realdata` (exact HDFC / NESTLE values, full row counts) are excluded here.
   dbt-staging-synthetic:
@@ -73,8 +73,8 @@ jobs:
       - name: Build synthetic data
         run: python scripts/make_ci_data.py "$ESG_DATA_DIR"
 
-      - name: dbt build staging + intermediate (synthetic)
+      - name: dbt build staging + intermediate + marts (synthetic)
         working-directory: dbt
         run: |
           dbt deps --profiles-dir .
-          dbt build --profiles-dir . --select "staging +intermediate" --exclude tag:realdata
+          dbt build --profiles-dir . --select "staging +intermediate marts" --exclude tag:realdata

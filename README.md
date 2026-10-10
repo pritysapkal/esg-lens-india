@@ -46,7 +46,7 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
           data/processed/parsed/{filings,contexts,units,facts,text_facts}/reporting_year_label=*/
                                                                │  (load_raw.py -> raw_* tables)
  ┌──────────────────────────── dbt Core on DuckDB (data/warehouse/esg_lens.duckdb) ───────────┐
- │  seeds (concept_metric_map, nic_sector_map)                                                │
+ │  seeds (concept_metric_map, nic_sector_map, peer_groups...)                                 │
  │  bronze/staging (views) ─► silver/intermediate (views) ─► gold/marts (tables, Kimball star) │
  │  snapshots (SCD2 restatements) · dbt tests + dbt-expectations + Elementary                  │
  │  MetricFlow semantic layer                                                                  │
@@ -67,7 +67,8 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Module 2 - XBRL parser (done) -> Parquet + DuckDB raw tables | `ingestion/{parse_xbrl,load_raw}.py` | ✅ Done - HDFC Bank FY2025-26: 2,182 facts, 618 concepts, 658 contexts, 11 units, 12-month period; Arelle cross-check on 5 filings: all counts and every fact/context identical ([validation](docs/parser_validation.md)) |
 | dbt staging (done) - typed, flagged staging models + tests | `dbt/models/staging/` | ✅ Done - 8 models (196 filings, 121,891 contexts, 1,714 units, 399,499 facts + 19,705 text facts), 55 tests pass, 0 cast failures, 7,226 NA-text facts |
 | Module 4 - Metric catalogue + normalisation (done) | `dbt/models/intermediate/`, `dbt/seeds/` | ✅ Done - 34 metrics / 148 catalogue rows over 5 taxonomies, 21,730 metric values; 24 automatic turnover scale corrections + 14 approved manual overrides (megatonnes, turnover), old-taxonomy units inferred ([rules](docs/business_rules.md), [metrics](docs/metric_definitions.md)) |
-| dbt marts | `dbt/models/marts/` | 🔲 Not started |
+| Module 5 - Company identity & sectors (done) | `dbt/models/marts/`, `dbt/seeds/` | ✅ Done - `dim_company` (51 companies, ISIN key, peer group, NIC sector, 5 conglomerates), derived SCD2 `dim_company_history`, 9 peer groups, metric materiality, 42 NIC divisions ([method](docs/company_identity.md), [ADR 0003](docs/adr/0003-company-history-scd2.md)) |
+| Other dbt marts (facts, scores) | `dbt/models/marts/` | 🔲 Not started |
 | Snapshots (restatement tracker) | `dbt/snapshots/` | 🔲 Not started |
 | Data quality (tests, Elementary) | `dbt/` | 🔲 Packages installed |
 | Semantic layer (MetricFlow) | `dbt/models/` | 🔲 Not started |

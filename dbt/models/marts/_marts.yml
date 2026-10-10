@@ -1,0 +1,102 @@
+version: 2
+
+models:
+  - name: dim_company
+    description: >
+      One row per company, keyed by ISIN. Identity (current name, symbol, CIN), filing coverage,
+      NIFTY 50 membership, NSE industry, peer group (peer_groups seed) and NIC sector from the
+      latest filing with a usable NIC code. Method: docs/company_identity.md.
+    columns:
+      - name: isin
+        description: ISIN of the equity share - the company key everywhere.
+        tests: [unique, not_null]
+      - name: current_name
+        description: Cleaned name in the latest filing.
+        tests: [not_null]
+      - name: current_symbol
+        description: NSE symbol in the latest filing.
+        tests: [unique, not_null]
+      - name: cin
+        description: Corporate Identity Number, empty for statutory bodies and placeholders.
+      - name: all_symbols
+        description: Every symbol the company filed under, comma separated.
+      - name: first_fy
+        description: First financial year with a filing.
+      - name: last_fy
+        description: Last financial year with a filing.
+      - name: n_filings
+        description: Number of filings received for the company.
+        tests: [not_null]
+      - name: in_universe
+        description: true if the company is in the NIFTY 50 constituents file.
+        tests: [not_null]
+      - name: nse_industry
+        description: NSE industry from the NIFTY 50 file; empty for companies outside it.
+      - name: peer_group
+        description: One of the nine peer groups (seed peer_groups).
+        tests:
+          - not_null:
+              config:
+                tags: [realdata] # the synthetic CI company is not in the peer_groups seed
+          - accepted_values:
+              arguments:
+                values:
+                  - Financials
+                  - IT services
+                  - Energy & utilities
+                  - Metals & mining
+                  - Cement & construction
+                  - Automobiles
+                  - Consumer
+                  - Healthcare
+                  - Industrials & others
+      - name: nic_primary_code
+        description: NIC code with the highest turnover share in the latest filing with NIC data.
+      - name: nic_division_2d
+        description: First two digits of nic_primary_code.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('nic_sector_map')
+                field: nic_division_2d
+      - name: nic_division_name
+        description: NIC-2008 division name (seed nic_sector_map).
+      - name: nic_fiscal_year_label
+        description: Financial year of the filing the NIC data comes from.
+      - name: nic_top_division_share
+        description: Turnover share of the largest NIC division.
+      - name: nic_n_divisions_ge_15pct
+        description: Number of NIC divisions with at least 15% of turnover each.
+      - name: top_3_nic_codes
+        description: The three largest NIC codes with their turnover share.
+      - name: is_conglomerate
+        description: true if top division below 60% of turnover or three or more divisions at 15% or more.
+
+  - name: dim_company_history
+    description: >
+      Name and symbol history of each company (SCD type 2), derived from the filings: one row per
+      run of consecutive years under the same name and symbol. See
+      docs/adr/0003-company-history-scd2.md.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, valid_from_fy]
+    columns:
+      - name: isin
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_company')
+                field: isin
+      - name: company_name
+        tests: [not_null]
+      - name: symbol
+        tests: [not_null]
+      - name: valid_from_fy
+        description: First financial year filed under this name and symbol.
+        tests: [not_null]
+      - name: valid_to_fy
+        description: Last financial year filed under this name and symbol; empty for the current row.
+      - name: is_current
+        tests: [not_null]

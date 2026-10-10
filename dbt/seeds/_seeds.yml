@@ -137,3 +137,109 @@ seeds:
       - name: approved_on
         description: Date of approval.
         tests: [not_null]
+
+  - name: nic_sector_map
+    description: >
+      NIC-2008 2-digit divisions found in the BRSR filings, with their names (source: NIC-2008,
+      MoSPI). expected_peer_group is an analyst hint used only to detect sector conflicts; it does
+      not assign anything. verified_by is left empty until the name is checked by hand.
+    columns:
+      - name: nic_division_2d
+        description: NIC-2008 division, two digits as text (leading zero kept).
+        tests: [unique, not_null]
+      - name: nic_division_name
+        description: Division name in NIC-2008.
+        tests: [not_null]
+      - name: nic_section
+        description: NIC-2008 section letter (A-U).
+        tests: [not_null]
+      - name: expected_peer_group
+        description: Peer group a company mainly in this division would normally belong to.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: &peer_groups
+                  - Financials
+                  - IT services
+                  - Energy & utilities
+                  - Metals & mining
+                  - Cement & construction
+                  - Automobiles
+                  - Consumer
+                  - Healthcare
+                  - Industrials & others
+      - name: source
+        description: Where the division name comes from.
+      - name: verified_by
+        description: Who checked the name against the MoSPI publication (empty = not yet).
+
+  - name: nic_code_corrections
+    description: >
+      Fixes for NIC codes typed wrongly in filings (dropped leading zero, concatenated codes, the
+      edition year typed as a code). One row per company, year and raw code. An empty
+      nic_code_corrected means "not a usable code" (share counted as unclassified).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [symbol, fiscal_year_label, nic_code_raw]
+    columns:
+      - name: symbol
+        tests: [not_null]
+      - name: fiscal_year_label
+        tests: [not_null]
+      - name: nic_code_raw
+        description: The code as filed, digits only.
+        tests: [not_null]
+      - name: nic_code_corrected
+        description: Corrected code, or empty if the filed value is not a code.
+      - name: reason
+        description: Why, with the evidence from the filed description.
+        tests: [not_null]
+      - name: verified_by
+        description: Who checked the correction by hand (empty = not yet).
+
+  - name: peer_groups
+    description: >
+      Peer group of each company, by NSE symbol - exactly nine groups. Analyst assignment, edit
+      here to move a company. WIPRO is not in the NIFTY 50 file but is covered.
+    columns:
+      - name: symbol
+        description: NSE symbol (current).
+        tests: [unique, not_null]
+      - name: peer_group
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: *peer_groups
+      - name: assigned_by
+        description: Source of the assignment.
+
+  - name: metric_materiality
+    description: >
+      Whether a metric is material (ranked) for a peer group. Not material = shown, not ranked.
+      Rule: energy, water and waste metrics and GHG intensity are not material for Financials and
+      IT services; everything else is material. Edit the CSV to change it.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [peer_group, metric_id]
+    columns:
+      - name: peer_group
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: *peer_groups
+      - name: metric_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('concept_metric_map')
+                field: metric_id
+      - name: is_material
+        tests: [not_null]
+      - name: reason
+        tests: [not_null]

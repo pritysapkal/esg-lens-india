@@ -303,6 +303,69 @@ models:
       - name: detail
         description: Plain-English explanation with the numbers.
 
+  - name: int_company_names
+    description: >
+      One row per company (ISIN) and financial year: cleaned name, CIN and symbol(s), from the
+      filing, the NSE listing and the facts NameOfTheCompany / CorporateIdentityNumber.
+      Broken characters, bracketed abbreviations and ALL-CAPS variants are cleaned;
+      placeholder CINs (e.g. the Z99999ZZ9999ZZZ999999 filed by SBIN) become empty and
+      cin_filed keeps what was filed.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, fiscal_year_label]
+    columns:
+      - name: isin
+        tests: [not_null]
+      - name: fiscal_year_label
+        tests: [not_null]
+      - name: company_name_clean
+        description: Cleaned name, one consistent spelling per company and year.
+        tests: [not_null]
+      - name: cin
+        description: Valid CIN as filed, or empty for banks / statutory bodies and placeholders.
+
+  - name: int_company_nic
+    description: >
+      One row per filing and row of the "products or services sold" table: NIC code (digits only,
+      approved corrections applied), 2-digit division, turnover share as filed, and which code is
+      the primary one in the filing (highest share; ties -> lowest code).
+    columns:
+      - name: filing_id
+        tests: [not_null]
+      - name: turnover_share
+        description: Share of total turnover as filed (fraction, 0.6738 = 67.38%).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: nic_division_2d
+        description: First two digits of the code; empty when the code is unusable.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('nic_sector_map')
+                field: nic_division_2d
+
+  - name: int_metric_values_enriched
+    description: >
+      int_metric_values with the company name and peer group (from dim_company) and whether the
+      metric is material for that peer group (from metric_materiality). Same rows as
+      int_metric_values.
+    tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('int_metric_values')
+    columns:
+      - name: fact_id
+        tests: [unique, not_null]
+      - name: peer_group
+        description: Peer group of the company; empty only if the company has none.
+      - name: is_material
+        description: true = ranked; false = shown, not ranked for this peer group.
+
 unit_tests:
   - name: test_pure_to_pct
     description: Percent filed as a decimal is x100; a value already in percent is not scaled again.
