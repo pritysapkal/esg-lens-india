@@ -52,3 +52,14 @@ of the *same* year); that module is separate and still planned.
   that changes ISIN (rare: demerger, merger) becomes a new company in `dim_company`.
 - Spelling differences (case, `Ltd`/`Limited`, bracketed abbreviations) are cleaned first, so
   they are not mistaken for name changes.
+
+## Update (2026-10-10)
+
+The sentence above that snapshots "stay the right tool for the restatement tracker" no longer
+holds. The restatement tracker was built differently: it compares the value first filed for a
+year with the prior-year comparative for that year in the next filing (`fct_restatement`, fed by
+`fct_esg_value` and `int_scale_error_suspects`; method in
+[restatement_method.md](../restatement_method.md)). Every filing already carries last year's
+figures, so the history is in the data and can be rebuilt at any time - the same reasons that
+ruled out a snapshot for names. **dbt snapshots are not used for restatements**, and
+`dim_company_history` remains a derived SCD type 2 as decided here.

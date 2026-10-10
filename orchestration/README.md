@@ -10,6 +10,6 @@ Prerequisites (not installed yet):
 
 Planned DAG: a sensor watches `data/raw/xbrl_inbox/` (files are downloaded by hand, never by
 Airflow - see `docs/adr/0002-manual-intake-nse-terms.md`), then
-`discover -> intake -> todo -> parse_xbrl -> dbt (Cosmos: seed, snapshot, run, test) -> elementary report`.
+`discover -> intake -> todo -> parse_xbrl -> dbt (Cosmos: seed, run, test) -> elementary report`.
 
 Nothing in this folder runs yet.

@@ -26,6 +26,13 @@ Data Analytics 40% / Analytics Engineering 45% / Data Engineering 15%.
 | Orchestration | **Airflow 3 + Astronomer Cosmos** - deferred to week 13 | Industry standard; Cosmos maps dbt models to tasks. Needs Docker, so it is postponed to keep weeks 1-12 lightweight; until then tasks run via `scripts/dev.ps1` / `make`. |
 | CI | GitHub Actions | Free for public repos; runs ruff, pytest, dbt parse on every push. |
 
+**Update (2026-10-10) - dbt snapshots.** The Transformation row lists "snapshots (SCD2 for
+restatements)" as a reason for choosing dbt. In the end snapshots were not needed: restatements are
+found by comparing prior-year comparatives in later filings (`fct_restatement`, see
+[restatement_method.md](../restatement_method.md)), and the company name history is a derived
+SCD type 2 ([ADR 0003](0003-company-history-scd2.md)). The choice of dbt stands for its other
+reasons (models, tests, contracts, docs, lineage); the original row is left as written.
+
 ## Consequences
 
 - Everything runs locally with `pip` only; no services to start.
