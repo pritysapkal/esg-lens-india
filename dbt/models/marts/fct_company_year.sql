@@ -5,6 +5,10 @@
 -- Percent columns are on a 0-100 scale. Headcount basis: employees + workers, permanent and
 -- other than permanent (the "Employees" and "Workers" totals). Quantities are as filed;
 -- *_annualised columns are filled only for years that are not 12 months (x 12 / months).
+-- Values are the best available ones (fct_esg_value.best_value_std): a current-year value that
+-- is a suspected scale error is replaced by the comparative from the next report, counted in
+-- n_values_replaced. Implausible zeros (e.g. 0% of wages to women with women on the payroll)
+-- are set to empty and named in kpi_flags; so are other things a reader should know.
 
 {% set no_dim = {
     'ghg_s1_tco2e': 'ghg_scope1_tco2e',
@@ -44,7 +48,8 @@ with latest as (
         value_fiscal_year_label as fiscal_year_label,
         metric_id,
         dimension_key,
-        value_std,
+        best_value_std as value_std,
+        best_value_source,
         coalesce(value_text, raw_value) as value_text
     from {{ ref('fct_esg_value') }}
     where is_latest_value
@@ -54,6 +59,8 @@ reported as (
     select
         isin,
         fiscal_year_label,
+        count(*) filter (where best_value_source = 'replaced_by_later_comparative')
+            as n_values_replaced,
         {%- for column, metric in no_dim.items() %}
             max(case when metric_id = '{{ metric }}' and dimension_key = '' then value_std end)
                 as {{ column }},
@@ -177,6 +184,7 @@ base as (
         company_year.turnover_inr,
         company_year.turnover_inr / 1e7 as turnover_cr,
         company_year.total_headcount as headcount_total,
+        cast(coalesce(reported.n_values_replaced, 0) as integer) as n_values_replaced,
         reported.headcount_female,
         reported.ghg_s1_tco2e,
         reported.ghg_s2_tco2e,
@@ -225,6 +233,30 @@ base as (
     left join company on company_year.isin = company.isin
 ),
 
+zero_checks as (
+    select
+        *,
+        coalesce(female_wage_share_pct = 0 and headcount_female > 0, false) as zero_wage_share,
+        coalesce(
+            energy_total_gj = 0 and turnover_cr > 0 and sector_group != 'Financials', false
+        ) as zero_energy,
+        coalesce(water_withdrawal_kl = 0 and sector_group != 'Financials', false) as zero_water,
+        coalesce(headcount_total = 0, false) as zero_headcount
+    from base
+),
+
+cleaned as (
+    select
+        * replace (
+            case when zero_wage_share then null else female_wage_share_pct end
+                as female_wage_share_pct,
+            case when zero_energy then null else energy_total_gj end as energy_total_gj,
+            case when zero_water then null else water_withdrawal_kl end as water_withdrawal_kl,
+            case when zero_headcount then null else headcount_total end as headcount_total
+        )
+    from zero_checks
+),
+
 kpi as (
     select
         *,
@@ -248,7 +280,7 @@ kpi as (
         headcount_female / nullif(headcount_total, 0) * 100 as female_workforce_pct,
         attrition_female_pct - attrition_male_pct as attrition_gap_pp,
         data_breaches_count > 0 as any_data_breach
-    from base
+    from cleaned
 ),
 
 final as (
@@ -258,7 +290,23 @@ final as (
         fatalities_total / nullif(headcount_total, 0) * 10000 as fatalities_per_10k_workforce,
         female_wage_share_pct - female_workforce_pct as pay_equity_gap_pp,
         ghg_intensity_filed_per_cr / nullif(ghg_intensity_tco2e_per_cr, 0)
-            as ghg_intensity_filed_vs_computed_ratio
+            as ghg_intensity_filed_vs_computed_ratio,
+        energy_intensity_filed_gj_per_cr / nullif(energy_intensity_gj_per_cr, 0)
+            as energy_intensity_filed_vs_computed_ratio,
+        water_intensity_filed_kl_per_cr / nullif(water_intensity_kl_per_cr, 0)
+            as water_intensity_filed_vs_computed_ratio,
+        nullif(
+            concat_ws(
+                '|',
+                case when zero_wage_share then 'implausible_zero_female_wage_share' end,
+                case when zero_energy then 'implausible_zero_energy_total' end,
+                case when zero_water then 'implausible_zero_water_withdrawal' end,
+                case when zero_headcount then 'implausible_zero_headcount' end,
+                case when waste_recovery_rate_pct > 100 then 'waste_recovery_over_100' end,
+                case when n_values_replaced > 0 then 'scale_error_values_replaced' end
+            ),
+            ''
+        ) as kpi_flags
     from kpi
 )
 
@@ -301,15 +349,22 @@ select
     ghg_intensity_tco2e_per_cr,
     ghg_intensity_filed_per_cr,
     ghg_intensity_filed_vs_computed_ratio,
+    {{ intensity_basis('ghg_intensity_filed_vs_computed_ratio') }} as ghg_intensity_filed_basis,
     energy_total_gj,
     energy_renewable_gj,
     renewable_share_pct,
     energy_intensity_gj_per_cr,
     energy_intensity_filed_gj_per_cr,
+    energy_intensity_filed_vs_computed_ratio,
+    {{ intensity_basis('energy_intensity_filed_vs_computed_ratio') }}
+        as energy_intensity_filed_basis,
     water_withdrawal_kl,
     water_consumption_kl,
     water_intensity_kl_per_cr,
     water_intensity_filed_kl_per_cr,
+    water_intensity_filed_vs_computed_ratio,
+    {{ intensity_basis('water_intensity_filed_vs_computed_ratio') }}
+        as water_intensity_filed_basis,
     waste_generated_t,
     waste_recovered_t,
     waste_disposed_t,
@@ -334,5 +389,7 @@ select
             when period_months != 12 then {{ column }} * annualisation_factor
         end as {{ column }}_annualised,
     {% endfor %}
-    any_data_breach
+    any_data_breach,
+    n_values_replaced,
+    kpi_flags
 from final

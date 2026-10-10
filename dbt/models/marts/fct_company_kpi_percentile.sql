@@ -3,7 +3,8 @@
 -- higher-is-better KPIs, lowest for lower-is-better). Method: percent rank
 -- ((rank - 1) / (n - 1)), ties share the lower rank. Only given when the group has at least 5
 -- companies with a value, the KPI is material for the group, and the KPI has a direction;
--- otherwise null with percentile_null_reason.
+-- otherwise null with percentile_null_reason. A waste recovery rate above 100% (flag
+-- waste_recovery_over_100) keeps its value but is not ranked and does not count in the group.
 
 {% set kpis = [
     'ghg_intensity_tco2e_per_cr', 'renewable_share_pct', 'energy_intensity_gj_per_cr',
@@ -21,6 +22,7 @@ with long as (
             fiscal_year_label,
             ranking_group,
             peer_group,
+            coalesce(kpi_flags, '') as kpi_flags,
             {{ kpis | join(', ') }}
         from {{ ref('fct_company_year') }}
     )
@@ -32,6 +34,8 @@ with_meta as (
     select
         long.*,
         kpi_catalogue.direction,
+        long.kpi_name = 'waste_recovery_rate_pct'
+        and contains(long.kpi_flags, 'waste_recovery_over_100') as is_flagged_value,
         coalesce(metric_materiality.is_material, false) as is_material
     from long
     inner join {{ ref('kpi_catalogue') }} as kpi_catalogue
@@ -42,10 +46,17 @@ with_meta as (
             and kpi_catalogue.metric_id = metric_materiality.metric_id
 ),
 
+rankable as (
+    select
+        *,
+        case when not is_flagged_value then kpi_value end as rank_value
+    from with_meta
+),
+
 scored as (
     select
         *,
-        count(kpi_value) over (
+        count(rank_value) over (
             partition by ranking_group, fiscal_year_label, kpi_name
         ) as group_n,
         bool_and(is_material) over (
@@ -54,15 +65,15 @@ scored as (
         case
             when direction = 'higher_better'
                 then percent_rank() over (
-                    partition by ranking_group, fiscal_year_label, kpi_name, kpi_value is null
-                    order by kpi_value asc
+                    partition by ranking_group, fiscal_year_label, kpi_name, rank_value is null
+                    order by rank_value asc
                 )
             else percent_rank() over (
-                partition by ranking_group, fiscal_year_label, kpi_name, kpi_value is null
-                order by kpi_value desc
+                partition by ranking_group, fiscal_year_label, kpi_name, rank_value is null
+                order by rank_value desc
             )
         end as rank_fraction
-    from with_meta
+    from rankable
 )
 
 select
@@ -74,7 +85,7 @@ select
     cast(group_n as integer) as group_n,
     case
         when
-            kpi_value is not null
+            rank_value is not null
             and group_n >= 5
             and group_material
             and direction in ('higher_better', 'lower_better')
@@ -83,6 +94,7 @@ select
     case
         when ranking_group is null then 'no_group'
         when kpi_value is null then 'no_value'
+        when is_flagged_value then 'flagged_value'
         when not group_material then 'not_material'
         when direction not in ('higher_better', 'lower_better') then 'no_direction'
         when group_n < 5 then 'group_n_lt_5'

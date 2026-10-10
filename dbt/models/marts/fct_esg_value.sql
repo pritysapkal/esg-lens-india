@@ -6,6 +6,10 @@
 -- that fit no reporting year) are left out. When one filing holds several facts for the same
 -- grain (a company filing the comparative twice), the one with the latest period end is kept
 -- and n_competing_values says how many there were.
+-- best_value_std is the value gold KPIs use: value_std, except where the official current
+-- value is a suspected scale error against the comparative in the next report (more than 100x
+-- apart, int_scale_error_suspects) - then the later comparative replaces it and
+-- best_value_source says so. value_std always keeps what was filed.
 -- Citation policy: plain text only, never a link to the exchange.
 
 with metric_values as (
@@ -31,44 +35,78 @@ names as (
         filing_id,
         company_name_clean
     from {{ ref('int_company_names') }}
+),
+
+suspects as (
+    select
+        isin,
+        metric_id,
+        dimension_key,
+        value_fiscal_year_label,
+        restated_value
+    from {{ ref('int_scale_error_suspects') }}
+),
+
+joined as (
+    select
+        metric_values.*,
+        filings.filed_date,
+        filings.submission_date,
+        filings.has_revision_date,
+        filings.is_latest_revision,
+        names.company_name_clean,
+        suspects.restated_value as later_comparative,
+        metric_values.period_role = 'CY' and filings.is_latest_revision as is_latest_value
+    from metric_values
+    inner join filings on metric_values.filing_id = filings.filing_id
+    left join names on metric_values.filing_id = names.filing_id
+    left join suspects
+        on
+            metric_values.isin = suspects.isin
+            and metric_values.metric_id = suspects.metric_id
+            and metric_values.dimension_key = suspects.dimension_key
+            and metric_values.value_fiscal_year_label = suspects.value_fiscal_year_label
+    where metric_values.rn = 1
 )
 
 select
-    metric_values.isin,
-    metric_values.symbol,
-    metric_values.metric_id,
-    metric_values.value_fiscal_year_label,
-    metric_values.dimension_key,
-    metric_values.filing_id as source_filing_id,
-    metric_values.fiscal_year_label as filing_fiscal_year_label,
-    cast(metric_values.value_std as double) as value_std,
-    metric_values.unit_std,
-    cast(metric_values.value_pct as double) as value_pct,
-    metric_values.raw_value,
-    metric_values.value_text,
-    metric_values.period_role,
-    coalesce(names.company_name_clean, metric_values.company_name) || ', BRSR '
-    || metric_values.fiscal_year_label || ', filed on NSE ' || cast(filings.filed_date as varchar)
+    isin,
+    symbol,
+    metric_id,
+    value_fiscal_year_label,
+    dimension_key,
+    filing_id as source_filing_id,
+    fiscal_year_label as filing_fiscal_year_label,
+    cast(value_std as double) as value_std,
+    cast(
+        case
+            when is_latest_value and later_comparative is not null then later_comparative
+            else value_std
+        end as double
+    ) as best_value_std,
+    case
+        when is_latest_value and later_comparative is not null
+            then 'replaced_by_later_comparative'
+        else 'as_filed'
+    end as best_value_source,
+    unit_std,
+    cast(value_pct as double) as value_pct,
+    raw_value,
+    value_text,
+    period_role,
+    coalesce(company_name_clean, company_name) || ', BRSR '
+    || fiscal_year_label || ', filed on NSE ' || cast(filed_date as varchar)
     || case
-        when filings.has_revision_date
-            then ' (revised; first filed ' || cast(filings.submission_date as varchar) || ')'
+        when has_revision_date
+            then ' (revised; first filed ' || cast(submission_date as varchar) || ')'
         else ''
     end as source_citation,
-    metric_values.period_role = 'CY' as is_current_year_value,
-    metric_values.period_role = 'CY' and filings.is_latest_revision as is_latest_value,
-    filings.is_latest_revision as is_latest_revision_filing,
-    case
-        when contains(metric_values.normalisation_flag, 'unit_bridged_from_next_filing')
-            then 'bridged-from-next-filing'
-        when contains(metric_values.normalisation_flag, 'unit_from_text') then 'text-unit'
-        when contains(metric_values.normalisation_flag, 'unit_format_default') then 'default'
-        else 'as-filed'
-    end as unit_resolution_method,
-    metric_values.override_id,
-    metric_values.normalisation_flag,
-    metric_values.is_material,
-    cast(metric_values.n_competing_values as integer) as n_competing_values
-from metric_values
-inner join filings on metric_values.filing_id = filings.filing_id
-left join names on metric_values.filing_id = names.filing_id
-where metric_values.rn = 1
+    period_role = 'CY' as is_current_year_value,
+    is_latest_value,
+    is_latest_revision as is_latest_revision_filing,
+    {{ unit_resolution_method('normalisation_flag') }} as unit_resolution_method,
+    override_id,
+    normalisation_flag,
+    is_material,
+    cast(n_competing_values as integer) as n_competing_values
+from joined

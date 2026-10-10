@@ -4,15 +4,17 @@
 --   restated_value = PY value of year Y from the filing for Y+1 (latest revision)
 -- Only headline / input / secondary numeric metrics, same breakdown, both after normalisation and
 -- overrides. Pairs: FY2022-23 -> FY2023-24, FY2023-24 -> FY2024-25, FY2024-25 -> FY2025-26.
--- Classification order: circular unit -> unit inconsistency -> from/to zero -> no change
--- (<= 1%) -> material -> minor. Method and thresholds: docs/restatement_method.md.
+-- Classification order: circular unit -> suspected scale error (> 100x apart) -> unit
+-- inconsistency -> from/to zero -> no change (<= 1%) -> material -> minor. The first two are
+-- not restatements and are excluded from statistics (is_compared = false).
+-- Method and thresholds: docs/restatement_method.md.
 -- A restatement is a difference between two filings, not a finding of wrongdoing.
 
 {% set restatement_regex = (
-    '\\brestat|\\bre-stat|\\bregroup|\\breclassif|'
-    ~ 'revised (figure|data|number|value|comparative)|'
-    ~ '(figure|data|number|value)s? (has|have|was|were) (been )?revised|'
-    ~ 'revision of (figure|data|prior|previous)'
+    '\\bre-?stat(ed|ement|ements)\\b|'
+    ~ '\\bregroup(ed|ing)\\b|\\breclassif(ied|ication)\\b|'
+    ~ '\\brevised\\b.{0,40}\\b(number|figure|data)s?\\b|'
+    ~ '\\b(number|figure|data)s?\\b.{0,40}\\brevised\\b'
 ) %}
 
 with metrics as (
@@ -56,8 +58,8 @@ restated as (
 ),
 
 text_notes as (
-    -- one snippet per filing; word starts only ("afforestation" contains "restat"), and
-    -- "revised" only next to figures, as plain "revised" appears in most policy texts
+    -- one snippet per filing; whole words only ("afforestation" contains "restat"), and
+    -- "revised" only within 40 characters of number / figure / data
     select
         filing_id,
         arg_min(snippet, concept) as stated_reason
@@ -76,11 +78,6 @@ text_notes as (
                 300
             ) as snippet
         from {{ ref('stg_text_facts') }}
-        where
-            regexp_matches(
-                lower(text),
-                '{{ restatement_regex }}'
-            )
     )
     where snippet != ''
     group by filing_id
@@ -136,6 +133,7 @@ classified as (
         case
             when original_unit_method = 'bridged-from-next-filing'
                 then 'unit_inferred_from_restating_filing'
+            when {{ is_scale_error('ratio') }} then 'suspected_scale_error'
             when
                 ratio is not null
                 and (
@@ -189,7 +187,7 @@ final as (
                 then 'merger/demerger'
             when has_comparability_break and comparability_break_reason like '%boundary%'
                 then 'boundary change'
-            when note_snippet is not null then 'restatement note in filing'
+            when note_snippet is not null then 'possible note (weak)'
         end as explained_by,
         case
             when classification != 'material' then null
@@ -216,14 +214,23 @@ select
     unit_type,
     direction,
     classification,
-    classification != 'unit_inferred_from_restating_filing' as is_compared,
+    classification not in ('unit_inferred_from_restating_filing', 'suspected_scale_error')
+        as is_compared,
+    ratio,
+    original_unit_method as original_unit_resolution_method,
     explained_by,
     case
-        when explained_by = 'restatement note in filing' then note_snippet
+        when explained_by = 'possible note (weak)' then note_snippet
     end as stated_reason,
     flatters_trend,
     coalesce(
         classification = 'material' and explained_by is null and flatters_trend, false
     ) as red_flag,
+    coalesce(
+        classification = 'material'
+        and coalesce(explained_by, '') not in ('merger/demerger', 'boundary change')
+        and flatters_trend,
+        false
+    ) as red_flag_strict,
     is_material as is_metric_material
 from final

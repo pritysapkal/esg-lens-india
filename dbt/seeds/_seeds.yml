@@ -380,3 +380,40 @@ seeds:
         description: Basis of the assignment and any doubt.
       - name: verified
         tests: [not_null]
+
+  - name: assurer_aliases
+    description: >
+      Patterns that merge spelling variants of an assurance provider into one canonical name
+      (matched on the lower-cased name without punctuation; lowest priority number wins).
+    columns:
+      - name: pattern
+        tests: [unique, not_null]
+      - name: assurer_name
+        tests: [not_null]
+      - name: priority
+        tests: [not_null]
+
+  - name: kpi_catalogue
+    description: >
+      Comparable KPIs of fct_company_year used for peer benchmarks and percentiles: the catalogue
+      metric that decides materiality, the unit type and the direction (context = not ranked).
+    columns:
+      - name: kpi_name
+        description: Column of fct_company_year.
+        tests: [unique, not_null]
+      - name: kpi_label
+        tests: [not_null]
+      - name: metric_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('concept_metric_map')
+                field: metric_id
+      - name: unit_type
+        tests: [not_null]
+      - name: direction
+        tests:
+          - accepted_values:
+              arguments:
+                values: [lower_better, higher_better, context]

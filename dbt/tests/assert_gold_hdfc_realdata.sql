@@ -1,7 +1,8 @@
 -- Real data, HDFC Bank FY2025-26 (checked by hand against the filing): Scope 1 = 91,849.5 tCO2e,
 -- GHG intensity = (Scope 1 + Scope 2) / (turnover / 1e7) within 0.1%, renewable share 15.86%
 -- (345,972.88 / 2,181,402), female wage share 20.36%. And the FY2024-25 Scope 2 value
--- 284,877.91 appears as the restated value in the restatement tracker.
+-- 284,877.91 appears as the restated value in the restatement tracker. After the best-available-
+-- value fix, AXISBANK FY2022-23 renewable share (1,143% as filed) is between 0 and 100.
 {{ config(tags=['realdata']) }}
 
 with hdfc as (
@@ -53,4 +54,17 @@ where
             and metric_id = 'ghg_scope2_tco2e'
             and value_fiscal_year_label = 'FY2024-25'
             and abs(restated_value - 284877.91) < 0.01
+    ) != 1
+
+union all
+
+select 'AXISBANK FY2022-23 renewable_share_pct is not within 0-100' as problem
+where
+    (
+        select count(*)
+        from {{ ref('fct_company_year') }}
+        where
+            symbol = 'AXISBANK'
+            and fiscal_year_label = 'FY2022-23'
+            and renewable_share_pct between 0 and 100
     ) != 1

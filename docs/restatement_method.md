@@ -9,34 +9,59 @@ wrongdoing**: companies restate for sound reasons (corrected errors, new methods
 
 | Term | Meaning |
 |---|---|
-| Original value | The current-year (CY) value of year Y from the company's filing for Y (latest revision). |
+| Original value | The current-year (CY) value of year Y from the company's filing for Y (latest revision), as filed (`value_std`). |
 | Restated value | The prior-year (PY) value for year Y in the filing for Y+1 (latest revision). |
 | Pair | One original and one restated value of the same company, metric, breakdown (`dimension_key`) and year. |
-| Compared pair | A pair not excluded as circular (see below). Only compared pairs enter any statistic. |
+| Compared pair | A pair that is neither circular nor a suspected scale error (`is_compared`). Only compared pairs enter any statistic. |
 
 Pairs: FY2022-23 -> FY2023-24, FY2023-24 -> FY2024-25, FY2024-25 -> FY2025-26. Metrics: headline,
 input and secondary numeric catalogue metrics, both values after unit normalisation and approved
-overrides (`value_std`). Breakdown member names are identical in all five taxonomy versions
-(checked), so no `dimension_member_map` seed was needed.
+overrides. Breakdown member names are identical in all five taxonomy versions (checked), so no
+`dimension_member_map` seed was needed.
 
 ## Change measures
 
 - `abs_change` = restated - original
 - `pct_change` = (restated - original) / |original| (empty when the original is 0)
 - `pp_change` = restated - original, only for percent metrics (`unit_type = 'pct'`)
+- `ratio` = restated / original (both positive)
 
 ## Classification (exactly one, evaluated in this order)
 
 1. **`unit_inferred_from_restating_filing`** - the original's unit was inferred from the next filing
    (`unit_resolution_method = bridged-from-next-filing`). Comparing it with that same filing is
-   circular, so these pairs are **excluded from all statistics** (`is_compared = false`).
-2. **`unit_inconsistency`** - restated / original is within 5% of 10^k for k in +-2, +-3, +-5, +-6,
-   +-7: almost certainly a unit or scale difference, not a restatement.
-3. **`from_zero`** / **`to_zero`** - original 0 and restated not, or the reverse.
-4. **`no_change`** - |pct_change| <= 1% (rounding tolerance), or no change at all.
-5. **`material`** - |pct_change| > 5% **and**, for percent metrics, |pp_change| > 1 point; for count
+   circular. **Excluded from all statistics.**
+2. **`suspected_scale_error`** - `ratio` above 100 or below 0.01, whatever the exact magnitude. A
+   number that changes more than a hundredfold between two reports is a unit or scale mistake in
+   one of them (tonnes typed as million tonnes, GJ as TJ), not a restatement. **Excluded from all
+   statistics**, listed in `int_scale_error_suspects` for the Disclosure Quality Score.
+3. **`unit_inconsistency`** - ratio within 5% of 10^k for k in +-2, +-3, +-5, +-6, +-7 (after rule 2
+   only the +-2 band, ratio 95-100 or 0.0100-0.0105, can still apply).
+4. **`from_zero`** / **`to_zero`** - original 0 and restated not, or the reverse.
+5. **`no_change`** - |pct_change| <= 1% (rounding tolerance), or no change at all.
+6. **`material`** - |pct_change| > 5% **and**, for percent metrics, |pp_change| > 1 point; for count
    metrics, |abs_change| >= 2; for other metrics no further condition.
-6. **`minor`** - everything else (a change that is more than rounding but below the thresholds).
+7. **`minor`** - everything else.
+
+## Best available value (scale errors)
+
+`value_std` in `fct_esg_value` always keeps what was filed. Gold KPIs use **`best_value_std`**:
+
+- if the official current value of year Y is a suspected scale error against the comparative for Y
+  in the Y+1 report, `best_value_std` = that later comparative and `best_value_source` =
+  `replaced_by_later_comparative`;
+- otherwise `best_value_std` = `value_std` and `best_value_source` = `as_filed`.
+
+The later report is preferred because the company has had a year to correct it and it is filed in
+a newer taxonomy with explicit units. `fct_company_year`, `fct_peer_benchmark` and
+`fct_company_kpi_percentile` read `best_value_std`; `n_values_replaced` and the flag
+`scale_error_values_replaced` say when a company-year is affected. Filed intensities are never
+replaced (their denominators differ by design, see `ghg_intensity_filed_basis`). The latest year
+(FY2025-26) has no later report, so its scale errors cannot be caught this way.
+
+Current data: 25 values replaced in 14 company-years (17 in FY2022-23, 6 in FY2023-24, 2 in
+FY2024-25), mostly total and renewable energy. Example: AXISBANK FY2022-23 total energy 1,005 GJ as
+filed, 1,994,830 GJ in the next report; renewable share goes from 1,143% to 0.58%.
 
 ## Explained or unexplained (`explained_by`)
 
@@ -45,14 +70,14 @@ In this order:
 1. `merger/demerger` - `dim_company_year` of Y+1 has `has_comparability_break` with a merger or
    demerger (seed `corporate_events`);
 2. `boundary change` - the break reason is a change of reporting boundary;
-3. `restatement note in filing` - a long text fact of the Y+1 filing matches a restatement phrase
-   (word starts: restat, re-stat, regroup, reclassif; or "revised" next to figures / data / numbers /
-   values). A snippet of at most 300 characters is stored in `stated_reason`, links removed.
+3. `possible note (weak)` - a long text fact of the Y+1 filing contains a restatement word. Whole
+   words only: restated / restatement(s), regrouped / regrouping, reclassified / reclassification,
+   or "revised" within 40 characters of number / figure / data. A snippet of at most 300 characters
+   is stored in `stated_reason`, links removed.
 4. otherwise empty = **unexplained**.
 
-The text test is deliberately narrow: "revised" alone matches policy texts in most filings, and
-"restat" matches "afforestation". It is still a filing-level match: a note somewhere in the report,
-not proof that it refers to that metric. Read `stated_reason` before relying on it.
+The note is **weak** evidence: it is a match somewhere in the report, not proof that it refers to
+that metric. Read `stated_reason` before relying on it.
 
 ## Flattering (`flatters_trend`) and red flags
 
@@ -62,13 +87,19 @@ For material pairs, using `dim_metric.direction`:
   improvement);
 - higher is better: flattering if restated < original.
 
-Metrics with no direction (context, n/a) have no flattering flag. **`red_flag`** = material AND
-unexplained AND flattering. A red flag is a prompt to read the two filings, not a conclusion.
+Metrics with no direction (context, n/a) have no flattering flag.
+
+- **`red_flag`** = material AND flattering AND no explanation of any kind.
+- **`red_flag_strict`** = material AND flattering AND not explained by a merger / demerger or a
+  boundary change. A weak note does **not** count as an explanation here, so it is the larger set.
+
+A red flag is a prompt to read the two filings, not a conclusion.
 
 ## Thresholds in one place
 
 | Threshold | Value |
 |---|---|
+| Suspected scale error | ratio > 100 or < 0.01 |
 | Rounding tolerance (no change) | 1% |
 | Material change | > 5% (and > 1 pp for percent metrics, >= 2 for counts) |
 | Unit inconsistency | ratio within 5% of 10^k, k in {+-2, +-3, +-5, +-6, +-7} |
@@ -76,29 +107,44 @@ unexplained AND flattering. A red flag is a prompt to read the two filings, not 
 
 ## Headline numbers (build of 2026-10-10)
 
-- 4,399 pairs, 245 circular (excluded), **4,154 compared**.
-- no change 86.7%, minor 3.5%, **material 7.5% (310)**, from zero 1.9%, to zero 0.3%, unit
-  inconsistency 0.1%.
-- Of the 310 material restatements: 172 (55.5%) unexplained; 131 (42.3%) flatter the trend; **78 red
-  flags**.
-- **43 of 50 companies (86%)** with comparable pairs have at least one material restatement. This
-  sits above the KPMG 2026 survey figure (45 of 94 NIFTY 100 companies, about 48%) because our
-  rule counts every metric and breakdown and keeps FY2022-23 values filed under older taxonomies;
-  see the limitations below.
+- 4,399 pairs; 245 circular and 25 suspected scale errors excluded; **4,129 compared**.
+- no change 87.2%, minor 3.6%, **material 7.0% (288)**, from zero 1.9%, to zero 0.3%, unit
+  inconsistency 2 pairs.
+- Of the 288 material restatements: 136 (47.2%) unexplained, 96 with only a weak note, 56 explained
+  by a merger / demerger or boundary change; 122 (42.4%) flatter the trend.
+- **63 red flags, 102 strict red flags.**
+- All metrics and breakdowns: 43 of 50 companies (86%) have at least one material restatement.
+
+### Comparable with KPMG (`level = 'kpmg_comparable'`)
+
+KPMG 2026 reports that **45 of 94 NIFTY 100 companies (about 48%)** revised prior-year BRSR figures.
+Our closest definition: headline totals only (Scope 1, Scope 2, total energy, water withdrawal,
+waste generated; company-wide values), circular pairs and suspected scale errors excluded, a
+company counts if it has at least one material restatement.
+
+| Pairs | Compared pairs | Companies with comparable pairs | With >= 1 material restatement | Share |
+|---|---:|---:|---:|---:|
+| FY2023-24 -> FY2024-25 only | 239 | 48 | 8 | 16.7% |
+| All three pairs | 546 | 50 | 24 | 48.0% |
+
+**Definitions still differ**: KPMG's universe is the NIFTY 100 (ours is the NIFTY 50 plus Wipro),
+their list of indicators and their threshold for "revised" are not published in a form we can
+replicate, and we require a change above 5%. The match of the all-pairs figure with 48% is not
+evidence that the two measures are the same.
 
 ## Limitations
 
 - **Only three comparison pairs** (FY23 -> FY24, FY24 -> FY25, FY25 -> FY26). FY2021-22 originals
   are out of scope; the second comparative (PY2) is kept in `fct_esg_value` but not compared.
-- **FY2022-23 originals are noisy.** 140 of the 310 material restatements (and 48 of the 78 red
-  flags) are in the first pair, and the largest are scale errors in the original (for example Coal
-  India waste, 3,880 t against 4.3 billion t restated; ratios that are not near a power of ten
-  escape the unit rule). Units for old-taxonomy filings were inferred (`normalisation_flag`).
-  Treat FY2022-23 material restatements as a data-quality list first.
+- **FY2022-23 originals are noisy.** Units for old-taxonomy filings were inferred, so the first
+  pair holds most circular pairs and most scale errors, and still 124 of the 288 material
+  restatements. Treat FY2022-23 material restatements as a data-quality list first.
+- **The scale-error rule is blunt.** A real hundredfold change (a start-up year) would be excluded
+  and its value replaced; a tenfold unit slip is still read as a material restatement.
 - **No comparatives are filed** for turnover, headcount and women on the board, so those metrics
   have no pairs.
 - **Explanations are weak evidence.** The text match is per filing, and boundary / event flags
   explain at the company-year level, not the metric.
 - **Dimension coverage:** pairs need the same breakdown member on both sides; values missing on
-  one side (a new breakdown, a filed NA) are not compared.
+  one side are not compared.
 - **Restatement is not wrongdoing.** A flattering, unexplained change can still be a correction.

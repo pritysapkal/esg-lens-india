@@ -397,6 +397,87 @@ models:
               config:
                 where: explained_by is not null
 
+  - name: int_filing_revisions
+    description: >
+      One row per filing with its place among the filings of the same company and year. The newest
+      filing (by revision date, else submission date) is the latest revision; gold uses it only.
+    columns:
+      - name: filing_id
+        tests: [unique, not_null]
+      - name: is_latest_revision
+        description: true for the newest filing of the company-year.
+        tests: [not_null]
+      - name: has_revision_date
+        description: true if the exchange lists a revision date for the filing.
+
+  - name: int_company_year_assurers
+    description: >
+      One row per assurance / assessment provider named in a filing, spelling variants merged with
+      the assurer_aliases seed. Feeds dim_assurer and bridge_company_year_assurer.
+    columns:
+      - name: assurer_key
+        tests: [not_null]
+      - name: assurer_name
+        tests: [not_null]
+
+  - name: int_scale_error_suspects
+    description: >
+      Current-year values that are more than 100 times (or less than a hundredth of) the comparative
+      for the same year in the next report: a unit / scale mistake, not a restatement. Gold replaces
+      these with the later comparative (fct_esg_value.best_value_std) and the restatement tracker
+      excludes them. Filed intensities are not tested. Input for the Disclosure Quality Score.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, metric_id, dimension_key, value_fiscal_year_label]
+    columns:
+      - name: isin
+        tests: [not_null]
+      - name: metric_id
+        tests: [not_null]
+      - name: value_fiscal_year_label
+        description: Year the value belongs to.
+        tests: [not_null]
+      - name: original_value
+        description: Value filed for the year in that year's report.
+      - name: restated_value
+        description: Comparative for the year in the next report.
+      - name: ratio
+        description: restated_value / original_value (above 100 or below 0.01).
+        tests: [not_null]
+      - name: unit_resolution_method
+        description: How the unit of the original value was decided.
+
+  - name: int_kpi_flags
+    description: >
+      One row per company-year and KPI flag raised in fct_company_year: implausible zeros set to
+      empty, waste recovery above 100%, values replaced by the later comparative. Input for the
+      Disclosure Quality Score.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, fiscal_year_label, flag]
+    columns:
+      - name: isin
+        tests: [not_null]
+      - name: fiscal_year_label
+        tests: [not_null]
+      - name: flag
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - implausible_zero_female_wage_share
+                  - implausible_zero_energy_total
+                  - implausible_zero_water_withdrawal
+                  - implausible_zero_headcount
+                  - waste_recovery_over_100
+                  - scale_error_values_replaced
+      - name: detail
+        description: What was found, in plain English.
+        tests: [not_null]
+
 unit_tests:
   - name: test_pure_to_pct
     description: Percent filed as a decimal is x100; a value already in percent is not scaled again.

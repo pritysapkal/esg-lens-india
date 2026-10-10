@@ -552,6 +552,20 @@ models:
   - name: value_std
     data_type: DOUBLE
     description: Value in the metric standard unit (after normalisation and approved overrides).
+  - name: best_value_std
+    data_type: DOUBLE
+    description: 'Value gold KPIs use: value_std, or the later comparative when the filed value is a suspected
+      scale error.'
+  - name: best_value_source
+    data_type: VARCHAR
+    description: as_filed or replaced_by_later_comparative.
+    tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - as_filed
+          - replaced_by_later_comparative
   - name: unit_std
     data_type: VARCHAR
     description: Standard unit of the metric.
@@ -756,6 +770,10 @@ models:
   - name: ghg_intensity_filed_vs_computed_ratio
     data_type: DOUBLE
     description: Filed / computed intensity; near 1 when consistent.
+  - name: ghg_intensity_filed_basis
+    data_type: VARCHAR
+    description: 'Denominator the company used for its filed GHG intensity: per rupee (as required), per
+      lakh, per million, per crore or other/unclear.'
   - name: energy_total_gj
     data_type: DOUBLE
     description: Total energy consumed, GJ.
@@ -771,6 +789,12 @@ models:
   - name: energy_intensity_filed_gj_per_cr
     data_type: DOUBLE
     description: Energy intensity as filed.
+  - name: energy_intensity_filed_vs_computed_ratio
+    data_type: DOUBLE
+    description: Filed / computed energy intensity.
+  - name: energy_intensity_filed_basis
+    data_type: VARCHAR
+    description: Denominator used for the filed energy intensity.
   - name: water_withdrawal_kl
     data_type: DOUBLE
     description: Total water withdrawal, kl.
@@ -783,6 +807,12 @@ models:
   - name: water_intensity_filed_kl_per_cr
     data_type: DOUBLE
     description: Water intensity as filed.
+  - name: water_intensity_filed_vs_computed_ratio
+    data_type: DOUBLE
+    description: Filed / computed water intensity.
+  - name: water_intensity_filed_basis
+    data_type: VARCHAR
+    description: Denominator used for the filed water intensity.
   - name: waste_generated_t
     data_type: DOUBLE
     description: Total waste generated, tonnes.
@@ -840,9 +870,6 @@ models:
   - name: rpt_sales_pct
     data_type: DOUBLE
     description: Sales to related parties, % of sales.
-  - name: any_data_breach
-    data_type: BOOLEAN
-    description: true if the number of data breaches > 0.
   - name: ghg_s1_tco2e_annualised
     data_type: DOUBLE
     description: ghg s1 tco2e annualised
@@ -879,6 +906,17 @@ models:
   - name: turnover_inr_annualised
     data_type: DOUBLE
     description: turnover inr annualised
+  - name: any_data_breach
+    data_type: BOOLEAN
+    description: true if the number of data breaches > 0.
+  - name: n_values_replaced
+    data_type: INTEGER
+    description: Current-year values of this company-year replaced by the later comparative (suspected
+      scale errors).
+  - name: kpi_flags
+    data_type: VARCHAR
+    description: 'Pipe-separated flags: implausible zeros set to empty, waste recovery above 100%, values
+      replaced. Empty if none.'
 - name: fct_peer_benchmark
   description: Distribution of each comparable KPI per ranking group and year (n, median, quartiles, min,
     max). Only KPIs material for the group appear. Levels include years with comparability breaks.
@@ -1011,6 +1049,7 @@ models:
           values:
           - no_group
           - no_value
+          - flagged_value
           - not_material
           - no_direction
           - group_n_lt_5
@@ -1090,7 +1129,8 @@ models:
     description: lower_better, higher_better, context or n/a.
   - name: classification
     data_type: VARCHAR
-    description: no_change, minor, material, unit_inconsistency, from_zero, to_zero or unit_inferred_from_restating_filing.
+    description: no_change, minor, material, unit_inconsistency, from_zero, to_zero, suspected_scale_error
+      or unit_inferred_from_restating_filing.
     tests:
     - accepted_values:
         arguments:
@@ -1101,42 +1141,53 @@ models:
           - unit_inconsistency
           - from_zero
           - to_zero
+          - suspected_scale_error
           - unit_inferred_from_restating_filing
   - name: is_compared
     data_type: BOOLEAN
-    description: false for circular pairs (original unit inferred from the restating filing); excluded
-      from statistics.
+    description: false for circular pairs and suspected scale errors; those are excluded from statistics.
+  - name: ratio
+    data_type: DOUBLE
+    description: restated / original (both positive).
+  - name: original_unit_resolution_method
+    data_type: VARCHAR
+    description: How the unit of the original value was decided.
   - name: explained_by
     data_type: VARCHAR
-    description: merger/demerger, boundary change, restatement note in filing, or empty.
+    description: merger/demerger, boundary change, possible note (weak), or empty.
     tests:
     - accepted_values:
         arguments:
           values:
           - merger/demerger
           - boundary change
-          - restatement note in filing
+          - possible note (weak)
         config:
           where: explained_by is not null
   - name: stated_reason
     data_type: VARCHAR
-    description: Snippet (<= 300 characters) of the restatement note; no links.
+    description: Snippet (<= 300 characters) of the possible restatement note; no links.
   - name: flatters_trend
     data_type: BOOLEAN
     description: 'For material pairs: true if the restatement makes the Y to Y+1 change look better.'
   - name: red_flag
     data_type: BOOLEAN
-    description: material, unexplained and flattering.
+    description: material, flattering and with no explanation of any kind.
+  - name: red_flag_strict
+    data_type: BOOLEAN
+    description: material, flattering and not explained by a merger / demerger or boundary change (a weak
+      note does not count).
   - name: is_metric_material
     data_type: BOOLEAN
     description: Whether the metric is ranked for the company peer group.
 - name: rpt_restatement_summary
-  description: 'Restatement summary by overall, metric, peer group and company: pairs compared (circular
-    pairs excluded), share per class, unexplained and flattering shares of material restatements, red
-    flags, and companies with at least one material restatement.'
+  description: 'Restatement summary by overall, metric, peer group and company, plus a KPMG-comparable
+    block: pairs compared (circular pairs and suspected scale errors excluded), share per class, unexplained
+    and flattering shares of material restatements, red flags, and companies with at least one material
+    restatement.'
   columns:
   - name: level
-    description: overall, metric, peer_group or company.
+    description: overall, metric, peer_group, company or kpmg_comparable.
     tests:
     - accepted_values:
         arguments:
@@ -1145,6 +1196,7 @@ models:
           - metric
           - peer_group
           - company
+          - kpmg_comparable
   - name: group_key
     description: Value of the level (metric id, peer group, symbol).
     tests:

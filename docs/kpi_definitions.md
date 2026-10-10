@@ -45,7 +45,7 @@ intensities are empty when turnover is missing. Percent columns are on a 0-100 s
 
 | KPI | Formula | Better | Notes |
 |---|---|---|---|
-| `ghg_intensity_tco2e_per_cr` | (Scope 1 + Scope 2) / `turnover_cr` | Lower | The filed intensity is kept as `ghg_intensity_filed_per_cr`; `ghg_intensity_filed_vs_computed_ratio` = filed / computed, expected near 1. In the current data only 89 of 196 company-years are within 0.9-1.1, because filed intensities use different denominators and units. |
+| `ghg_intensity_tco2e_per_cr` | (Scope 1 + Scope 2) / `turnover_cr` | Lower | The filed intensity is kept as `ghg_intensity_filed_per_cr`; `ghg_intensity_filed_vs_computed_ratio` = filed / computed. See "Filed intensity basis" below for why it is often far from 1. |
 | `renewable_share_pct` | renewable energy / total energy x 100 | Higher | |
 | `energy_intensity_gj_per_cr` | total energy / `turnover_cr` | Lower | |
 | `water_intensity_kl_per_cr` | water consumption / `turnover_cr` | Lower | Consumption, not withdrawal. |
@@ -73,3 +73,50 @@ sector group) for each year and KPI, with 100 = best:
 `fct_peer_benchmark` holds the group distribution (n, median, 25th / 75th percentile, min, max) for
 the same KPIs. Levels include years with a comparability break; only year-on-year comparisons
 should exclude them.
+
+### Values used (best available value)
+
+KPIs are computed from `fct_esg_value.best_value_std`: the filed value, except where it is a
+suspected scale error (more than 100 times apart from the comparative in the next report), in
+which case the later comparative is used. `n_values_replaced` counts such values per company-year
+(25 values in 14 company-years). Policy and reasons: [restatement_method.md](restatement_method.md).
+
+### Implausible zeros and KPI flags (`kpi_flags`, `int_kpi_flags`)
+
+A zero that cannot be true is treated as "not disclosed": the value is set to empty (so it is
+neither ranked nor averaged) and the company-year gets a flag. `kpi_flags` is a pipe-separated
+list; `int_kpi_flags` has one row per flag with a plain-English detail.
+
+| Flag | Rule | Effect |
+|---|---|---|
+| `implausible_zero_female_wage_share` | `female_wage_share_pct` = 0 while `headcount_female` > 0 | wage share and `pay_equity_gap_pp` set to empty |
+| `implausible_zero_energy_total` | `energy_total_gj` = 0 with turnover > 0, non-Financials | total energy, renewable share and energy intensity set to empty |
+| `implausible_zero_water_withdrawal` | `water_withdrawal_kl` = 0, non-Financials | water withdrawal set to empty |
+| `implausible_zero_headcount` | `headcount_total` = 0 | headcount and everything divided by it set to empty |
+| `waste_recovery_over_100` | `waste_recovery_rate_pct` > 100 | value **kept** (possible recovery of legacy waste) but not ranked: no percentile for that KPI-year, and it does not count in the group |
+| `scale_error_values_replaced` | `n_values_replaced` > 0 | information only |
+
+Current data: wage share 2 (INDIGO and ITC FY2025-26), water withdrawal 2 (INDIGO and TRENT
+FY2022-23), energy 0, headcount 0, waste recovery over 100% 8, values replaced 14 company-years.
+
+### Filed intensity basis (`*_intensity_filed_basis`)
+
+BRSR asks for intensity **per rupee of turnover**. The pipeline therefore reads every filed
+intensity as per rupee and converts it to per Rs crore (x 10^7). If a company actually divided by
+something else, the filed / computed ratio equals that denominator in rupees: 1 = per rupee,
+10^5 = per lakh, 10^6 = per million, 10^7 = per crore. The ratio is classified to the nearest of
+these within +-25%; anything else is `other/unclear` (a different numerator unit, PPP-adjusted
+turnover, a different turnover figure, or an error).
+
+| Basis | GHG | Energy | Water |
+|---|---:|---:|---:|
+| per rupee (as required) | 100 | 107 | 105 |
+| per crore | 39 | 35 | 34 |
+| per million | 9 | 6 | 6 |
+| per lakh | 1 | 2 | 1 |
+| other/unclear | 33 | 37 | 34 |
+| no ratio (a value is missing or zero) | 14 | 9 | 16 |
+
+Of 196 company-years. FY2022-23 has no "per rupee" GHG filing at all (17 per crore, 7 per million);
+by FY2025-26, 37 of 51 file per rupee. This is why the filed intensity is a cross-check only and
+our own computed intensity is the KPI.

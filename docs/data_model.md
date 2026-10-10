@@ -30,6 +30,7 @@ erDiagram
         string dimension_key
         string source_filing_id
         double value_std
+        double best_value_std
         bool is_latest_value
         string source_citation
     }
@@ -100,7 +101,8 @@ exchange: `source_citation` is plain text (company, report, year, filing date).
 
 `fct_esg_value.is_latest_value` marks, for each company, metric, year and breakdown, the
 current-year value from the latest revision of the filing for that year. Prior-year comparatives
-(PY, PY2) are kept for the restatement tracker but are never latest. Restatement logic:
+(PY, PY2) are kept for the restatement tracker but are never latest. KPIs read `best_value_std`: the
+filed value, or the later comparative where the filed value is a suspected scale error. Restatement logic:
 [restatement_method.md](restatement_method.md); KPI formulas: [kpi_definitions.md](kpi_definitions.md).
 
 ## Identity layer
