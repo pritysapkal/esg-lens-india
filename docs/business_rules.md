@@ -280,4 +280,21 @@ Requirement rules (`dbt/seeds/metric_disclosure_requirement.csv`, every catalogu
 - **Other essential indicators** (turnover, headcount, attrition, women on the board, NIC code,
   reporting boundary): mandatory from **FY2022-23**, `brsr_core = false`.
 - **Scope 3 emissions**: leadership (voluntary), no mandatory year, `brsr_core = false`.
-- The assignment is the analyst's reading of the BRSR format and is not yet verified line by line.
+- This assignment was verified by the project owner on 2026-10-10 (`verified = true`).
+
+## Comparability breaks and year-on-year anomalies
+
+- **Comparability break** (`dim_company_year.has_comparability_break`): the change from the
+  previous year is not like for like. It is true when (a) a corporate event with
+  `comparability_break = true` is dated to the year (seed `corporate_events`), or (b) the reporting
+  boundary (standalone / consolidated) differs from the company's previous year in the data
+  (`boundary_changed_vs_prior`). `comparability_break_reason` gives merger, demerger,
+  boundary change, or both joined with `;`. A rename does not break comparability.
+- **YoY anomalies** (`int_yoy_anomalies`, view): every company-year where turnover (annualised
+  for non-12-month years) or total headcount changes by more than 40% against the previous year.
+  `explained_by` says whether an event, a boundary change, or both is flagged; an empty value means
+  *unexplained*.
+- **Use in the Disclosure Quality Score (Week 8):** unexplained anomalies are the input for
+  consistency checks - a large unexplained jump is a possible filing error or an event missing
+  from `corporate_events`, so it lowers confidence in the year's values until a person reviews it.
+  Explained anomalies are not penalised. The list is a review queue, not a verdict.

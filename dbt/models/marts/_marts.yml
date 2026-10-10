@@ -211,8 +211,14 @@ models:
         description: Employees plus workers, permanent and other than permanent.
       - name: brsr_core_assurance_status
         description: assured, assessed or not disclosed.
+      - name: has_event_break
+        description: true if a corporate event (corporate_events seed) breaks comparability this year.
+      - name: boundary_changed_vs_prior
+        description: true if the reporting boundary (standalone/consolidated) differs from the company previous year in the data.
       - name: has_comparability_break
-        description: true if a corporate event breaks comparability with the previous year.
+        description: true if has_event_break or boundary_changed_vs_prior; the year-on-year change is not like for like.
+      - name: comparability_break_reason
+        description: merger, demerger, boundary change, or combined (e.g. "merger; boundary change"); empty if no break.
       - name: size_band
         description: Large, Mid or Small (terciles); empty if the size measure is missing.
         tests:

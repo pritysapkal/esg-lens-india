@@ -120,6 +120,7 @@ seeds:
         mandatory_from_fy: varchar
         brsr_core: boolean
         note: varchar
+        verified: boolean
     company_attributes:
       +column_types:
         symbol: varchar

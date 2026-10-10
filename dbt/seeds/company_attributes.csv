@@ -1,52 +1,52 @@
 symbol,display_name,ownership_type,business_group,source_note,verified
-HDFCBANK,HDFC Bank,Private Indian,HDFC,Analyst brief 2026-10-10,false
-ICICIBANK,ICICI Bank,Private Indian,Independent,Independent by default (not in the brief's group list),false
-AXISBANK,Axis Bank,Private Indian,Independent,Independent by default (not in the brief's group list),false
-KOTAKBANK,Kotak Mahindra Bank,Private Indian,Independent,Independent by default (not in the brief's group list),false
-SBIN,State Bank of India,Government,SBI,Analyst brief 2026-10-10,false
-BAJFINANCE,Bajaj Finance,Private Indian,Bajaj,Analyst brief 2026-10-10,false
-BAJAJFINSV,Bajaj Finserv,Private Indian,Bajaj,Analyst brief 2026-10-10,false
-SHRIRAMFIN,Shriram Finance,Private Indian,Independent,"Part of the Shriram group (not in the brief's group list); Independent kept, uncertain",false
-JIOFIN,Jio Financial Services,Private Indian,Reliance,Analyst brief 2026-10-10,false
-SBILIFE,SBI Life,Government,SBI,Government via SBI (SBI is majority-owned by the Government; SBI Life also has a BNP Paribas stake),false
-HDFCLIFE,HDFC Life,Private Indian,HDFC,Analyst brief 2026-10-10,false
-BSE,BSE,Private Indian,Independent,Independent by default (not in the brief's group list),false
-TCS,TCS,Private Indian,Tata,Analyst brief 2026-10-10,false
-INFY,Infosys,Private Indian,Independent,Independent by default (not in the brief's group list),false
-HCLTECH,HCLTech,Private Indian,Independent,Independent by default (not in the brief's group list),false
-TECHM,Tech Mahindra,Private Indian,Mahindra,Mahindra group (from the brief),false
-WIPRO,Wipro,Private Indian,Independent,Independent by default (not in the brief's group list),false
-RELIANCE,Reliance Industries,Private Indian,Reliance,Analyst brief 2026-10-10,false
-ONGC,ONGC,Government,Independent,Analyst brief 2026-10-10,false
-COALINDIA,Coal India,Government,Independent,Analyst brief 2026-10-10,false
-NTPC,NTPC,Government,Independent,Analyst brief 2026-10-10,false
-POWERGRID,Power Grid,Government,Independent,Analyst brief 2026-10-10,false
-TATASTEEL,Tata Steel,Private Indian,Tata,Analyst brief 2026-10-10,false
-JSWSTEEL,JSW Steel,Private Indian,JSW,Analyst brief 2026-10-10,false
-HINDALCO,Hindalco,Private Indian,Aditya Birla,Analyst brief 2026-10-10,false
-ADANIENT,Adani Enterprises,Private Indian,Adani,Analyst brief 2026-10-10,false
-ULTRACEMCO,UltraTech Cement,Private Indian,Aditya Birla,Analyst brief 2026-10-10,false
-GRASIM,Grasim,Private Indian,Aditya Birla,Analyst brief 2026-10-10,false
-LT,L&T,Private Indian,Independent,"Professionally managed, no promoter; Independent",false
-MARUTI,Maruti Suzuki,MNC subsidiary,Independent,Analyst brief 2026-10-10,false
-M&M,Mahindra & Mahindra,Private Indian,Mahindra,Analyst brief 2026-10-10,false
-BAJAJ-AUTO,Bajaj Auto,Private Indian,Bajaj,Analyst brief 2026-10-10,false
-EICHERMOT,Eicher Motors,Private Indian,Independent,"Eicher group (Lal family); Independent kept, uncertain",false
-TMPV,Tata Motors PV,Private Indian,Tata,Analyst brief 2026-10-10,false
-HINDUNILVR,Hindustan Unilever,MNC subsidiary,Independent,Analyst brief 2026-10-10,false
-ITC,ITC,Private Indian,Independent,Private Indian assumed; British American Tobacco holds a large minority stake via affiliates,false
-NESTLEIND,Nestle India,MNC subsidiary,Independent,Analyst brief 2026-10-10,false
-TATACONSUM,Tata Consumer,Private Indian,Tata,Analyst brief 2026-10-10,false
-ASIANPAINT,Asian Paints,Private Indian,Independent,Independent by default (not in the brief's group list),false
-TITAN,Titan,Private Indian,Tata,Tata group via Tata Sons / TIDCO (Tamil Nadu government holds a stake); uncertain,false
-TRENT,Trent,Private Indian,Tata,Analyst brief 2026-10-10,false
-ETERNAL,Eternal,Private Indian,Independent,Independent by default (not in the brief's group list),false
-SUNPHARMA,Sun Pharma,Private Indian,Independent,Independent by default (not in the brief's group list),false
-DRREDDY,Dr. Reddy's,Private Indian,Independent,Independent by default (not in the brief's group list),false
-CIPLA,Cipla,Private Indian,Independent,Independent by default (not in the brief's group list),false
-APOLLOHOSP,Apollo Hospitals,Private Indian,Independent,Independent by default (not in the brief's group list),false
-MAXHEALTH,Max Healthcare,Private Indian,Independent,"Independent assumed; promoter structure changed in recent years, uncertain",false
-BEL,BEL,Government,Independent,Analyst brief 2026-10-10,false
-ADANIPORTS,Adani Ports,Private Indian,Adani,Analyst brief 2026-10-10,false
-INDIGO,IndiGo,Private Indian,Independent,Independent by default (not in the brief's group list),false
-BHARTIARTL,Bharti Airtel,Private Indian,Bharti,Analyst brief 2026-10-10,false
+HDFCBANK,HDFC Bank,Private Indian,HDFC,"Analyst brief, verified by Prity 2026-10-10",true
+ICICIBANK,ICICI Bank,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+AXISBANK,Axis Bank,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+KOTAKBANK,Kotak Mahindra Bank,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+SBIN,State Bank of India,Government,SBI,"Analyst brief, verified by Prity 2026-10-10",true
+BAJFINANCE,Bajaj Finance,Private Indian,Bajaj,"Analyst brief, verified by Prity 2026-10-10",true
+BAJAJFINSV,Bajaj Finserv,Private Indian,Bajaj,"Analyst brief, verified by Prity 2026-10-10",true
+SHRIRAMFIN,Shriram Finance,Private Indian,Shriram,Shriram group,true
+JIOFIN,Jio Financial Services,Private Indian,Reliance,"Analyst brief, verified by Prity 2026-10-10",true
+SBILIFE,SBI Life,Government,SBI,Government via SBI,true
+HDFCLIFE,HDFC Life,Private Indian,HDFC,"Analyst brief, verified by Prity 2026-10-10",true
+BSE,BSE,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+TCS,TCS,Private Indian,Tata,"Analyst brief, verified by Prity 2026-10-10",true
+INFY,Infosys,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+HCLTECH,HCLTech,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+TECHM,Tech Mahindra,Private Indian,Mahindra,"Analyst brief, verified by Prity 2026-10-10",true
+WIPRO,Wipro,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+RELIANCE,Reliance Industries,Private Indian,Reliance,"Analyst brief, verified by Prity 2026-10-10",true
+ONGC,ONGC,Government,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+COALINDIA,Coal India,Government,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+NTPC,NTPC,Government,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+POWERGRID,Power Grid,Government,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+TATASTEEL,Tata Steel,Private Indian,Tata,"Analyst brief, verified by Prity 2026-10-10",true
+JSWSTEEL,JSW Steel,Private Indian,JSW,"Analyst brief, verified by Prity 2026-10-10",true
+HINDALCO,Hindalco,Private Indian,Aditya Birla,"Analyst brief, verified by Prity 2026-10-10",true
+ADANIENT,Adani Enterprises,Private Indian,Adani,"Analyst brief, verified by Prity 2026-10-10",true
+ULTRACEMCO,UltraTech Cement,Private Indian,Aditya Birla,"Analyst brief, verified by Prity 2026-10-10",true
+GRASIM,Grasim,Private Indian,Aditya Birla,"Analyst brief, verified by Prity 2026-10-10",true
+LT,L&T,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+MARUTI,Maruti Suzuki,MNC subsidiary,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+M&M,Mahindra & Mahindra,Private Indian,Mahindra,"Analyst brief, verified by Prity 2026-10-10",true
+BAJAJ-AUTO,Bajaj Auto,Private Indian,Bajaj,"Analyst brief, verified by Prity 2026-10-10",true
+EICHERMOT,Eicher Motors,Private Indian,Eicher,Eicher group,true
+TMPV,Tata Motors PV,Private Indian,Tata,"Analyst brief, verified by Prity 2026-10-10",true
+HINDUNILVR,Hindustan Unilever,MNC subsidiary,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+ITC,ITC,Private Indian,Independent,"Private Indian, Independent",true
+NESTLEIND,Nestle India,MNC subsidiary,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+TATACONSUM,Tata Consumer,Private Indian,Tata,"Analyst brief, verified by Prity 2026-10-10",true
+ASIANPAINT,Asian Paints,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+TITAN,Titan,Private Indian,Tata,Tata group,true
+TRENT,Trent,Private Indian,Tata,"Analyst brief, verified by Prity 2026-10-10",true
+ETERNAL,Eternal,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+SUNPHARMA,Sun Pharma,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+DRREDDY,Dr. Reddy's,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+CIPLA,Cipla,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+APOLLOHOSP,Apollo Hospitals,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+MAXHEALTH,Max Healthcare,Private Indian,Independent,Independent,true
+BEL,BEL,Government,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+ADANIPORTS,Adani Ports,Private Indian,Adani,"Analyst brief, verified by Prity 2026-10-10",true
+INDIGO,IndiGo,Private Indian,Independent,"Analyst brief, verified by Prity 2026-10-10",true
+BHARTIARTL,Bharti Airtel,Private Indian,Bharti,"Analyst brief, verified by Prity 2026-10-10",true

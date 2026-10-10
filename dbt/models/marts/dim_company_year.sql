@@ -2,6 +2,8 @@
 -- period, boundary, size, assurance and structural-break flag. The grain every yearly fact
 -- joins to. Size band = tercile of turnover within the sector group and year; for Financials
 -- total headcount is used because a bank's "turnover" is not comparable.
+-- Comparability break = a corporate event with comparability_break, or a change of reporting
+-- boundary (standalone/consolidated) against the company's previous year in the data.
 
 with filings as (
     select
@@ -66,7 +68,7 @@ breaks as (
     select
         isin,
         affected_fiscal_year_label as fiscal_year_label,
-        count(*) as n_events
+        string_agg(distinct event_type, '; ' order by event_type) as event_types
     from {{ ref('corporate_events') }}
     where comparability_break
     group by isin, affected_fiscal_year_label
@@ -93,7 +95,8 @@ joined as (
             when lower(text_metrics.assurance_filed) like '%assessment%' then 'assessed'
             else coalesce(lower(text_metrics.assurance_filed), 'not disclosed')
         end as brsr_core_assurance_status,
-        breaks.isin is not null as has_comparability_break,
+        breaks.isin is not null as has_event_break,
+        breaks.event_types,
         -- Financials are sized by headcount, everyone else by turnover
         dim_company.sector_group = 'Financials' as sized_by_headcount,
         case
@@ -120,8 +123,23 @@ banded as (
         ntile(3) over (
             partition by sector_group, fiscal_year_label, size_metric is null
             order by size_metric, isin
-        ) as size_tercile
+        ) as size_tercile,
+        lag(reporting_boundary) over (
+            partition by isin order by fiscal_year_label
+        ) as prior_reporting_boundary
     from joined
+),
+
+flagged as (
+    select
+        *,
+        coalesce(
+            reporting_boundary is not null
+            and prior_reporting_boundary is not null
+            and reporting_boundary != prior_reporting_boundary,
+            false
+        ) as boundary_changed_vs_prior
+    from banded
 )
 
 select
@@ -145,7 +163,14 @@ select
     turnover_inr,
     total_headcount,
     brsr_core_assurance_status,
-    has_comparability_break,
+    has_event_break,
+    boundary_changed_vs_prior,
+    has_event_break or boundary_changed_vs_prior as has_comparability_break,
+    case
+        when has_event_break and boundary_changed_vs_prior then event_types || '; boundary change'
+        when has_event_break then event_types
+        when boundary_changed_vs_prior then 'boundary change'
+    end as comparability_break_reason,
     case
         when size_metric is null then null
         when size_tercile = 3 then 'Large'
@@ -153,4 +178,4 @@ select
         else 'Small'
     end as size_band,
     case when sized_by_headcount then 'total_headcount' else 'turnover_inr' end as size_band_basis
-from banded
+from flagged

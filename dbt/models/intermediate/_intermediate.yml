@@ -366,6 +366,37 @@ models:
       - name: is_material
         description: true = ranked; false = shown, not ranked for this peer group.
 
+  - name: int_yoy_anomalies
+    description: >
+      Company-years where turnover (annualised) or total headcount moves by more than 40% against
+      the previous year in the data. explained_by = event, boundary change, both, or empty
+      (unexplained, to be reviewed). Input for the Disclosure Quality Score consistency checks.
+    columns:
+      - name: symbol
+        tests: [not_null]
+      - name: fiscal_year_label
+        tests: [not_null]
+      - name: metric
+        tests:
+          - accepted_values:
+              arguments:
+                values: [turnover_inr, total_headcount]
+      - name: prior
+        description: Value in the previous year (turnover annualised).
+      - name: current
+        description: Value in this year (turnover annualised).
+      - name: pct_change
+        description: current / prior - 1, e.g. 0.55 = +55%.
+        tests: [not_null]
+      - name: explained_by
+        description: event, boundary change, event + boundary change, or empty.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [event, boundary change, event + boundary change]
+              config:
+                where: explained_by is not null
+
 unit_tests:
   - name: test_pure_to_pct
     description: Percent filed as a decimal is x100; a value already in percent is not scaled again.

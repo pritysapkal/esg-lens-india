@@ -8,6 +8,7 @@ erDiagram
     dim_company ||--o{ dim_company_history : "isin"
     dim_company ||--o{ dim_company_year : "isin"
     dim_fiscal_year ||--o{ dim_company_year : "fiscal_year_label"
+    dim_company_year ||--o{ int_yoy_anomalies : "isin + fiscal_year_label"
     dim_company_year ||--o{ int_metric_values : "isin + fiscal_year_label"
     dim_company ||--o{ corporate_events : "isin"
     dim_fiscal_year ||--o{ corporate_events : "affected_fiscal_year_label"
@@ -46,7 +47,9 @@ erDiagram
         float turnover_inr
         float total_headcount
         string size_band
+        bool boundary_changed_vs_prior
         bool has_comparability_break
+        string comparability_break_reason
     }
     dim_fiscal_year {
         string fiscal_year_label PK
@@ -72,6 +75,7 @@ erDiagram
 | `dim_company_year` | one row per company and financial year (latest filing) | `isin`, `fiscal_year_label` |
 | `dim_fiscal_year` (seed) | one row per financial year | `fiscal_year_label` |
 | `int_metric_values` | one row per metric value (company, year, period role, breakdown) | `fact_id` |
+| `int_yoy_anomalies` | one row per company-year and metric with a YoY move above 40% | `isin`, `fiscal_year_label`, `metric` |
 | `int_metric_values_enriched` | same as `int_metric_values`, plus peer group and `is_material` | `fact_id` |
 
 ## How a value finds its context
@@ -87,6 +91,5 @@ erDiagram
 
 ## Seeds that need human verification
 
-`corporate_events`, `company_attributes` (both `verified = false`), `nic_sector_map` and
-`nic_code_corrections` (`verified_by` empty), `metric_disclosure_requirement` (analyst reading of
-the BRSR format).
+`nic_sector_map` and `nic_code_corrections` (`verified_by` empty). `corporate_events`,
+`company_attributes`, `peer_groups` and `metric_disclosure_requirement` are verified by the project owner.

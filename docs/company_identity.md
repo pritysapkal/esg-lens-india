@@ -201,28 +201,43 @@ restatement logic must not treat that year-on-year change as performance.
 
 | Company | Event | Effective | Affects | Break |
 |---|---|---|---|---|
+| SHRIRAMFIN | Merger of Shriram Transport and Shriram City Union (accounting appointed date 2022-04-01) | 2022-12-19 | FY2022-23 | true |
 | HDFCBANK | Merger with HDFC Ltd | 2023-07-01 | FY2023-24 | true |
 | RELIANCE | Demerger of financial services (Jio Financial) | 2023-07-01 | FY2023-24 | true |
 | JIOFIN | Demerged from Reliance; first filing year | 2023-07-01 | FY2023-24 | false (no prior year) |
 | ITC | Hotels demerger (ITC Hotels) | 2025-01-01 | FY2024-25 | true |
-| TMPV | Commercial-vehicle demerger; keeps INE155A01022 | not given | FY2025-26 | true |
-| ETERNAL | Zomato renamed Eternal | 2025 (day not given) | FY2024-25 | false |
-| SHRIRAMFIN | Merger of Shriram Transport and Shriram City Union | 2022-12 | FY2022-23 | true |
+| ETERNAL | Zomato renamed Eternal | 2025-03-20 | FY2024-25 | false |
+| TMPV | Commercial-vehicle demerger; keeps INE155A01022 | 2025-10-01 | FY2025-26 | true |
 
-All rows have `verified = false`; they come from the analyst brief and have not been checked
-against company announcements. No other rename was found in `dim_company_history`. Suspected
-further events (large year-on-year jumps) are listed in the build report for review, not added.
+All 7 rows are `verified = true` (project owner, from public company announcements,
+2026-10-10). The suspected further events (large YoY jumps) are **not** corporate events; they sit
+in `int_yoy_anomalies` as a review queue.
+
+### Boundary changes
+
+A change of reporting boundary against the company's previous year (standalone <-> consolidated)
+also breaks comparability: `boundary_changed_vs_prior`. `has_comparability_break` = event break
+**or** boundary change; `comparability_break_reason` says which (merger, demerger, boundary
+change, or combined). In the current data: 13 breaks in 196 company-years: 5 events (merger 2,
+demerger 3) and 8 boundary changes (NTPC FY2024-25; POWERGRID FY2023-24, FY2024-25, FY2025-26;
+TATACONSUM FY2024-25; TATASTEEL FY2023-24; WIPRO FY2023-24, FY2024-25). BAJAJFINSV files
+consolidated in every year, so its turnover swings are not boundary changes.
+
+### Year-on-year anomalies
+
+`int_yoy_anomalies` lists every company-year with a move above 40% in annualised turnover or total
+headcount: 25 in the current data, 3 explained by an event and 22 unexplained. It is the review
+queue and the consistency input of the Week 8 Disclosure Quality Score
+([business rules](business_rules.md)).
 
 ## Ownership and business group (`company_attributes`)
 
 `display_name` (short name for charts), `ownership_type` (Government 7, Private Indian 41,
-MNC subsidiary 3) and `business_group` (Tata 6, Independent 27, Bajaj 3, Aditya Birla 3, HDFC 2,
-Mahindra 2, Reliance 2, SBI 2, Adani 2, Bharti 1, JSW 1). Seed values come from the analyst brief;
-"Independent" is the default for companies not in the brief's group list, and the doubtful cases
-(SBILIFE, ITC, TITAN, SHRIRAMFIN, EICHERMOT, MAXHEALTH) say so in `source_note`.
-All rows have `verified = false`.
+MNC subsidiary 3) and `business_group` (Independent 25, Tata 6, Bajaj 3, Aditya Birla 3, HDFC 2,
+Mahindra 2, Reliance 2, SBI 2, Adani 2, Bharti 1, JSW 1, Shriram 1, Eicher 1). All 51 rows are
+`verified = true` (project owner, 2026-10-10). SBILIFE is Government via SBI.
 
-WIPRO's `sub_industry` (Information Technology) is **verified** by the project owner (2026-10-10).
+WIPRO's `sub_industry` (Information Technology) is also verified by the project owner.
 
 ## Fiscal years (`dim_fiscal_year`)
 
@@ -250,8 +265,8 @@ can sort and label without extra tables.
   sector group; Asset-heavy rankings mix them with Industrials & others.
 - **Sector is an NSE-industry mapping**, not a company's exact business; NIC data only cross-checks it.
 - NIC division names and code corrections are unverified (`verified_by` empty).
-- **Event, ownership and group seeds need human verification** (`verified = false`): the structural-break flags and groups rest on the analyst brief, and TMPV, ETERNAL and SHRIRAMFIN have no exact effective date.
-- **Comparability beyond the listed events is not detected.** Large jumps in turnover or headcount can also come from boundary changes (standalone vs consolidated) or filing errors, e.g. BAJAJFINSV turnover swings between about 1,700 and 134,000 crore across years and is a data-quality question, not a business change.
+- **Seed verification status:** `corporate_events`, `company_attributes`, `metric_disclosure_requirement` and the peer groups are verified by the project owner. Still unverified: NIC division names (`nic_sector_map.verified_by`) and the NIC code corrections.
+- **Comparability beyond events and boundary changes is not detected.** 22 YoY jumps are unexplained (see `int_yoy_anomalies`); some are filing errors, e.g. BAJAJFINSV turnover swings between about 1,700 and 134,000 crore across years, a data-quality question rather than a business change.
 
 ## Tests
 

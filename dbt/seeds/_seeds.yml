@@ -345,6 +345,9 @@ seeds:
         tests: [not_null]
       - name: note
         description: Why.
+      - name: verified
+        description: true once checked by the project owner (2026-10-10).
+        tests: [not_null]
 
   - name: company_attributes
     description: >
