@@ -1,5 +1,7 @@
-assurance_level,points,description
-reasonable,1.0,At least one disclosure is marked as assured at the Reasonable level (in practice the BRSR Core)
-limited,0.6,Disclosures are marked as assured at the Limited level only
-none,0.0,The company states that no assurance was obtained
+item,points,description
+reasonable,0.5,Reasonable assurance on the BRSR Core: required by SEBI for the top 150 companies from FY2023-24; the compliance baseline
+assessment,0.4,A third-party assessment instead of assurance (allowed since SEBI's circular of 28 March 2025); a lighter check than assurance
+limited,0.3,Limited assurance only: below what SEBI requires for the BRSR Core
+none,0.0,The company states that no assurance or assessment was obtained
 not_disclosed,0.0,The filing marks no disclosure as assured
+whole_report_bonus,0.5,Added when the assurance or assessment covers the whole report (type All) and not only part of it; beyond what SEBI requires

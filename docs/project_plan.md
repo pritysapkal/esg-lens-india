@@ -17,7 +17,7 @@ wherever the two differ. Plain English on purpose.
 | Year-on-year | Assume years are comparable | **Corporate events and boundary changes flag comparability breaks** | Mergers, demergers and a switch between standalone and consolidated break the series |
 | Restatements | Flag every changed number | A **scale-error class** (values more than 100x apart, 10x for percentages) is set aside, and KPIs use the **best available value** (the later report) | Most "huge restatements" were unit slips, not restatements |
 | Publishing | Publish the dashboards | **Publication policy: derived values only** ([ADR 0004](adr/0004-publication-policy.md)) | We have no permission to republish filed values, percentages included |
-| Disclosure Quality Score | Many consistency signals, weights to be decided | **Lean score of four parts** (completeness 0.30, internal consistency 0.30, temporal consistency 0.20, assurance 0.20), each a rate; a part that cannot be tested is left out and the weights re-normalised; the assurance level is read from the Reasonable / Limited marks in the filing | A score a reader can recompute by hand; the latest year has no next report to test against, and `assurance_type` (All / Partial) is scope, not level ([method](disclosure_quality_score.md)) |
+| Disclosure Quality Score | Many consistency signals, weights to be decided | **Lean score of four parts** (completeness 0.30, internal consistency 0.30, temporal consistency 0.20, assurance 0.20), each a rate; a part that cannot be tested is left out and the weights re-normalised. **Version 2** measures what is voluntary: completeness is half mandatory metrics and half Leadership indicators answered, and assurance gives half the points for the Core assurance SEBI requires and the rest for assuring the whole report | Version 1 could not tell companies apart (187 of 196 grade A): everything it measured is mandatory for the NIFTY 50. The fix changes what is measured, not the weights or cut-offs ([method](disclosure_quality_score.md)) |
 | Housekeeping | - | **Hardening** before Week 8: public models, accepted-exception seed (build ends with 0 warnings), KPI catalogue as single source of truth, [START_HERE](START_HERE.md) | So the next seven weeks build on something that stays tidy |
 
 ## b) Done
@@ -32,11 +32,11 @@ wherever the two differ. Plain English on purpose.
 | Week 6 | Company identity and sectors | ISIN key, name history, NIC sectors, peer and sector groups, materiality, company-year dimension, corporate events, verified seeds | `e484845`, `4ecb459`, `cc06bb4`, `0eb1339` |
 | Week 7 | Gold star schema and restatement tracker | Facts and dimensions with enforced contracts, KPIs, peer benchmarks and percentiles, restatement classes, scale-error handling | `2cb3bad`, `265e856`, `a7a3f0c` |
 | Hardening | Before Week 8 | Publication policy and public models, exception tracking, KPI single source, START_HERE, tags and selectors | `fa44d82`, `440c88c` |
-| Week 8 | Disclosure Quality Score | One score 0-100 per company-year from four visible parts, with grade, rank in group, reason codes, a public model and a weight sensitivity check ([method](disclosure_quality_score.md)) | "feat: Week 8 disclosure quality score" |
+| Week 8 | Disclosure Quality Score | One score 0-100 per company-year from four visible parts, with grade, rank in group and year, reason codes, a public model and a weight sensitivity check; then version 2: voluntary depth (Leadership indicators read from the taxonomy), beyond-compliance assurance, a grade only with three components, provisional flag for the latest year ([method](disclosure_quality_score.md)) | `cda7200`, "feat: DQS v2" |
 
-State of the warehouse: 51 companies, 196 company-years, 21,706 metric values, 71 KPIs (23 public),
-4,115 compared restatement pairs, 196 Disclosure Quality Scores (median 98.25; 187 grade A, 8 B,
-1 C); full build and test in about 3 minutes with 0 warnings.
+State of the warehouse: 51 companies, 196 company-years, 21,706 metric values, 73 KPIs (25 public),
+4,115 compared restatement pairs, 196 Disclosure Quality Scores (version 2: median 85.0; 98 grade
+A, 90 B, 7 C, 1 without a grade); full build and test in about 3 minutes with 0 warnings.
 
 ## c) Remaining weeks
 
@@ -62,9 +62,10 @@ Known limitations (each documented where it belongs):
 - **Unit and scale rules are evidence-based, not certain**: [business_rules.md](business_rules.md).
 - **Public numbers cannot be rebuilt without downloading the filings yourself**:
   [publication_policy.md](publication_policy.md).
-- **The Disclosure Quality Score sits near the top** (187 of 196 company-years are grade A),
-  assurance is self-reported and almost the same for everyone, and the latest year has no
-  temporal check: [disclosure_quality_score.md](disclosure_quality_score.md).
+- **The Disclosure Quality Score is still clustered** (half the scores lie between 80 and 90, no
+  grade D), scores are comparable only within a year, the latest year is provisional, assurance
+  is self-reported, and some voluntary indicators do not apply to Financials:
+  [disclosure_quality_score.md](disclosure_quality_score.md).
 - NIC division names and NIC code corrections are still unverified (`verified_by` empty in the
   seeds).
 

@@ -20,8 +20,9 @@ Values that are the result of our own work on the filings:
 - percentiles and rankings within a peer group; peer-group medians and quartiles (also for KPIs
   whose underlying value is filed: the position is ours, the value is not shown);
 - the label of the denominator a company used for its filed intensity (`*_filed_basis`);
-- Disclosure Quality Scores: the total, the four component scores, grade, rank, percentile and
-  reason codes (not the counts behind them);
+- Disclosure Quality Scores: the total, the component scores, grade, rank, percentile, the
+  provisional flag, assurance level and scope, and reason codes (not the counts behind them, and
+  not which voluntary indicators a company answered);
 - restatement classifications and counts (how many, what share, which class);
 - yes / no flags (any fatality, Scope 3 disclosed, comparability break, KPI flags);
 - names, peer groups, sector groups, financial years;
@@ -49,7 +50,7 @@ Values that are the result of our own work on the filings:
 |---|---|
 | `public_safe` on every column | Each column of `fct_company_year`, `fct_esg_value`, `fct_peer_benchmark`, `fct_company_kpi_percentile`, `fct_restatement` and `fct_disclosure_quality` carries `config.meta.public_safe: true / false` in `dbt/models/marts/_marts.yml`. For KPIs the flag comes from the seed `kpi_catalogue.csv`. |
 | `rpt_public_company_year` | The company-year KPIs with **only** public-safe columns. Use this, not `fct_company_year`, for anything published. |
-| `rpt_public_disclosure_quality` | The Disclosure Quality Score with its component scores, grade, rank, percentile and reason codes. The counts behind the components (`int_dqs_components`: which metrics are missing, how many checks failed) stay local. |
+| `rpt_public_disclosure_quality` | The Disclosure Quality Score with its component scores, grade, rank, percentile and reason codes. The counts behind the components (`int_dqs_components`, `int_dqs_leadership_disclosure`: which metrics are missing, which voluntary indicators were answered, how many checks failed) stay local. |
 | `rpt_public_restatement_summary` | Restatement classes, counts and percentages. No original or restated value. |
 | `fct_peer_benchmark`, `fct_company_kpi_percentile` | Public: medians, quartiles, counts, percentiles. Not public: `min_value` / `max_value` and the percentile table's `value` column (marked `public_safe: false`). |
 | Tests | `assert_public_models_safe` (dbt) fails the build if a public model gets a non-public column or a column named like a raw quantity; `tests/test_kpi_catalogue.py` checks the flags against the catalogue. |
@@ -70,8 +71,8 @@ Values that are the result of our own work on the filings:
 - **Filed percentages are not public** (decision of 2026-10-10, ADR 0004). A percentage a company
   filed is as much a copied value as a tonne figure. It is still used: `pay_equity_gap_pp` and
   `attrition_gap_pp` are our own calculations on top of it, and percentiles and peer medians place
-  a company without showing the number. 23 of the 71 KPIs are public (14 of the 62 in
-  `fct_company_year` and the 9 of the Disclosure Quality Score), 48 are not.
+  a company without showing the number. 25 of the 73 KPIs are public (14 of the 62 in
+  `fct_company_year` and the 11 of the Disclosure Quality Score), 48 are not.
 - **Known exceptions.** The 143 rows of `dbt/seeds/known_kpi_exceptions.csv` are not 143 separate
   problems but **three reviewed categories**: the filed GHG intensity uses another denominator
   than per rupee (107 company-years, see `ghg_intensity_filed_basis`); the filed waste figures

@@ -497,7 +497,25 @@ models:
       - name: fiscal_year_label
         tests: [not_null]
       - name: completeness
+        description: >
+          Average of mandatory_completeness and voluntary_depth (the one that exists, if only
+          one does).
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: mandatory_completeness
         description: n_disclosed_metrics / n_required_metrics.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: voluntary_depth
+        description: >
+          n_leadership_disclosed / n_leadership_indicators; empty if the taxonomy of the filing
+          has no Leadership indicator in the seed.
         tests:
           - dbt_utils.accepted_range:
               arguments:
@@ -520,7 +538,7 @@ models:
                 min_value: 0
                 max_value: 1
       - name: assurance
-        description: Points of assurance_level (seed dqs_assurance_points); empty before FY2023-24.
+        description: Points from int_dqs_assurance (baseline + whole-report bonus); empty before FY2023-24.
         tests:
           - dbt_utils.accepted_range:
               arguments:
@@ -534,6 +552,10 @@ models:
         description: Required metrics with a filed current-year fact ("NA" counts, nil does not).
       - name: missing_metrics
         description: Required metrics not filed, separated by "|".
+      - name: n_leadership_indicators
+        description: Leadership indicators in the taxonomy of the filing.
+      - name: n_leadership_disclosed
+        description: Leadership indicators with a substantive value in the filing.
       - name: n_applicable_checks
         description: >
           Internal checks that could be run: unit / scale (always), waste balance, waste recovery,
@@ -559,18 +581,176 @@ models:
       - name: n_metrics_yoy_anomaly
         description: Turnover / headcount with an unexplained jump above 40% (not counted above).
       - name: assurance_level
-        description: reasonable, limited or not_disclosed; empty before FY2023-24.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dqs_assurance_points')
-                field: assurance_level
+        description: reasonable, assessment, limited or not_disclosed; empty before FY2023-24.
+      - name: assurance_scope
+        description: all (whole report) or partial; empty when nothing is assured.
       - name: n_disclosures_reasonable
         description: Disclosures the filing marks as assured at the Reasonable level.
       - name: n_disclosures_limited
         description: Disclosures the filing marks as assured at the Limited level.
 
+  - name: int_dqs_leadership_disclosure
+    description: >
+      One row per company-year and Leadership (voluntary) indicator of the taxonomy of that
+      filing: whether a substantive value was filed (a number, or a text that is not empty and
+      not "NA" / "Not applicable" / "Nil" / "None"). Read from all parsed facts. Detail behind
+      voluntary_depth; also answers which indicators everybody or nobody discloses
+      (analyses/dqs_leadership_disclosure_rates.sql).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, fiscal_year_label, principle, indicator]
+    columns:
+      - name: isin
+        tests: [not_null]
+      - name: fiscal_year_label
+        tests: [not_null]
+      - name: principle
+        tests: [not_null]
+      - name: indicator
+        description: Element name of the indicator (seed leadership_indicator_map).
+        tests: [not_null]
+      - name: n_concepts
+        description: Reportable elements of the indicator in that taxonomy version.
+      - name: n_concepts_with_value
+        description: Of those, how many have a substantive value in the filing.
+      - name: is_disclosed
+        description: true if at least one element has a substantive value.
+        tests: [not_null]
+
+  - name: int_dqs_assurance
+    description: >
+      Assurance component of the Disclosure Quality Score per company-year: the level the filing
+      reports (reasonable, assessment, limited, not_disclosed), whether the whole report is
+      covered, and the points (baseline of the level + whole-report bonus, at most 1). Empty
+      before FY2023-24. Reasonable assurance on the BRSR Core is what SEBI requires, so it earns
+      the baseline only.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, fiscal_year_label]
+    columns:
+      - name: isin
+        tests: [not_null]
+      - name: fiscal_year_label
+        tests: [not_null]
+      - name: assurance_level
+        description: reasonable, assessment, limited or not_disclosed; empty before FY2023-24.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dqs_assurance_points')
+                field: item
+      - name: assurance_scope
+        description: all (whole report) or partial; empty when nothing is assured.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [all, partial]
+      - name: assurance
+        description: Points, 0 to 1.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: assurance_baseline_points
+        description: Points of the level before the whole-report bonus.
+      - name: n_disclosures_reasonable
+        description: Disclosures the filing marks as assured at the Reasonable level.
+      - name: n_disclosures_limited
+        description: Disclosures the filing marks as assured at the Limited level.
+      - name: n_sections
+        description: Report sections with a type of assurance (All / Partial).
+      - name: n_sections_all
+        description: Of those, sections marked All.
+
 unit_tests:
+  - name: test_dqs_voluntary_depth_ignores_na
+    description: >
+      A Leadership indicator answered "NA", "Nil" or with a "Not applicable" text block is not
+      disclosed; a number (even zero) and a plain "No" are.
+    model: int_dqs_leadership_disclosure
+    given:
+      - input: ref('dim_company_year')
+        rows:
+          - {isin: X, fiscal_year_label: FY2025-26, filing_id: F, taxonomy_version: "2026-02-28"}
+      - input: ref('leadership_indicator_map')
+        rows:
+          - {taxonomy_version: "2026-02-28", principle: Principle1, indicator: AnsweredNa, indicator_seq: 1, concept: AnsweredNa}
+          - {taxonomy_version: "2026-02-28", principle: Principle1, indicator: AnsweredNil, indicator_seq: 2, concept: AnsweredNil}
+          - {taxonomy_version: "2026-02-28", principle: Principle1, indicator: AnsweredZero, indicator_seq: 3, concept: AnsweredZero}
+          - {taxonomy_version: "2026-02-28", principle: Principle1, indicator: AnsweredNo, indicator_seq: 4, concept: AnsweredNo}
+          - {taxonomy_version: "2026-02-28", principle: Principle2, indicator: TextNotApplicable, indicator_seq: 1, concept: TextNotApplicable}
+          - {taxonomy_version: "2026-02-28", principle: Principle2, indicator: TextReal, indicator_seq: 2, concept: TextReal}
+          - {taxonomy_version: "2026-02-28", principle: Principle2, indicator: NotFiled, indicator_seq: 3, concept: NotFiled}
+      - input: ref('int_period_role')
+        rows:
+          - {filing_id: F, concept: AnsweredNa, period_role: CY, is_nil: false, is_numeric: false, raw_value: NA, is_na_text: true}
+          - {filing_id: F, concept: AnsweredNil, period_role: CY, is_nil: false, is_numeric: false, raw_value: Nil, is_na_text: false}
+          - {filing_id: F, concept: AnsweredZero, period_role: CY, is_nil: false, is_numeric: true, raw_value: "0", value_num: 0, is_na_text: false}
+          - {filing_id: F, concept: AnsweredNo, period_role: CY, is_nil: false, is_numeric: false, raw_value: "No", is_na_text: false}
+          - {filing_id: F, concept: NotFiled, period_role: PY, is_nil: false, is_numeric: true, raw_value: "5", value_num: 5, is_na_text: false}
+      - input: ref('stg_text_facts')
+        rows:
+          - {filing_id: F, concept: TextNotApplicable, is_nil: false, text: "<p>Not applicable</p>"}
+          - {filing_id: F, concept: TextReal, is_nil: false, text: "<p>Suppliers are trained every year.</p>"}
+    expect:
+      rows:
+        - {isin: X, indicator: AnsweredNa, is_disclosed: false}
+        - {isin: X, indicator: AnsweredNil, is_disclosed: false}
+        - {isin: X, indicator: AnsweredZero, is_disclosed: true}
+        - {isin: X, indicator: AnsweredNo, is_disclosed: true}
+        - {isin: X, indicator: TextNotApplicable, is_disclosed: false}
+        - {isin: X, indicator: TextReal, is_disclosed: true}
+        - {isin: X, indicator: NotFiled, is_disclosed: false}
+
+  - name: test_dqs_assurance_levels
+    description: >
+      Core reasonable assurance = 0.5 (compliance); the same with the whole report covered = 1.0;
+      a third-party assessment instead of assurance = 0.4; nothing marked = 0; a year before
+      the BRSR Core = empty.
+    model: int_dqs_assurance
+    given:
+      - input: ref('dim_company_year')
+        rows:
+          - {isin: CORE, fiscal_year_label: FY2025-26, filing_id: F_CORE}
+          - {isin: WHOLE, fiscal_year_label: FY2025-26, filing_id: F_WHOLE}
+          - {isin: ASSESSED, fiscal_year_label: FY2025-26, filing_id: F_ASSESSED}
+          - {isin: NOTHING, fiscal_year_label: FY2025-26, filing_id: F_NOTHING}
+          - {isin: OLD, fiscal_year_label: FY2022-23, filing_id: F_OLD}
+      - input: ref('dim_fiscal_year')
+        rows:
+          - {fiscal_year_label: FY2025-26, is_brsr_core_year: true}
+          - {fiscal_year_label: FY2022-23, is_brsr_core_year: false}
+      - input: ref('stg_facts')
+        rows:
+          - {filing_id: F_CORE, concept: WhetherTheCompanyHasUndertakenAssessmentOrAssuranceOfTheBRSRCore, raw_value: Yes assurance}
+          - {filing_id: F_CORE, concept: TypeOfAssessmentOrAssuranceObtain, raw_value: Partial}
+          - {filing_id: F_CORE, concept: AssuranceSubTypeForDetailsOfGreenHouseGasEmissions, raw_value: Reasonable}
+          - {filing_id: F_WHOLE, concept: WhetherTheCompanyHasUndertakenAssessmentOrAssuranceOfTheBRSRCore, raw_value: Yes assurance}
+          - {filing_id: F_WHOLE, concept: TypeOfAssessmentOrAssuranceObtain, raw_value: All}
+          - {filing_id: F_WHOLE, concept: AssuranceSubTypeForDetailsOfGreenHouseGasEmissions, raw_value: Reasonable}
+          - {filing_id: F_WHOLE, concept: AssuranceSubTypeForCorporateIdentityNumber, raw_value: Limited}
+          - {filing_id: F_ASSESSED, concept: WhetherTheCompanyHasUndertakenAssessmentOrAssuranceOfTheBRSRCore, raw_value: Yes assessment}
+          - {filing_id: F_ASSESSED, concept: TypeOfAssessmentOrAssuranceObtain, raw_value: Partial}
+          - {filing_id: F_ASSESSED, concept: AssuranceSubTypeForDetailsOfGreenHouseGasEmissions, raw_value: Reasonable}
+          - {filing_id: F_OLD, concept: AssuranceSubTypeForDetailsOfGreenHouseGasEmissions, raw_value: Reasonable}
+      - input: ref('dqs_assurance_points')
+        rows:
+          - {item: reasonable, points: 0.5}
+          - {item: assessment, points: 0.4}
+          - {item: limited, points: 0.3}
+          - {item: not_disclosed, points: 0}
+          - {item: whole_report_bonus, points: 0.5}
+    expect:
+      rows:
+        - {isin: CORE, assurance_level: reasonable, assurance_scope: partial, assurance: 0.5}
+        - {isin: WHOLE, assurance_level: reasonable, assurance_scope: all, assurance: 1.0}
+        - {isin: ASSESSED, assurance_level: assessment, assurance_scope: partial, assurance: 0.4}
+        - {isin: NOTHING, assurance_level: not_disclosed, assurance_scope: null, assurance: 0}
+        - {isin: OLD, assurance_level: null, assurance_scope: null, assurance: null}
+
   - name: test_pure_to_pct
     description: Percent filed as a decimal is x100; a value already in percent is not scaled again.
     model: int_values_normalised

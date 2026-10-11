@@ -1822,10 +1822,10 @@ models:
   - name: pct_companies_with_material
     description: pct companies with material
 - name: fct_disclosure_quality
-  description: 'Disclosure Quality Score per company and financial year: total (0-100), the four component
-    scores (0-1), grade, rank and percentile within the ranking group, and the reasons for lost points.
-    It measures the quality of disclosure, not ESG performance. Every column is calculated by us. Method:
-    docs/disclosure_quality_score.md.'
+  description: 'Disclosure Quality Score (v2) per company and financial year: total (0-100), the component
+    scores (0-1), grade, rank and percentile within the ranking group and year, and the reasons for lost
+    points. It measures the quality of disclosure, not ESG performance. Every column is calculated by us.
+    Method: docs/disclosure_quality_score.md.'
   config:
     contract:
       enforced: true
@@ -1898,7 +1898,7 @@ models:
     config:
       meta:
         public_safe: true
-    description: Disclosure Quality Score, 0-100, one decimal; empty if fewer than two components could be scored.
+    description: Disclosure Quality Score, 0-100, one decimal; empty if fewer than two components could be scored. Compare only within a financial year.
     tests:
     - dbt_utils.accepted_range:
         arguments:
@@ -1912,8 +1912,9 @@ models:
     config:
       meta:
         public_safe: true
-    description: A (85 and above), B (70 to below 85), C (55 to below 70) or D (below 55).
+    description: A (85 and above), B (70 to below 85), C (55 to below 70), D (below 55); insufficient_data when fewer than three components could be scored.
     tests:
+    - not_null
     - accepted_values:
         arguments:
           values:
@@ -1921,12 +1922,35 @@ models:
           - B
           - C
           - D
+          - insufficient_data
   - name: dqs_completeness
     data_type: DOUBLE
     config:
       meta:
         public_safe: true
+    description: Average of dqs_mandatory_completeness and dqs_voluntary_depth, 0-1.
+    tests:
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 1
+  - name: dqs_mandatory_completeness
+    data_type: DOUBLE
+    config:
+      meta:
+        public_safe: true
     description: Required metrics disclosed / required metrics, 0-1.
+    tests:
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 1
+  - name: dqs_voluntary_depth
+    data_type: DOUBLE
+    config:
+      meta:
+        public_safe: true
+    description: Leadership (voluntary) indicators with a substantive value / Leadership indicators of the taxonomy, 0-1.
     tests:
     - dbt_utils.accepted_range:
         arguments:
@@ -1959,7 +1983,7 @@ models:
     config:
       meta:
         public_safe: true
-    description: Points of the assurance level, 0-1; empty before FY2023-24.
+    description: Assurance points, 0-1 (baseline of the level plus the whole-report bonus); empty before FY2023-24.
     tests:
     - dbt_utils.accepted_range:
         arguments:
@@ -1973,30 +1997,44 @@ models:
     description: How many of the four components could be scored.
     tests:
     - not_null
+  - name: is_provisional
+    data_type: BOOLEAN
+    config:
+      meta:
+        public_safe: true
+    description: true when the temporal check could not be run because no later filing exists yet; the score can still fall.
+    tests:
+    - not_null
   - name: assurance_level
     data_type: VARCHAR
     config:
       meta:
         public_safe: true
-    description: reasonable, limited or not_disclosed; empty before FY2023-24.
+    description: reasonable, assessment, limited or not_disclosed; empty before FY2023-24.
+  - name: assurance_scope
+    data_type: VARCHAR
+    config:
+      meta:
+        public_safe: true
+    description: all (whole report covered) or partial; empty when nothing is assured.
   - name: dqs_group_n
     data_type: INTEGER
     config:
       meta:
         public_safe: true
-    description: Companies of the ranking group with a score that year.
+    description: Companies of the ranking group with a gradable score that financial year.
   - name: dqs_rank_in_group
     data_type: INTEGER
     config:
       meta:
         public_safe: true
-    description: Rank within ranking group and year, 1 = best; only when dqs_group_n is at least 5.
+    description: Rank within ranking group and financial year, 1 = best; only with at least three components and dqs_group_n of at least 5.
   - name: dqs_percentile_in_group
     data_type: DOUBLE
     config:
       meta:
         public_safe: true
-    description: Percentile within ranking group and year, 100 = best; only when dqs_group_n is at least 5.
+    description: Percentile within ranking group and financial year, 100 = best; same conditions as the rank.
     tests:
     - dbt_utils.accepted_range:
         arguments:
@@ -2007,7 +2045,7 @@ models:
     config:
       meta:
         public_safe: true
-    description: 'Up to three reasons for lost points, largest first, separated by a pipe: missing_required_metrics, waste_balance_gap, waste_recovery_over_100, implausible_zero, unit_inconsistency, suspected_scale_error, material_restatement, unexplained_yoy_anomaly, limited_assurance, no_assurance.'
+    description: 'Up to three reasons for lost points, largest first, separated by a pipe: missing_required_metrics, low_voluntary_disclosure, waste_balance_gap, waste_recovery_over_100, implausible_zero, unit_inconsistency, suspected_scale_error, material_restatement, unexplained_yoy_anomaly, assurance_core_only, assessment_not_assurance, limited_assurance, no_assurance.'
 - name: rpt_public_disclosure_quality
   description: 'PUBLIC model (docs/publication_policy.md): only values we calculate, no raw filed quantity.
     Disclosure Quality Score, component scores, grade, rank, percentile and reason codes; the counts behind
@@ -2037,37 +2075,45 @@ models:
   - name: ranking_group
     description: Group the company is ranked in.
   - name: dqs_total
-    description: Disclosure Quality Score, 0-100, one decimal; empty if fewer than two components could be scored.
+    description: Disclosure Quality Score, 0-100, one decimal; empty if fewer than two components could be scored. Compare only within a financial year.
   - name: dqs_grade
-    description: A (85 and above), B (70 to below 85), C (55 to below 70) or D (below 55).
+    description: A (85 and above), B (70 to below 85), C (55 to below 70), D (below 55); insufficient_data when fewer than three components could be scored.
   - name: dqs_completeness
+    description: Average of dqs_mandatory_completeness and dqs_voluntary_depth, 0-1.
+  - name: dqs_mandatory_completeness
     description: Required metrics disclosed / required metrics, 0-1.
+  - name: dqs_voluntary_depth
+    description: Leadership (voluntary) indicators with a substantive value / Leadership indicators of the taxonomy, 0-1.
   - name: dqs_internal_consistency
     description: 1 - failed checks / applicable checks inside the filing, 0-1.
   - name: dqs_temporal_consistency
     description: 1 - flagged metrics / comparable metrics against the next report, 0-1; empty when there is no later filing.
   - name: dqs_assurance
-    description: Points of the assurance level, 0-1; empty before FY2023-24.
+    description: Assurance points, 0-1 (baseline of the level plus the whole-report bonus); empty before FY2023-24.
   - name: dqs_components_used
     description: How many of the four components could be scored.
+  - name: is_provisional
+    description: true when the temporal check could not be run because no later filing exists yet; the score can still fall.
   - name: assurance_level
-    description: reasonable, limited or not_disclosed; empty before FY2023-24.
+    description: reasonable, assessment, limited or not_disclosed; empty before FY2023-24.
+  - name: assurance_scope
+    description: all (whole report covered) or partial; empty when nothing is assured.
   - name: dqs_group_n
-    description: Companies of the ranking group with a score that year.
+    description: Companies of the ranking group with a gradable score that financial year.
   - name: dqs_rank_in_group
-    description: Rank within ranking group and year, 1 = best; only when dqs_group_n is at least 5.
+    description: Rank within ranking group and financial year, 1 = best; only with at least three components and dqs_group_n of at least 5.
   - name: dqs_percentile_in_group
-    description: Percentile within ranking group and year, 100 = best; only when dqs_group_n is at least 5.
+    description: Percentile within ranking group and financial year, 100 = best; same conditions as the rank.
   - name: dqs_reason_codes
-    description: 'Up to three reasons for lost points, largest first, separated by a pipe: missing_required_metrics, waste_balance_gap, waste_recovery_over_100, implausible_zero, unit_inconsistency, suspected_scale_error, material_restatement, unexplained_yoy_anomaly, limited_assurance, no_assurance.'
+    description: 'Up to three reasons for lost points, largest first, separated by a pipe: missing_required_metrics, low_voluntary_disclosure, waste_balance_gap, waste_recovery_over_100, implausible_zero, unit_inconsistency, suspected_scale_error, material_restatement, unexplained_yoy_anomaly, assurance_core_only, assessment_not_assurance, limited_assurance, no_assurance.'
 unit_tests:
 - name: test_dqs_perfect_company
-  description: Everything filed, every check passed, reasonable assurance = 100, grade A, no reason code.
+  description: Everything filed, every check passed, whole report assured = 100, grade A, no reason code.
   model: fct_disclosure_quality
   given:
   - input: ref('int_dqs_components')
     rows:
-    - {isin: PERFECT, fiscal_year_label: FY2024-25, ranking_group: G, completeness: 1, internal_consistency: 1, temporal_consistency: 1, assurance: 1, assurance_level: reasonable, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
+    - {isin: PERFECT, fiscal_year_label: FY2024-25, ranking_group: G, completeness: 1, mandatory_completeness: 1, voluntary_depth: 1, internal_consistency: 1, temporal_consistency: 1, assurance: 1, assurance_level: reasonable, assurance_scope: all, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
   - input: ref('dqs_weights')
     rows:
     - {component: completeness, weight: 0.30}
@@ -2076,14 +2122,14 @@ unit_tests:
     - {component: assurance, weight: 0.20}
   expect:
     rows:
-    - {isin: PERFECT, dqs_total: 100, dqs_grade: A, dqs_components_used: 4, dqs_group_n: 1, dqs_rank_in_group: null, dqs_reason_codes: null}
+    - {isin: PERFECT, dqs_total: 100, dqs_grade: A, dqs_components_used: 4, is_provisional: false, dqs_group_n: 1, dqs_rank_in_group: null, dqs_reason_codes: null}
 - name: test_dqs_no_assurance_only
   description: Perfect except no assurance loses exactly the assurance weight (100 - 20 = 80, grade B).
   model: fct_disclosure_quality
   given:
   - input: ref('int_dqs_components')
     rows:
-    - {isin: NOASSURE, fiscal_year_label: FY2024-25, ranking_group: G, completeness: 1, internal_consistency: 1, temporal_consistency: 1, assurance: 0, assurance_level: not_disclosed, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
+    - {isin: NOASSURE, fiscal_year_label: FY2024-25, ranking_group: G, completeness: 1, mandatory_completeness: 1, voluntary_depth: 1, internal_consistency: 1, temporal_consistency: 1, assurance: 0, assurance_level: not_disclosed, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
   - input: ref('dqs_weights')
     rows:
     - {component: completeness, weight: 0.30}
@@ -2095,15 +2141,16 @@ unit_tests:
     - {isin: NOASSURE, dqs_total: 80, dqs_grade: B, dqs_components_used: 4, dqs_reason_codes: no_assurance}
 - name: test_dqs_latest_year_reweights
   description: >
-    Latest year, no temporal check: the other three weights are re-normalised over 0.8.
-    Six in ten required metrics filed, limited assurance:
-    (0.30 x 0.6 + 0.30 x 1 + 0.20 x 0.6) / 0.80 = 75.0 (grade B);
-    with all four weights and a zero for the missing check it would have been 60.
+    Latest year, no temporal check: the other three weights are re-normalised over 0.8 and the
+    score is provisional. All required metrics filed but 6 in 10 Leadership indicators
+    (completeness 0.8), Core assurance only (0.5):
+    (0.30 x 0.8 + 0.30 x 1 + 0.20 x 0.5) / 0.80 = 80.0 (grade B);
+    with all four weights and a zero for the missing check it would have been 64.
   model: fct_disclosure_quality
   given:
   - input: ref('int_dqs_components')
     rows:
-    - {isin: LATEST, fiscal_year_label: FY2025-26, ranking_group: G, completeness: 0.6, internal_consistency: 1, temporal_consistency: null, assurance: 0.6, assurance_level: limited, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0}
+    - {isin: LATEST, fiscal_year_label: FY2025-26, ranking_group: G, completeness: 0.8, mandatory_completeness: 1, voluntary_depth: 0.6, internal_consistency: 1, temporal_consistency: null, assurance: 0.5, assurance_level: reasonable, assurance_scope: partial, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0}
   - input: ref('dqs_weights')
     rows:
     - {component: completeness, weight: 0.30}
@@ -2112,4 +2159,32 @@ unit_tests:
     - {component: assurance, weight: 0.20}
   expect:
     rows:
-    - {isin: LATEST, dqs_total: 75, dqs_grade: B, dqs_components_used: 3, dqs_temporal_consistency: null, dqs_reason_codes: missing_required_metrics|limited_assurance}
+    - {isin: LATEST, dqs_total: 80, dqs_grade: B, dqs_components_used: 3, is_provisional: true, dqs_temporal_consistency: null, dqs_reason_codes: assurance_core_only|low_voluntary_disclosure}
+- name: test_dqs_insufficient_data
+  description: >
+    Only two components (no later filing, no assurance field): the total is shown but there is
+    no grade and no rank, even in a group of five.
+  model: fct_disclosure_quality
+  given:
+  - input: ref('int_dqs_components')
+    rows:
+    - {isin: TWO, fiscal_year_label: FY2022-23, ranking_group: G, completeness: 1, mandatory_completeness: 1, voluntary_depth: 1, internal_consistency: 1, temporal_consistency: null, assurance: null, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: null, n_metrics_scale_error: null, n_metrics_material_restatement: null, n_metrics_yoy_anomaly: null}
+    - {isin: P1, fiscal_year_label: FY2022-23, ranking_group: G, completeness: 1, mandatory_completeness: 1, voluntary_depth: 1, internal_consistency: 1, temporal_consistency: 1, assurance: null, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
+    - {isin: P2, fiscal_year_label: FY2022-23, ranking_group: G, completeness: 1, mandatory_completeness: 1, voluntary_depth: 1, internal_consistency: 1, temporal_consistency: 0.8, assurance: null, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
+    - {isin: P3, fiscal_year_label: FY2022-23, ranking_group: G, completeness: 1, mandatory_completeness: 1, voluntary_depth: 1, internal_consistency: 1, temporal_consistency: 0.6, assurance: null, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
+    - {isin: P4, fiscal_year_label: FY2022-23, ranking_group: G, completeness: 1, mandatory_completeness: 1, voluntary_depth: 1, internal_consistency: 1, temporal_consistency: 0.4, assurance: null, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
+    - {isin: P5, fiscal_year_label: FY2022-23, ranking_group: G, completeness: 1, mandatory_completeness: 1, voluntary_depth: 1, internal_consistency: 1, temporal_consistency: 0.2, assurance: null, n_applicable_checks: 6, n_failed_waste_balance_gap: 0, n_failed_waste_recovery_over_100: 0, n_failed_implausible_zero: 0, n_failed_unit_inconsistency: 0, n_comparable_metrics: 20, n_metrics_scale_error: 0, n_metrics_material_restatement: 0, n_metrics_yoy_anomaly: 0}
+  - input: ref('dqs_weights')
+    rows:
+    - {component: completeness, weight: 0.30}
+    - {component: internal_consistency, weight: 0.30}
+    - {component: temporal_consistency, weight: 0.20}
+    - {component: assurance, weight: 0.20}
+  expect:
+    rows:
+    - {isin: TWO, dqs_total: 100, dqs_grade: insufficient_data, dqs_components_used: 2, is_provisional: true, dqs_group_n: 5, dqs_rank_in_group: null}
+    - {isin: P1, dqs_total: 100, dqs_grade: A, dqs_components_used: 3, is_provisional: false, dqs_group_n: 5, dqs_rank_in_group: 1}
+    - {isin: P2, dqs_total: 95, dqs_grade: A, dqs_components_used: 3, is_provisional: false, dqs_group_n: 5, dqs_rank_in_group: 2}
+    - {isin: P3, dqs_total: 90, dqs_grade: A, dqs_components_used: 3, is_provisional: false, dqs_group_n: 5, dqs_rank_in_group: 3}
+    - {isin: P4, dqs_total: 85, dqs_grade: A, dqs_components_used: 3, is_provisional: false, dqs_group_n: 5, dqs_rank_in_group: 4}
+    - {isin: P5, dqs_total: 80, dqs_grade: B, dqs_components_used: 3, is_provisional: false, dqs_group_n: 5, dqs_rank_in_group: 5}

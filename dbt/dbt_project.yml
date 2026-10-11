@@ -42,6 +42,10 @@ models:
         +tags: [quality]
       int_dqs_components: # reads the restatement tracker, so it is not part of the daily build
         +tags: [dqs]
+      int_dqs_leadership_disclosure:
+        +tags: [dqs]
+      int_dqs_assurance:
+        +tags: [dqs]
     marts:
       +materialized: table
       +tags: [core]
@@ -89,9 +93,17 @@ seeds:
         description: varchar
     dqs_assurance_points:
       +column_types:
-        assurance_level: varchar
+        item: varchar
         points: double
         description: varchar
+    leadership_indicator_map:
+      +column_types:
+        taxonomy_version: varchar # a taxonomy label, not a date
+        principle: varchar
+        indicator: varchar
+        indicator_seq: integer
+        concept: varchar
+        source: varchar
     known_kpi_exceptions:
       +column_types:
         isin: varchar

@@ -1,10 +1,14 @@
 -- The four parts of the Disclosure Quality Score, one row per company and financial year. Each
 -- part is a rate between 0 and 1, or empty when it cannot be tested; the counts behind it are kept
 -- next to it. The score measures how well a company DISCLOSES, not how well it performs.
---   completeness         = required metrics filed / required metrics. Required = mandatory from
---                          that year (metric_disclosure_requirement) and present in the taxonomy
---                          of the filing. A filed "NA" counts as disclosed; a missing or nil fact
---                          does not.
+--   completeness         = average of two halves (the one that exists, if only one does):
+--       mandatory_completeness = required metrics filed / required metrics. Required = mandatory
+--                          from that year (metric_disclosure_requirement) and present in the
+--                          taxonomy of the filing. A filed "NA" counts as disclosed; a missing or
+--                          nil fact does not.
+--       voluntary_depth  = Leadership (voluntary) indicators with a substantive value /
+--                          Leadership indicators of the taxonomy of the filing
+--                          (int_dqs_leadership_disclosure). "NA" and "Nil" do not count here.
 --   internal_consistency = 1 - failed checks / applicable checks, inside one filing: waste
 --                          balance gap above 20%, waste recovery above 100%, implausible zeros
 --                          (int_kpi_flags), and a unit or scale we had to correct. A filed
@@ -14,9 +18,9 @@
 --                          restatement not explained by a merger / demerger or boundary change,
 --                          unexplained year-on-year jump. Empty when no later filing exists (the
 --                          latest year). Scale errors count here only.
---   assurance            = points for the highest assurance level the filing marks on any
---                          disclosure (seed dqs_assurance_points). Empty before FY2023-24: no BRSR
---                          Core, no assurance field.
+--   assurance            = baseline points for the level obtained plus a bonus when the whole
+--                          report is covered (int_dqs_assurance, seed dqs_assurance_points).
+--                          Empty before FY2023-24: no BRSR Core, no assurance field.
 -- Method: docs/disclosure_quality_score.md. These counts stay local; the public model shows the
 -- scores only.
 
@@ -41,11 +45,8 @@ with company_year as (
         company_year.peer_group,
         company_year.sector_group,
         company_year.ranking_group,
-        company_year.taxonomy_version,
-        coalesce(fiscal_year.is_brsr_core_year, false) as is_brsr_core_year
+        company_year.taxonomy_version
     from {{ ref('dim_company_year') }} as company_year
-    left join {{ ref('dim_fiscal_year') }} as fiscal_year
-        on company_year.fiscal_year_label = fiscal_year.fiscal_year_label
 ),
 
 current_values as (
@@ -103,6 +104,40 @@ completeness as (
             as missing_metrics
     from required
     group by isin, fiscal_year_label
+),
+
+voluntary as (
+    select
+        isin,
+        fiscal_year_label,
+        count(*) as n_leadership_indicators,
+        count(*) filter (where is_disclosed) as n_leadership_disclosed
+    from {{ ref('int_dqs_leadership_disclosure') }}
+    group by isin, fiscal_year_label
+),
+
+completeness_halves as (
+    select
+        company_year.isin,
+        company_year.fiscal_year_label,
+        completeness.n_required_metrics,
+        completeness.n_disclosed_metrics,
+        completeness.missing_metrics,
+        voluntary.n_leadership_indicators,
+        voluntary.n_leadership_disclosed,
+        cast(completeness.n_disclosed_metrics as double)
+        / nullif(completeness.n_required_metrics, 0) as mandatory_completeness,
+        cast(voluntary.n_leadership_disclosed as double)
+        / nullif(voluntary.n_leadership_indicators, 0) as voluntary_depth
+    from company_year
+    left join completeness
+        on
+            company_year.isin = completeness.isin
+            and company_year.fiscal_year_label = completeness.fiscal_year_label
+    left join voluntary
+        on
+            company_year.isin = voluntary.isin
+            and company_year.fiscal_year_label = voluntary.fiscal_year_label
 ),
 
 -- 2. internal consistency
@@ -260,33 +295,6 @@ temporal as (
         ) as n_metrics_yoy_anomaly
     from metric_tests
     group by isin, fiscal_year_label
-),
-
--- 4. assurance
-assurance_marks as (
-    select
-        filing_id,
-        count(*) filter (where lower(raw_value) = 'reasonable') as n_disclosures_reasonable,
-        count(*) filter (where lower(raw_value) = 'limited') as n_disclosures_limited
-    from {{ ref('stg_facts') }}
-    where concept like 'AssuranceSubTypeFor%'
-    group by filing_id
-),
-
-assurance as (
-    select
-        company_year.isin,
-        company_year.fiscal_year_label,
-        coalesce(assurance_marks.n_disclosures_reasonable, 0) as n_disclosures_reasonable,
-        coalesce(assurance_marks.n_disclosures_limited, 0) as n_disclosures_limited,
-        case
-            when not company_year.is_brsr_core_year then null
-            when assurance_marks.n_disclosures_reasonable > 0 then 'reasonable'
-            when assurance_marks.n_disclosures_limited > 0 then 'limited'
-            else 'not_disclosed'
-        end as assurance_level
-    from company_year
-    left join assurance_marks on company_year.filing_id = assurance_marks.filing_id
 )
 
 select
@@ -297,8 +305,15 @@ select
     company_year.peer_group,
     company_year.sector_group,
     company_year.ranking_group,
-    cast(completeness.n_disclosed_metrics as double) / nullif(completeness.n_required_metrics, 0)
-        as completeness,
+    -- the two halves weigh the same; if one cannot be measured the other stands alone
+    (coalesce(halves.mandatory_completeness, 0) + coalesce(halves.voluntary_depth, 0))
+    / nullif(
+        cast(halves.mandatory_completeness is not null as integer)
+        + cast(halves.voluntary_depth is not null as integer),
+        0
+    ) as completeness,
+    halves.mandatory_completeness,
+    halves.voluntary_depth,
     1 - cast(
         internal.n_failed_waste_balance_gap + internal.n_failed_waste_recovery_over_100
         + internal.n_failed_implausible_zero + internal.n_failed_unit_inconsistency as double
@@ -311,10 +326,12 @@ select
                     + temporal.n_metrics_yoy_anomaly as double
                 ) / temporal.n_comparable_metrics
     end as temporal_consistency,
-    cast(assurance_points.points as double) as assurance,
-    cast(completeness.n_required_metrics as integer) as n_required_metrics,
-    cast(completeness.n_disclosed_metrics as integer) as n_disclosed_metrics,
-    completeness.missing_metrics,
+    assurance.assurance,
+    cast(halves.n_required_metrics as integer) as n_required_metrics,
+    cast(halves.n_disclosed_metrics as integer) as n_disclosed_metrics,
+    halves.missing_metrics,
+    cast(halves.n_leadership_indicators as integer) as n_leadership_indicators,
+    cast(halves.n_leadership_disclosed as integer) as n_leadership_disclosed,
     cast(internal.n_applicable_checks as integer) as n_applicable_checks,
     cast(internal.n_failed_waste_balance_gap as integer) as n_failed_waste_balance_gap,
     cast(internal.n_failed_waste_recovery_over_100 as integer)
@@ -335,13 +352,14 @@ select
         case when temporal.n_paired_metrics > 0 then temporal.n_metrics_yoy_anomaly end as integer
     ) as n_metrics_yoy_anomaly,
     assurance.assurance_level,
-    cast(assurance.n_disclosures_reasonable as integer) as n_disclosures_reasonable,
-    cast(assurance.n_disclosures_limited as integer) as n_disclosures_limited
+    assurance.assurance_scope,
+    assurance.n_disclosures_reasonable,
+    assurance.n_disclosures_limited
 from company_year
-left join completeness
+left join completeness_halves as halves
     on
-        company_year.isin = completeness.isin
-        and company_year.fiscal_year_label = completeness.fiscal_year_label
+        company_year.isin = halves.isin
+        and company_year.fiscal_year_label = halves.fiscal_year_label
 left join internal
     on
         company_year.isin = internal.isin
@@ -350,9 +368,7 @@ left join temporal
     on
         company_year.isin = temporal.isin
         and company_year.fiscal_year_label = temporal.fiscal_year_label
-left join assurance
+left join {{ ref('int_dqs_assurance') }} as assurance
     on
         company_year.isin = assurance.isin
         and company_year.fiscal_year_label = assurance.fiscal_year_label
-left join {{ ref('dqs_assurance_points') }} as assurance_points
-    on assurance.assurance_level = assurance_points.assurance_level

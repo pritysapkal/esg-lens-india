@@ -64,7 +64,7 @@ For anything published use `rpt_public_company_year`, `rpt_public_disclosure_qua
 |---|---|
 | Why a tool or approach was chosen | `docs/adr/` (one short record per decision) |
 | How values are normalised and corrected | [business_rules.md](business_rules.md) |
-| Editable rules: peer groups, materiality, KPI list, overrides, accepted exceptions, score weights | `dbt/seeds/*.csv` (each has an entry in `dbt/seeds/_seeds.yml`) |
+| Editable rules: peer groups, materiality, KPI list, overrides, accepted exceptions, score weights and assurance points | `dbt/seeds/*.csv` (each has an entry in `dbt/seeds/_seeds.yml`) |
 | What every column means, and the data types that are enforced | `dbt/models/*/_*.yml` |
 | Checks that must hold | `dbt/tests/` (data) and `tests/` (Python) |
 
