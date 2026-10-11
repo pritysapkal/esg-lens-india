@@ -18,6 +18,10 @@ trusted, not whether the numbers are good.
 
 It is also **not an ESG rating, not a finding of wrongdoing and not investment advice**.
 
+**DQS measures machine-readable (XBRL) disclosure; a company may disclose more in its PDF
+report.** A low voluntary depth means the answers are not in the data file that the exchange
+publishes, not that the company said nothing anywhere.
+
 **Compare scores only within one financial year.** The years are built from different parts (see
 "Re-weighting"), so a company's score in FY2025-26 is not comparable with its score in FY2023-24.
 Ranks and percentiles are always within a ranking group *and* a year.
@@ -337,8 +341,9 @@ average.
 - **Voluntary depth counts presence, not quality.** A zero, a "No" or a short sentence counts as
   much as a full table.
 - **A few companies file almost no Leadership indicator in the XBRL file** (Tata Consumer from
-  FY2023-24, Power Grid in all four years: 0 to 2 of 45). Their printed report may say more; the
-  score reads only the filed data.
+  FY2023-24, Power Grid in all four years: 0 to 2 of 45). This was checked by hand and is what
+  the files contain (see "Validity check" below). Their printed report may say more; the score
+  reads only the filed data.
 - **Each indicator and each required metric has the same weight.**
 - **Assurance is self-reported.** The level and the scope are what the company marks in its own
   filing. The points (0.5 / 0.4 / 0.3 / +0.5) are a judgement, written down so it can be argued
@@ -354,6 +359,37 @@ average.
   that year (Automobiles in three of the four years).
 - **The weights are a judgement**, not an estimate. The sensitivity check shows the ranking does
   not hang on them.
+
+## Validity check: are the near-zero voluntary depths real? (2026-10-11)
+
+Tata Consumer (FY2023-24 to FY2025-26) and Power Grid (all four years) answer 0 to 2 of about 45
+Leadership indicators. Before accepting that, every fact these filings carry under the Leadership
+headings was listed, including the elements the seed leaves out, and the rest of each filing was
+searched.
+
+- **Under the Leadership headings there is almost nothing.** Tata Consumer FY2023-24 and
+  FY2025-26: one fact each, the flag "is Scope 3 applicable to the company" = false. FY2024-25
+  adds two zeros for green credits. Power Grid FY2023-24: five facts - life insurance for
+  employees and for workers = true (the 2 indicators it is credited with), life-cycle assessment
+  = "NA" with its "not applicable" explanation = "None", and the Scope 3 flag = false.
+- **The left-out elements hold no answers.** For these companies they contain only "None" and
+  "false". Across all companies they are of two kinds: explanations of why an indicator does not
+  apply (for example a bank writing that it has no physical products), which by the rule above
+  is not a disclosure; and the Notes block of Principle 9, which the taxonomy happens to place
+  under the Leadership heading but which belongs to the whole principle - where it is filled it
+  mostly footnotes Essential indicators. Neither sits under one specific Leadership indicator
+  as an answer to it, so nothing was changed.
+- **Nothing is tagged differently.** All facts of these filings use the standard SEBI elements
+  (no company extensions), and the filings are of normal size (1,800 to 2,200 facts, like their
+  peers). Their mandatory part is complete.
+- **The filings themselves point to the PDF.** Power Grid FY2023-24, Notes on Principle 4: "For
+  the detailed table. Please refer to the Stakeholder Engagement and Materiality Assessment
+  Chapter of this Integrated Report at Page xx." Tata Consumer FY2024-25, general notes: "Please
+  refer page no. 405 in our annual report for scope 3 emission."
+
+Conclusion: the detection is right and the scores stand. These companies leave the voluntary
+part out of the machine-readable filing; some of it is in their printed reports, which this
+project does not read.
 
 ## Publication
 
