@@ -1,0 +1,5 @@
+component,weight,description
+completeness,0.30,Share of the metrics the company had to file that year that it did file
+internal_consistency,0.30,Share of the checks inside one filing that pass (waste balance; waste recovery; implausible zeros; units)
+temporal_consistency,0.20,Share of metrics that hold up against the next report (no material restatement; scale error or unexplained jump)
+assurance,0.20,Level of independent assurance the company reports for its disclosures

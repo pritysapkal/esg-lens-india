@@ -1,0 +1,5 @@
+assurance_level,points,description
+reasonable,1.0,At least one disclosure is marked as assured at the Reasonable level (in practice the BRSR Core)
+limited,0.6,Disclosures are marked as assured at the Limited level only
+none,0.0,The company states that no assurance was obtained
+not_disclosed,0.0,The filing marks no disclosure as assured

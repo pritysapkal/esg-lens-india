@@ -1,6 +1,8 @@
 -- Gold integrity: (1) exactly one official current value (is_latest_value) per company, metric,
 -- value year and breakdown that has a current-year value; (2) no percentile without a group of
--- at least 5 companies; (3) every KPI of the kpi_catalogue seed is a column of fct_company_year.
+-- at least 5 companies; (3) every KPI of the kpi_catalogue seed is a column of its source_model
+-- (fct_company_year or fct_disclosure_quality).
+-- depends_on: {{ ref('fct_disclosure_quality') }}
 with latest_counts as (
     select
         isin,
@@ -28,11 +30,11 @@ where percentile_in_group is not null and group_n < 5
 union all
 
 select
-    'kpi_catalogue entry is not a column of fct_company_year: ' || kpi_catalogue.kpi_name
-        as problem
+    'kpi_catalogue entry is not a column of ' || kpi_catalogue.source_model || ': '
+    || kpi_catalogue.kpi_name as problem
 from {{ ref('kpi_catalogue') }} as kpi_catalogue
 left join information_schema.columns as table_columns
     on
         kpi_catalogue.kpi_name = table_columns.column_name
-        and table_columns.table_name = 'fct_company_year'
+        and kpi_catalogue.source_model = table_columns.table_name
 where table_columns.column_name is null

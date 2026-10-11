@@ -478,6 +478,98 @@ models:
         description: What was found, in plain English.
         tests: [not_null]
 
+  - name: int_dqs_components
+    description: >
+      The four components of the Disclosure Quality Score per company and financial year, each a
+      rate between 0 and 1 (empty when it cannot be tested), with the counts behind it. The counts
+      stay local; fct_disclosure_quality holds the scores. Method:
+      docs/disclosure_quality_score.md.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [isin, fiscal_year_label]
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('dim_company_year')
+    columns:
+      - name: isin
+        tests: [not_null]
+      - name: fiscal_year_label
+        tests: [not_null]
+      - name: completeness
+        description: n_disclosed_metrics / n_required_metrics.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: internal_consistency
+        description: 1 - failed checks / n_applicable_checks.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: temporal_consistency
+        description: >
+          1 - flagged metrics / n_comparable_metrics; empty when the company has no later filing
+          to compare with (always the case for the latest year).
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: assurance
+        description: Points of assurance_level (seed dqs_assurance_points); empty before FY2023-24.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: n_required_metrics
+        description: >
+          Metrics mandatory from that year (metric_disclosure_requirement) that the taxonomy of
+          the filing has a field for.
+      - name: n_disclosed_metrics
+        description: Required metrics with a filed current-year fact ("NA" counts, nil does not).
+      - name: missing_metrics
+        description: Required metrics not filed, separated by "|".
+      - name: n_applicable_checks
+        description: >
+          Internal checks that could be run: unit / scale (always), waste balance, waste recovery,
+          and the four implausible-zero checks where their inputs are filed.
+      - name: n_failed_waste_balance_gap
+        description: 1 if generated - recovered - disposed is more than 20% of generated.
+      - name: n_failed_waste_recovery_over_100
+        description: 1 if waste recovered exceeds waste generated.
+      - name: n_failed_implausible_zero
+        description: Implausible zeros (wage share, energy, water, headcount) set to empty.
+      - name: n_failed_unit_inconsistency
+        description: >
+          1 if a current-year value needed a scale correction or an approved manual override, or
+          its text unit contradicts the unit of the next filing.
+      - name: n_comparable_metrics
+        description: Metrics with a comparative in the next report, plus any year-on-year test.
+      - name: n_metrics_scale_error
+        description: Metrics with a suspected scale error or power-of-ten unit slip.
+      - name: n_metrics_material_restatement
+        description: >
+          Metrics restated materially in the next report, not explained by a merger / demerger or
+          a boundary change (and not already counted as a scale error).
+      - name: n_metrics_yoy_anomaly
+        description: Turnover / headcount with an unexplained jump above 40% (not counted above).
+      - name: assurance_level
+        description: reasonable, limited or not_disclosed; empty before FY2023-24.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dqs_assurance_points')
+                field: assurance_level
+      - name: n_disclosures_reasonable
+        description: Disclosures the filing marks as assured at the Reasonable level.
+      - name: n_disclosures_limited
+        description: Disclosures the filing marks as assured at the Limited level.
+
 unit_tests:
   - name: test_pure_to_pct
     description: Percent filed as a decimal is x100; a value already in percent is not scaled again.

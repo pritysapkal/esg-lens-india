@@ -40,3 +40,30 @@
         else 'other/unclear'
     end
 {%- endmacro %}
+
+
+{% macro dqs_weighted_total(w_completeness, w_internal, w_temporal, w_assurance) -%}
+    {#- Disclosure Quality Score, 0-100: the weighted average of the components of
+        int_dqs_components that are not empty, with the weights re-normalised over those
+        components. Empty when fewer than two components can be scored. Not rounded here.
+        Rule: docs/disclosure_quality_score.md. -#}
+    case
+        when
+            cast(completeness is not null as integer)
+            + cast(internal_consistency is not null as integer)
+            + cast(temporal_consistency is not null as integer)
+            + cast(assurance is not null as integer) >= 2
+            then
+                100 * (
+                    coalesce({{ w_completeness }} * completeness, 0)
+                    + coalesce({{ w_internal }} * internal_consistency, 0)
+                    + coalesce({{ w_temporal }} * temporal_consistency, 0)
+                    + coalesce({{ w_assurance }} * assurance, 0)
+                ) / (
+                    case when completeness is not null then {{ w_completeness }} else 0 end
+                    + case when internal_consistency is not null then {{ w_internal }} else 0 end
+                    + case when temporal_consistency is not null then {{ w_temporal }} else 0 end
+                    + case when assurance is not null then {{ w_assurance }} else 0 end
+                )
+    end
+{%- endmacro %}

@@ -19,6 +19,8 @@ erDiagram
     dim_company ||--o{ fct_company_kpi_percentile : "isin"
     fct_company_year ||--o{ fct_company_kpi_percentile : "isin + fiscal_year_label"
     fct_company_year }o--o{ fct_peer_benchmark : "ranking_group + fiscal_year_label"
+    dim_company ||--o{ fct_disclosure_quality : "isin"
+    fct_company_year ||--|| fct_disclosure_quality : "isin + fiscal_year_label"
     dim_company ||--o{ bridge_company_year_assurer : "isin"
     dim_assurer ||--o{ bridge_company_year_assurer : "assurer_key"
     dim_company ||--o{ dim_company_history : "isin"
@@ -55,6 +57,14 @@ erDiagram
         string kpi_name
         double percentile_in_group
     }
+    fct_disclosure_quality {
+        string isin FK
+        string fiscal_year_label FK
+        double dqs_total
+        string dqs_grade
+        int dqs_rank_in_group
+        string dqs_reason_codes
+    }
     fct_restatement {
         string isin FK
         string metric_id FK
@@ -89,6 +99,7 @@ erDiagram
 | `fct_peer_benchmark` | ranking group x financial year x KPI | `ranking_group`, `fiscal_year_label`, `kpi_name` |
 | `fct_company_kpi_percentile` | company x financial year x KPI | `isin`, `fiscal_year_label`, `kpi_name` |
 | `fct_restatement` | company x metric x breakdown x year restated x restating filing | `isin`, `metric_id`, `dimension_key`, `value_fiscal_year_label`, `restating_filing_id` |
+| `fct_disclosure_quality` | company x financial year (Disclosure Quality Score, [method](disclosure_quality_score.md)) | `isin`, `fiscal_year_label` |
 | `rpt_restatement_summary` | level (overall / metric / peer group / company) x key | `level`, `group_key` |
 | `dim_metric` | one per catalogue metric | `metric_id` |
 | `dim_assurer` | one per assurance provider (variants merged) | `assurer_key` |

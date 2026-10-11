@@ -12,13 +12,19 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 SEED = ROOT / "dbt" / "seeds" / "kpi_catalogue.csv"
 MARTS_YML = ROOT / "dbt" / "models" / "marts" / "_marts.yml"
-PUBLIC_SQL = ROOT / "dbt" / "models" / "marts" / "rpt_public_company_year.sql"
+MARTS = ROOT / "dbt" / "models" / "marts"
+# public model -> the gold table it selects from (kpi_catalogue.source_model)
+PUBLIC_MODELS = {
+    "rpt_public_company_year": "fct_company_year",
+    "rpt_public_disclosure_quality": "fct_disclosure_quality",
+}
 FACTS_WITH_POLICY = [
     "fct_company_year",
     "fct_esg_value",
     "fct_peer_benchmark",
     "fct_company_kpi_percentile",
     "fct_restatement",
+    "fct_disclosure_quality",
 ]
 
 
@@ -62,19 +68,33 @@ def test_every_fact_column_has_a_publication_flag():
 
 
 def test_fact_flags_follow_the_catalogue():
-    safe = {row["kpi_name"]: row["public_safe"] == "true" for row in _catalogue()}
-    columns = {c["name"]: _public_safe(c) for c in _models()["fct_company_year"]["columns"]}
-    assert set(safe) <= set(columns), sorted(set(safe) - set(columns))
-    wrong = {name for name, flag in safe.items() if columns[name] is not flag}
-    assert not wrong, f"_marts.yml disagrees with kpi_catalogue.csv for: {sorted(wrong)}"
+    models = _models()
+    for source_model in PUBLIC_MODELS.values():
+        safe = {
+            row["kpi_name"]: row["public_safe"] == "true"
+            for row in _catalogue()
+            if row["source_model"] == source_model
+        }
+        assert safe, f"no kpi_catalogue rows for {source_model}"
+        columns = {c["name"]: _public_safe(c) for c in models[source_model]["columns"]}
+        assert set(safe) <= set(columns), sorted(set(safe) - set(columns))
+        wrong = {name for name, flag in safe.items() if columns[name] is not flag}
+        assert not wrong, f"_marts.yml disagrees with kpi_catalogue.csv for: {sorted(wrong)}"
 
 
-def test_public_model_selects_only_public_safe_columns():
-    flags = {c["name"]: _public_safe(c) for c in _models()["fct_company_year"]["columns"]}
-    sql = PUBLIC_SQL.read_text(encoding="utf-8")
-    body = sql.split("select", 1)[1].split("from {{", 1)[0]
-    selected = [part.strip() for part in body.split(",") if part.strip()]
-    assert selected, "no columns found in rpt_public_company_year.sql"
-    for column in selected:
-        assert re.fullmatch(r"[a-z0-9_]+", column), f"unexpected expression: {column}"
-        assert flags.get(column) is True, f"{column} is not public_safe in fct_company_year"
+def test_catalogue_rows_name_a_known_gold_table():
+    unknown = {row["source_model"] for row in _catalogue()} - set(PUBLIC_MODELS.values())
+    assert not unknown, f"kpi_catalogue.source_model not a public gold table: {sorted(unknown)}"
+
+
+def test_public_models_select_only_public_safe_columns():
+    models = _models()
+    for public_model, source_model in PUBLIC_MODELS.items():
+        flags = {c["name"]: _public_safe(c) for c in models[source_model]["columns"]}
+        sql = (MARTS / f"{public_model}.sql").read_text(encoding="utf-8")
+        body = sql.split("select", 1)[1].split("from {{", 1)[0]
+        selected = [part.strip() for part in body.split(",") if part.strip()]
+        assert selected, f"no columns found in {public_model}.sql"
+        for column in selected:
+            assert re.fullmatch(r"[a-z0-9_]+", column), f"unexpected expression: {column}"
+            assert flags.get(column) is True, f"{column} is not public_safe in {source_model}"

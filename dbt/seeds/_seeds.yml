@@ -395,14 +395,14 @@ seeds:
 
   - name: kpi_catalogue
     description: >
-      Single source of truth for the KPIs of fct_company_year: one row per numeric column, with
-      label, formula, unit, direction, the catalogue metric that decides materiality, whether the
-      value may be published (public_safe) and a plain-English definition. Drives the peer
-      benchmarks, the public model and the KPI table in docs/kpi_definitions.md
-      (scripts/build_kpi_docs.py).
+      Single source of truth for the KPIs of fct_company_year and fct_disclosure_quality: one row
+      per numeric column, with label, formula, unit, direction, the catalogue metric that decides
+      materiality, whether the value may be published (public_safe) and a plain-English
+      definition. Drives the peer benchmarks, the public models and the KPI table in
+      docs/kpi_definitions.md (scripts/build_kpi_docs.py).
     columns:
       - name: kpi_name
-        description: Column of fct_company_year.
+        description: Column of the table named in source_model.
         tests: [unique, not_null]
       - name: label
         tests: [not_null]
@@ -419,7 +419,7 @@ seeds:
         tests:
           - accepted_values:
               arguments:
-                values: [pct, count, quantity, intensity, days, ratio]
+                values: [pct, count, quantity, intensity, days, ratio, score]
       - name: direction
         tests:
           - accepted_values:
@@ -441,6 +441,54 @@ seeds:
         description: true if the KPI is in fct_peer_benchmark and fct_company_kpi_percentile.
         tests: [not_null]
       - name: definition_plain
+        tests: [not_null]
+      - name: source_model
+        description: Gold table that holds the column.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [fct_company_year, fct_disclosure_quality]
+
+  - name: dqs_weights
+    description: >
+      Weights of the four components of the Disclosure Quality Score (must add up to 1). Edit here
+      to change the score; the reasons for the values are in docs/disclosure_quality_score.md.
+    columns:
+      - name: component
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [completeness, internal_consistency, temporal_consistency, assurance]
+      - name: weight
+        description: Share of the score, between 0 and 1.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: description
+        tests: [not_null]
+
+  - name: dqs_assurance_points
+    description: >
+      Points (0 to 1) for each assurance level in the Disclosure Quality Score. The level of a
+      company-year is read from the Reasonable / Limited marks in its filing (int_dqs_components);
+      a level without a row here fails the build.
+    columns:
+      - name: assurance_level
+        tests: [unique, not_null]
+      - name: points
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: description
         tests: [not_null]
 
   - name: known_kpi_exceptions

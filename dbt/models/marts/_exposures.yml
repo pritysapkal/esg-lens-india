@@ -17,6 +17,7 @@ exposures:
       - ref('fct_esg_value')
       - ref('fct_peer_benchmark')
       - ref('fct_company_kpi_percentile')
+      - ref('fct_disclosure_quality')
       - ref('dim_company')
       - ref('dim_company_year')
       - ref('dim_company_history')
@@ -39,3 +40,19 @@ exposures:
       - ref('rpt_restatement_summary')
       - ref('dim_company')
       - ref('dim_metric')
+
+  - name: public_showcase
+    label: ESG Lens India - public showcase
+    type: application
+    maturity: low
+    owner:
+      name: Prity Sapkal
+      email: sapkalprity01@gmail.com
+    description: >
+      Anything published outside this laptop (Streamlit report card, public Power BI version,
+      screenshots): reads only the public models, which hold values we calculate. The Disclosure
+      Quality Score shown there is not an ESG rating. Policy: docs/publication_policy.md.
+    depends_on:
+      - ref('rpt_public_company_year')
+      - ref('rpt_public_disclosure_quality')
+      - ref('rpt_public_restatement_summary')

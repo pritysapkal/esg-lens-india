@@ -5,8 +5,8 @@
 1. Listed Indian companies publish sustainability reports (BRSR) as machine-readable files; they
    are public but unusable in a spreadsheet.
 2. ESG Lens India turns the NIFTY 50 filings of four years into a tested warehouse of comparable
-   numbers: intensities, percentages, peer rankings, and a tracker of figures that companies
-   quietly changed a year later.
+   numbers: intensities, percentages, peer rankings, a tracker of figures that companies
+   quietly changed a year later, and a score for how well each company discloses.
 3. It runs on a laptop, every rule is written down, and it is not an ESG rating or investment
    advice.
 
@@ -21,8 +21,9 @@
 | 5 | [business_rules.md](business_rules.md) | units, scale corrections, overrides, materiality vs requirement |
 | 6 | [company_identity.md](company_identity.md) | companies, peer groups, sectors, structural breaks |
 | 7 | [restatement_method.md](restatement_method.md) | how restatements are found and classified |
-| 8 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
-| 9 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
+| 8 | [disclosure_quality_score.md](disclosure_quality_score.md) | the Disclosure Quality Score: what it measures, the formula, its limits |
+| 9 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
+| 10 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
 
 ## The pipeline in six boxes
 
@@ -43,7 +44,7 @@
 Boxes 1-3 are Python (`ingestion/`); boxes 4-6 are dbt on DuckDB (`dbt/models/staging`,
 `intermediate`, `marts`).
 
-## The five tables to know
+## The six tables to know
 
 | Table | One row is | Example question it answers |
 |---|---|---|
@@ -51,10 +52,11 @@ Boxes 1-3 are Python (`ingestion/`); boxes 4-6 are dbt on DuckDB (`dbt/models/st
 | `fct_esg_value` | one value of one metric from one filing, with its citation | "Which filing does this Scope 1 number come from, and was it replaced?" |
 | `fct_restatement` | a number first filed for year Y against the same number in the next report | "Which companies changed last year's water figures, and by how much?" |
 | `fct_peer_benchmark` | a peer group in a year for one KPI | "What is the median GHG intensity of IT services companies?" |
+| `fct_disclosure_quality` | a company in a financial year, with its Disclosure Quality Score | "How far can this company's report be trusted, and what cost it points?" |
 | `dim_company_year` | a company in a financial year: period, boundary, size, breaks | "Is this year comparable with the last one, or was there a merger?" |
 
-For anything published use `rpt_public_company_year` and `rpt_public_restatement_summary`
-(derived values only).
+For anything published use `rpt_public_company_year`, `rpt_public_disclosure_quality` and
+`rpt_public_restatement_summary` (derived values only).
 
 ## Where rules and decisions live
 
@@ -62,7 +64,7 @@ For anything published use `rpt_public_company_year` and `rpt_public_restatement
 |---|---|
 | Why a tool or approach was chosen | `docs/adr/` (one short record per decision) |
 | How values are normalised and corrected | [business_rules.md](business_rules.md) |
-| Editable rules: peer groups, materiality, KPI list, overrides, accepted exceptions | `dbt/seeds/*.csv` (each has an entry in `dbt/seeds/_seeds.yml`) |
+| Editable rules: peer groups, materiality, KPI list, overrides, accepted exceptions, score weights | `dbt/seeds/*.csv` (each has an entry in `dbt/seeds/_seeds.yml`) |
 | What every column means, and the data types that are enforced | `dbt/models/*/_*.yml` |
 | Checks that must hold | `dbt/tests/` (data) and `tests/` (Python) |
 

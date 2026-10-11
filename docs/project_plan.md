@@ -1,6 +1,6 @@
 # Project plan (current)
 
-The plan as it stands on 2026-10-10, after seven weeks of work. It replaces the original blueprint
+The plan as it stands on 2026-10-11, after eight weeks of work. It replaces the original blueprint
 wherever the two differ. Plain English on purpose.
 
 ## a) What changed from the original blueprint, and why
@@ -17,6 +17,7 @@ wherever the two differ. Plain English on purpose.
 | Year-on-year | Assume years are comparable | **Corporate events and boundary changes flag comparability breaks** | Mergers, demergers and a switch between standalone and consolidated break the series |
 | Restatements | Flag every changed number | A **scale-error class** (values more than 100x apart, 10x for percentages) is set aside, and KPIs use the **best available value** (the later report) | Most "huge restatements" were unit slips, not restatements |
 | Publishing | Publish the dashboards | **Publication policy: derived values only** ([ADR 0004](adr/0004-publication-policy.md)) | We have no permission to republish filed values, percentages included |
+| Disclosure Quality Score | Many consistency signals, weights to be decided | **Lean score of four parts** (completeness 0.30, internal consistency 0.30, temporal consistency 0.20, assurance 0.20), each a rate; a part that cannot be tested is left out and the weights re-normalised; the assurance level is read from the Reasonable / Limited marks in the filing | A score a reader can recompute by hand; the latest year has no next report to test against, and `assurance_type` (All / Partial) is scope, not level ([method](disclosure_quality_score.md)) |
 | Housekeeping | - | **Hardening** before Week 8: public models, accepted-exception seed (build ends with 0 warnings), KPI catalogue as single source of truth, [START_HERE](START_HERE.md) | So the next seven weeks build on something that stays tidy |
 
 ## b) Done
@@ -31,15 +32,16 @@ wherever the two differ. Plain English on purpose.
 | Week 6 | Company identity and sectors | ISIN key, name history, NIC sectors, peer and sector groups, materiality, company-year dimension, corporate events, verified seeds | `e484845`, `4ecb459`, `cc06bb4`, `0eb1339` |
 | Week 7 | Gold star schema and restatement tracker | Facts and dimensions with enforced contracts, KPIs, peer benchmarks and percentiles, restatement classes, scale-error handling | `2cb3bad`, `265e856`, `a7a3f0c` |
 | Hardening | Before Week 8 | Publication policy and public models, exception tracking, KPI single source, START_HERE, tags and selectors | `fa44d82`, `440c88c` |
+| Week 8 | Disclosure Quality Score | One score 0-100 per company-year from four visible parts, with grade, rank in group, reason codes, a public model and a weight sensitivity check ([method](disclosure_quality_score.md)) | "feat: Week 8 disclosure quality score" |
 
-State of the warehouse: 51 companies, 196 company-years, 21,706 metric values, 62 KPIs (14 public),
-4,115 compared restatement pairs; full build and test in under 3 minutes with 0 warnings.
+State of the warehouse: 51 companies, 196 company-years, 21,706 metric values, 71 KPIs (23 public),
+4,115 compared restatement pairs, 196 Disclosure Quality Scores (median 98.25; 187 grade A, 8 B,
+1 C); full build and test in about 3 minutes with 0 warnings.
 
 ## c) Remaining weeks
 
 | Week | Goal | Scope notes |
 |---|---|---|
-| 8 | **Disclosure Quality Score** | Lean scope: completeness against `metric_disclosure_requirement`, consistency (unexplained YoY anomalies, scale-error suspects, KPI flags, waste balance), assurance. A score per company-year with its parts visible. Not an ESG rating. |
 | 9 | **Semantic layer** | Metric definitions generated from `kpi_catalogue.csv` so there is still one source of truth. Databricks is a stretch goal, not a commitment. |
 | 10 | **SQL business analysis** | Twelve questions answered in SQL on the gold tables, each with the query and a two-line reading. |
 | 11 | **Statistics studies** | A few careful studies (for example size versus intensity, assurance versus restatement), with the small-sample caveats stated. |
@@ -60,11 +62,13 @@ Known limitations (each documented where it belongs):
 - **Unit and scale rules are evidence-based, not certain**: [business_rules.md](business_rules.md).
 - **Public numbers cannot be rebuilt without downloading the filings yourself**:
   [publication_policy.md](publication_policy.md).
+- **The Disclosure Quality Score sits near the top** (187 of 196 company-years are grade A),
+  assurance is self-reported and almost the same for everyone, and the latest year has no
+  temporal check: [disclosure_quality_score.md](disclosure_quality_score.md).
 - NIC division names and NIC code corrections are still unverified (`verified_by` empty in the
   seeds).
 
 Open decisions - **none blocking**:
 
 - whether to ask NSE for written permission (would widen what is public; ADR 0004);
-- whether Databricks is attempted in Week 9 or left out;
-- the exact weights of the Disclosure Quality Score (to be set, and documented, in Week 8).
+- whether Databricks is attempted in Week 9 or left out.

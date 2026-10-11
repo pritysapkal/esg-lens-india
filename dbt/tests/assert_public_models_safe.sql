@@ -1,57 +1,86 @@
 -- Publication policy (docs/publication_policy.md): the public models hold only values we
--- calculate. Rows returned are violations.
---  1. rpt_public_company_year has a numeric column the kpi_catalogue seed marks public_safe = false
---     or does not know;
---  2. a public_safe KPI of the catalogue is missing from rpt_public_company_year;
+-- calculate. Rows returned are violations. For each public model and the gold table it reads
+-- (rpt_public_company_year <- fct_company_year, rpt_public_disclosure_quality <-
+-- fct_disclosure_quality):
+--  1. the public model has a numeric column the kpi_catalogue seed marks public_safe = false or
+--     does not know for that gold table;
+--  2. a public_safe KPI of the catalogue is missing from the public model;
 --  3. a public model has a column named like a raw filed quantity (..._tco2e, ..._gj, ..._kl,
 --     ..._t, turnover, headcount) or a raw restatement value / filing text.
--- The catalogue must also describe every numeric column of fct_company_year, and nothing else.
+-- The catalogue must also describe every numeric column of the two gold tables, and nothing else.
 
 -- The column lists are read from information_schema, so tell dbt what must be built first:
 -- depends_on: {{ ref('fct_company_year') }}
 -- depends_on: {{ ref('rpt_public_company_year') }}
+-- depends_on: {{ ref('fct_disclosure_quality') }}
+-- depends_on: {{ ref('rpt_public_disclosure_quality') }}
 -- depends_on: {{ ref('rpt_public_restatement_summary') }}
 
-with public_columns as (
+with model_pairs as (
+    select
+        pairs.public_model,
+        pairs.source_model
+    from (
+        values
+        ('rpt_public_company_year', 'fct_company_year'),
+        ('rpt_public_disclosure_quality', 'fct_disclosure_quality')
+    ) as pairs (public_model, source_model)
+),
+
+public_columns as (
     select
         table_name,
         column_name,
         data_type in ('DOUBLE', 'INTEGER', 'BIGINT', 'FLOAT', 'HUGEINT') as is_numeric
     from information_schema.columns
-    where table_name in ('rpt_public_company_year', 'rpt_public_restatement_summary')
+    where
+        table_name in (
+            'rpt_public_company_year', 'rpt_public_disclosure_quality',
+            'rpt_public_restatement_summary'
+        )
 ),
 
 fact_columns as (
-    select column_name
+    select
+        table_name,
+        column_name
     from information_schema.columns
     where
-        table_name = 'fct_company_year'
+        table_name in ('fct_company_year', 'fct_disclosure_quality')
         and data_type in ('DOUBLE', 'INTEGER', 'BIGINT', 'FLOAT', 'HUGEINT')
 ),
 
 catalogue as (
     select
-        kpi_name,
-        public_safe
-    from {{ ref('kpi_catalogue') }}
+        kpi_catalogue.kpi_name,
+        kpi_catalogue.public_safe,
+        kpi_catalogue.source_model,
+        model_pairs.public_model
+    from {{ ref('kpi_catalogue') }} as kpi_catalogue
+    left join model_pairs on kpi_catalogue.source_model = model_pairs.source_model
 )
 
-select 'not public_safe in kpi_catalogue: ' || public_columns.column_name as problem
+select
+    'not public_safe in kpi_catalogue: ' || public_columns.table_name || '.'
+    || public_columns.column_name as problem
 from public_columns
-left join catalogue on public_columns.column_name = catalogue.kpi_name
-where
-    public_columns.table_name = 'rpt_public_company_year'
-    and public_columns.is_numeric
-    and not coalesce(catalogue.public_safe, false)
+inner join model_pairs on public_columns.table_name = model_pairs.public_model
+left join catalogue
+    on
+        public_columns.column_name = catalogue.kpi_name
+        and public_columns.table_name = catalogue.public_model
+where public_columns.is_numeric and not coalesce(catalogue.public_safe, false)
 
 union all
 
-select 'public_safe KPI missing from rpt_public_company_year: ' || catalogue.kpi_name as problem
+select
+    'public_safe KPI missing from ' || coalesce(catalogue.public_model, 'a public model') || ': '
+    || catalogue.kpi_name as problem
 from catalogue
 left join public_columns
     on
         catalogue.kpi_name = public_columns.column_name
-        and public_columns.table_name = 'rpt_public_company_year'
+        and catalogue.public_model = public_columns.table_name
 where catalogue.public_safe and public_columns.column_name is null
 
 union all
@@ -67,14 +96,24 @@ where
 
 union all
 
-select 'fct_company_year numeric column not in catalogue: ' || fact_columns.column_name as problem
+select
+    fact_columns.table_name || ' numeric column not in catalogue: ' || fact_columns.column_name
+        as problem
 from fact_columns
-left join catalogue on fact_columns.column_name = catalogue.kpi_name
+left join catalogue
+    on
+        fact_columns.column_name = catalogue.kpi_name
+        and fact_columns.table_name = catalogue.source_model
 where catalogue.kpi_name is null
 
 union all
 
-select 'catalogue row not a numeric fct_company_year column: ' || catalogue.kpi_name as problem
+select
+    'catalogue row not a numeric ' || catalogue.source_model || ' column: ' || catalogue.kpi_name
+        as problem
 from catalogue
-left join fact_columns on catalogue.kpi_name = fact_columns.column_name
+left join fact_columns
+    on
+        catalogue.kpi_name = fact_columns.column_name
+        and catalogue.source_model = fact_columns.table_name
 where fact_columns.column_name is null

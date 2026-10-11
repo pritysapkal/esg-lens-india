@@ -3,10 +3,10 @@
     python scripts/build_kpi_docs.py           # rewrite the table
     python scripts/build_kpi_docs.py --check   # exit 1 if the table is out of date (used by pytest)
 
-dbt/seeds/kpi_catalogue.csv is the single source of truth for the KPIs of fct_company_year:
-name, label, formula, unit, direction, whether the value may be published and a plain-English
-definition. Only the part of the page between the two markers is generated; the hand-written
-prose around it is left untouched.
+dbt/seeds/kpi_catalogue.csv is the single source of truth for the KPIs of fct_company_year and
+fct_disclosure_quality (the dqs_* rows): name, label, formula, unit, direction, whether the value
+may be published and a plain-English definition. Only the part of the page between the two
+markers is generated; the hand-written prose around it is left untouched.
 """
 
 from __future__ import annotations

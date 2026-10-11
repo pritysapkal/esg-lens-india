@@ -19,7 +19,7 @@ vars:
   "dbt_date:time_zone": "Asia/Kolkata"
 
 # Tags (see selectors.yml): core = the pipeline every report needs; quality = data-quality lists;
-# restatement, benchmark, public = optional gold families built on top of core.
+# restatement, benchmark, public, dqs = optional gold families built on top of core.
 models:
   esg_lens:
     staging:
@@ -40,6 +40,8 @@ models:
         +tags: [quality]
       int_kpi_flags:
         +tags: [quality]
+      int_dqs_components: # reads the restatement tracker, so it is not part of the daily build
+        +tags: [dqs]
     marts:
       +materialized: table
       +tags: [core]
@@ -55,6 +57,10 @@ models:
         +tags: [benchmark]
       rpt_public_company_year:
         +tags: [public]
+      fct_disclosure_quality:
+        +tags: [dqs]
+      rpt_public_disclosure_quality:
+        +tags: [dqs, public]
   elementary:
     +schema: elementary
 
@@ -75,6 +81,17 @@ seeds:
         public_safe: boolean
         is_benchmarked: boolean
         definition_plain: varchar
+        source_model: varchar
+    dqs_weights:
+      +column_types:
+        component: varchar
+        weight: double
+        description: varchar
+    dqs_assurance_points:
+      +column_types:
+        assurance_level: varchar
+        points: double
+        description: varchar
     known_kpi_exceptions:
       +column_types:
         isin: varchar
