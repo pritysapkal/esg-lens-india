@@ -57,12 +57,14 @@ MetricFlow): the group metrics, defined once.
 | `fct_disclosure_quality` | a company in a financial year, with its Disclosure Quality Score | "How far can this company's report be trusted, and what cost it points?" |
 | `dim_company_year` | a company in a financial year: period, boundary, size, breaks | "Is this year comparable with the last one, or was there a merger?" |
 
-For anything published use `rpt_public_company_year`, `rpt_public_disclosure_quality` and
-`rpt_public_restatement_summary` (derived values only).
+For anything published use `rpt_public_company_year`, `rpt_public_disclosure_quality`,
+`rpt_public_group_metrics` and `rpt_public_restatement_summary` (derived values only).
 
-For a figure about a **group** (a sector, a peer group, a year) do not write your own SQL: ask
-the semantic layer for the metric by name, for example `mf query --metrics ghg_intensity_agg
---group-by company_year__sector_group`. The metric is defined once, in `kpi_catalogue.csv`
+For a figure about a **group** (a sector, a peer group, a year) do not write your own SQL. On
+the laptop, ask the semantic layer for the metric by name, for example `mf query --metrics
+ghg_intensity_agg --group-by company_year__sector_group`. For anything public, read
+`rpt_public_group_metrics`: the same figures, with statistics left empty for fewer than 5
+companies. Both come from one definition in `kpi_catalogue.csv`
 ([semantic_layer.md](semantic_layer.md)).
 
 ## Where rules and decisions live

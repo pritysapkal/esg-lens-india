@@ -19,8 +19,8 @@ Values that are the result of our own work on the filings:
 - gaps we compute (pay-equity gap, attrition gap);
 - percentiles and rankings within a peer group; peer-group medians and quartiles (also for KPIs
   whose underlying value is filed: the position is ours, the value is not shown);
-- group figures of the semantic layer (whole-group ratios, medians, shares and counts), for
-  groups of 5 companies or more;
+- group figures (whole-group ratios, medians, averages, shares and counts) from
+  `rpt_public_group_metrics`; a statistic is shown only for 5 companies or more;
 - the label of the denominator a company used for its filed intensity (`*_filed_basis`);
 - Disclosure Quality Scores: the total, the component scores, grade, rank, percentile, the
   provisional flag, assurance level and scope, and reason codes (not the counts behind them, and
@@ -57,8 +57,9 @@ Values that are the result of our own work on the filings:
 | `rpt_public_disclosure_quality` | The Disclosure Quality Score with its component scores, grade, rank, percentile and reason codes. The counts behind the components (`int_dqs_components`, `int_dqs_leadership_disclosure`: which metrics are missing, which voluntary indicators were answered, how many checks failed) stay local. |
 | `rpt_public_restatement_summary` | Restatement classes, counts and percentages. No original or restated value. |
 | `fct_peer_benchmark`, `fct_company_kpi_percentile` | Public: medians, quartiles, counts, percentiles. Not public: `min_value` / `max_value` and the percentile table's `value` column (marked `public_safe: false`). |
-| Semantic layer (`dbt/models/semantic`) | Every metric carries `meta.public_safe` from `kpi_catalogue.csv`. Sums of filed values exist only as hidden building blocks of a ratio and are never public. A group figure built on filed values (`..._agg`, `..._median`) may be published only where its companies metric is 5 or more: the layer returns every row, so **the publishing tool must drop the smaller groups** ([semantic_layer.md](semantic_layer.md), saved query `public_rule_min_5_companies`). The views `sem_*` hold raw values and stay local. |
-| Tests | `assert_public_models_safe` (dbt) fails the build if a public model gets a non-public column or a column named like a raw quantity; `tests/test_kpi_catalogue.py` checks the flags against the catalogue. |
+| `rpt_public_group_metrics` | Group figures by group type (all, sector group, peer group, ranking group, size band, ownership type), group and year, generated from the same definitions as the semantic layer and compared with it cell by cell in a test. A statistic (ratio, median, average, share) is empty when fewer than 5 companies stand behind it (`suppressed_reason = fewer_than_5_companies`); counts are always shown; restatement figures of a year with no later filing are empty, never 0 (`not_yet_observable`). No sum of filed values is a column. |
+| Semantic layer (`dbt/models/semantic`, MetricFlow) | **The local analyst interface. Public consumers (Streamlit, AI analyst, public Power BI) never query it**: it returns every row and its views `sem_*` hold raw values. Each metric carries `meta.public_safe` from `kpi_catalogue.csv`; sums of filed values exist only as hidden building blocks of a ratio (`..._num`, `..._den`) and are never public ([semantic_layer.md](semantic_layer.md)). |
+| Tests | `assert_public_models_safe` (dbt) fails the build if a public model gets a non-public column or a column named like a raw quantity, if `rpt_public_group_metrics` gets a column that is not a public group metric (so no `..._num` / `..._den`), or if a group statistic is shown for fewer than 5 companies; `tests/test_kpi_catalogue.py` checks the flags against the catalogue. |
 | Git | `data/`, Parquet and DuckDB files are never committed (`.gitignore`). |
 
 ## Dashboards and the public showcase
@@ -66,10 +67,27 @@ Values that are the result of our own work on the filings:
 - **Full dashboards** (Power BI, Streamlit) that show raw values stay **local**. They are not
   published and their files are not shared.
 - The **public showcase** uses screenshots or a demo video of those dashboards **plus derived
-  numbers** from the public models. Before publishing a screenshot, check that it shows no raw
+  numbers** from the public models (`rpt_public_company_year`, `rpt_public_disclosure_quality`,
+  `rpt_public_group_metrics`, `rpt_public_restatement_summary`). Before publishing a screenshot, check that it shows no raw
   filed quantity; crop or switch the visual to an intensity or percentile if it does.
 - Every published number carries its plain-text citation and the note that the Disclosure Quality
   Score is not an ESG rating and nothing here is investment advice.
+
+## Why group statistics need 5 companies
+
+The reason is **statistical reliability**, not confidentiality. It is the rule already used for
+rankings (a company is ranked only in a group of 5 or more): a median of three companies or a
+share out of four does not describe a group.
+
+It is not needed to protect filed values, and we do not claim that it does. A ratio or a median
+cannot give back a filed absolute value, because the sums behind it (`..._num`, `..._den`) are
+never published. So **secondary suppression is not needed** either: showing a total and all
+but one of its parts reveals nothing that is not already public for single companies
+(computed intensities, percentages and scores are public per company; totals are not public
+for anyone).
+
+Public consumers read `rpt_public_group_metrics`, where this rule is applied once, in the
+warehouse. They never apply it themselves and never query the semantic layer.
 
 ## Two things to know
 

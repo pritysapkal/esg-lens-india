@@ -2,8 +2,9 @@
 # To change a metric, edit the seed and run:  python scripts/build_semantic_layer.py
 # Spec: dbt 1.12 semantic layer (semantic_model under the model, entities / dimensions under the
 # columns, simple metrics instead of measures). Plain-English guide: docs/semantic_layer.md.
-# meta.public_safe follows docs/publication_policy.md; meta.min_companies = 5 means a row may be
-# published only when meta.companies_metric is 5 or more for the same group.
+# meta.public_safe follows docs/publication_policy.md; meta.min_companies = 5 means the figure
+# is reliable only when meta.companies_metric is 5 or more for the same group. Public tools read
+# rpt_public_group_metrics (built from the same definitions), where smaller groups are empty.
 version: 2
 models:
 - name: sem_company_year
@@ -436,6 +437,8 @@ models:
         metric_type: share
         unit: '%'
         direction: higher_better
+        min_companies: 5
+        companies_metric: companies_reporting
 - name: sem_disclosure_quality
   description: Semantic model of the Disclosure Quality Score (view of fct_disclosure_quality). Group dimensions come from sem_company_year through the company_year entity.
   semantic_model: true
@@ -491,6 +494,8 @@ models:
         metric_type: average
         unit: points (0-100)
         direction: higher_better
+        min_companies: 5
+        companies_metric: companies_with_dqs
   - name: dqs_median
     label: Disclosure Quality Score, typical company
     description: The Disclosure Quality Score of the company in the middle of the group.
@@ -504,12 +509,14 @@ models:
         metric_type: median
         unit: points (0-100)
         direction: higher_better
+        min_companies: 5
+        companies_metric: companies_with_dqs
   - name: dqs_grade_a_share_num
     type: simple
     description: Building block (rows counted, x 100); not a metric to read on its own.
     hidden: true
     agg: sum
-    expr: case when (dqs_grade = 'A') and (dqs_grade != 'insufficient_data') then 100.0 else 0 end
+    expr: case when (dqs_grade = 'A') and (dqs_grade <> 'insufficient_data') then 100.0 else 0 end
     config:
       meta:
         public_safe: false
@@ -519,7 +526,7 @@ models:
     description: Building block (rows in scope); not a metric to read on its own.
     hidden: true
     agg: sum
-    expr: case when dqs_grade != 'insufficient_data' then 1 else 0 end
+    expr: case when dqs_grade <> 'insufficient_data' then 1 else 0 end
     config:
       meta:
         public_safe: false
@@ -536,6 +543,8 @@ models:
         metric_type: share
         unit: '%'
         direction: higher_better
+        min_companies: 5
+        companies_metric: companies_with_dqs_grade
   - name: voluntary_depth_avg
     label: Voluntary depth, average
     description: On average, the share of the voluntary (Leadership) indicators that the companies of the group answered.
@@ -548,6 +557,44 @@ models:
         metric_type: average
         unit: share (0-1)
         direction: higher_better
+        min_companies: 5
+        companies_metric: companies_with_voluntary_depth
+  - name: companies_with_dqs
+    label: Companies with a Disclosure Quality Score
+    description: How many companies of the group have a Disclosure Quality Score.
+    type: simple
+    agg: count_distinct
+    expr: case when dqs_total is not null then isin end
+    config:
+      meta:
+        public_safe: true
+        metric_type: count_distinct
+        unit: companies
+        direction: context
+  - name: companies_with_dqs_grade
+    label: Companies with a Disclosure Quality grade
+    description: How many companies of the group have a grade (at least three components scored).
+    type: simple
+    agg: count_distinct
+    expr: case when nullif(dqs_grade, 'insufficient_data') is not null then isin end
+    config:
+      meta:
+        public_safe: true
+        metric_type: count_distinct
+        unit: companies
+        direction: context
+  - name: companies_with_voluntary_depth
+    label: Companies with a voluntary depth
+    description: How many companies of the group have a voluntary depth figure.
+    type: simple
+    agg: count_distinct
+    expr: case when dqs_voluntary_depth is not null then isin end
+    config:
+      meta:
+        public_safe: true
+        metric_type: count_distinct
+        unit: companies
+        direction: context
 - name: sem_restatement
   description: Semantic model of the restatement tracker (view of fct_restatement, without the original and restated values). The financial year is the year the value belongs to, not the year of the report that restates it.
   semantic_model: true
@@ -630,6 +677,8 @@ models:
         metric_type: share
         unit: '%'
         direction: lower_better
+        min_companies: 5
+        companies_metric: companies_with_compared_restatements
   - name: suspected_scale_errors
     label: Suspected scale errors
     description: 'How many figures are more than 100 times apart from the next year''s report: unit slips, not restatements.'
@@ -641,6 +690,18 @@ models:
         public_safe: true
         metric_type: count
         unit: values
+        direction: context
+  - name: companies_with_compared_restatements
+    label: Companies with compared figures
+    description: How many companies of the group have at least one figure that could be compared with the next year's report.
+    type: simple
+    agg: count_distinct
+    expr: case when nullif(is_compared, false) is not null then isin end
+    config:
+      meta:
+        public_safe: true
+        metric_type: count_distinct
+        unit: companies
         direction: context
 - name: sem_company
   description: 'Semantic model of the companies (view of dim_company): names, so that a metric can be shown per company. Query them as company__display_name and company__symbol.'
@@ -673,3 +734,103 @@ models:
     data_tests:
     - unique
     - not_null
+- name: rpt_public_group_metrics
+  description: 'PUBLIC model (docs/publication_policy.md): the group figures of the semantic layer by group type, group and financial year, generated from the same definitions as the MetricFlow metrics. A statistic is empty when fewer than 5 companies stand behind it; counts are always shown; no sum of filed values is a column. Public tools (Streamlit, AI analyst, public Power BI) read this table, never the semantic layer.'
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - group_type
+        - group_value
+        - fiscal_year_label
+  columns:
+  - name: group_type
+    description: 'Kind of group: all, sector_group, peer_group, ranking_group, size_band, ownership_type.'
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - all
+          - sector_group
+          - peer_group
+          - ranking_group
+          - size_band
+          - ownership_type
+  - name: group_value
+    description: The group, e.g. Asset-heavy; 'All companies' for group_type all.
+    data_tests:
+    - not_null
+  - name: fiscal_year_label
+    description: Financial year, e.g. FY2025-26.
+    data_tests:
+    - not_null
+  - name: ghg_intensity_agg
+    description: 'GHG intensity, whole group: sum(ghg_s12_tco2e) / sum(turnover_cr) over the companies that have both. Empty when companies_with_ghg_intensity is below 5.'
+  - name: ghg_intensity_median
+    description: 'GHG intensity, typical company: median of ghg_intensity_tco2e_per_cr. Empty when companies_with_ghg_intensity is below 5.'
+  - name: companies_with_ghg_intensity
+    description: 'Companies with a ghg intensity: count of distinct companies with ghg_intensity_tco2e_per_cr.'
+  - name: energy_intensity_agg
+    description: 'Energy intensity, whole group: sum(energy_total_gj) / sum(turnover_cr) over the companies that have both. Empty when companies_with_energy_intensity is below 5.'
+  - name: energy_intensity_median
+    description: 'Energy intensity, typical company: median of energy_intensity_gj_per_cr. Empty when companies_with_energy_intensity is below 5.'
+  - name: companies_with_energy_intensity
+    description: 'Companies with a energy intensity: count of distinct companies with energy_intensity_gj_per_cr.'
+  - name: water_intensity_agg
+    description: 'Water intensity, whole group: sum(water_consumption_kl) / sum(turnover_cr) over the companies that have both. Empty when companies_with_water_intensity is below 5.'
+  - name: water_intensity_median
+    description: 'Water intensity, typical company: median of water_intensity_kl_per_cr. Empty when companies_with_water_intensity is below 5.'
+  - name: companies_with_water_intensity
+    description: 'Companies with a water intensity: count of distinct companies with water_intensity_kl_per_cr.'
+  - name: waste_intensity_agg
+    description: 'Waste intensity, whole group: sum(waste_generated_t) / sum(turnover_cr) over the companies that have both. Empty when companies_with_waste_intensity is below 5.'
+  - name: waste_intensity_median
+    description: 'Waste intensity, typical company: median of waste_intensity_t_per_cr. Empty when companies_with_waste_intensity is below 5.'
+  - name: companies_with_waste_intensity
+    description: 'Companies with a waste intensity: count of distinct companies with waste_intensity_t_per_cr.'
+  - name: renewable_share_agg
+    description: 'Renewable share of energy, whole group (%): sum(energy_renewable_gj) / sum(energy_total_gj) x 100 over the companies that have both. Empty when companies_with_renewable_share is below 5.'
+  - name: companies_with_renewable_share
+    description: 'Companies with a renewable share: count of distinct companies with renewable_share_pct.'
+  - name: female_workforce_agg
+    description: 'Women in workforce, whole group (%): sum(headcount_female) / sum(headcount_total) x 100 over the companies that have both. Empty when companies_with_female_workforce is below 5.'
+  - name: companies_with_female_workforce
+    description: 'Companies with a women-in-workforce share: count of distinct companies with female_workforce_pct.'
+  - name: companies_reporting
+    description: 'Companies reporting: count of distinct companies with a filing.'
+  - name: scope3_disclosed_share
+    description: 'Companies disclosing Scope 3 (%): company-years with a Scope 3 value / company-years x 100. Empty when companies_reporting is below 5.'
+  - name: dqs_avg
+    description: 'Disclosure Quality Score, average: average of dqs_total. Empty when companies_with_dqs is below 5.'
+  - name: dqs_median
+    description: 'Disclosure Quality Score, typical company: median of dqs_total. Empty when companies_with_dqs is below 5.'
+  - name: dqs_grade_a_share
+    description: 'Company-years graded A (%): company-years with grade A / company-years with a grade x 100. Empty when companies_with_dqs_grade is below 5.'
+  - name: voluntary_depth_avg
+    description: 'Voluntary depth, average: average of dqs_voluntary_depth. Empty when companies_with_voluntary_depth is below 5.'
+  - name: companies_with_dqs
+    description: 'Companies with a Disclosure Quality Score: count of distinct companies with dqs_total.'
+  - name: companies_with_dqs_grade
+    description: 'Companies with a Disclosure Quality grade: count of distinct companies with a grade A to D.'
+  - name: companies_with_voluntary_depth
+    description: 'Companies with a voluntary depth: count of distinct companies with dqs_voluntary_depth.'
+  - name: material_restatements
+    description: 'Material restatements: count of compared pairs classified material. Empty (not 0) when the year has no later filing yet.'
+  - name: material_restatement_share
+    description: 'Figures materially restated (%): compared pairs classified material / compared pairs x 100. Empty when companies_with_compared_restatements is below 5 or the year has no later filing yet.'
+  - name: suspected_scale_errors
+    description: 'Suspected scale errors: count of pairs classified suspected_scale_error. Empty (not 0) when the year has no later filing yet.'
+  - name: companies_with_compared_restatements
+    description: 'Companies with compared figures: count of distinct companies with a compared pair. Empty (not 0) when the year has no later filing yet.'
+  - name: suppressed_reason
+    description: 'Why some figures of the row are empty: fewer_than_5_companies (a statistic whose companies count is below 5), not_yet_observable (restatement figures of a year with no later filing), or both joined by a bar. Empty when nothing is withheld.'
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - fewer_than_5_companies
+          - not_yet_observable
+          - fewer_than_5_companies|not_yet_observable
+        config:
+          where: suppressed_reason is not null

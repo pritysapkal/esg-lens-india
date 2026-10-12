@@ -97,16 +97,29 @@ def test_generator_refuses_an_average_of_company_intensities():
         module.check_rules([*rows, bad])
 
 
-def test_public_aggregates_over_filed_values_carry_the_five_company_rule():
+def test_every_public_statistic_names_the_company_count_behind_it():
+    """One rule: a ratio, median, average or share is shown only for 5 companies or more."""
     module = _module()
     metrics = _metrics()
     for row in module.metric_rows(module.read_catalogue()):
-        if row["metric_type"] in ("ratio_of_sums", "median") and row["source_model"] == (
-            "fct_company_year"
-        ):
-            meta = metrics[row["kpi_name"]]["config"]["meta"]
+        meta = metrics[row["kpi_name"]]["config"]["meta"]
+        if row["metric_type"] in module.STATISTICS:
             assert meta["min_companies"] == 5, row["kpi_name"]
             assert metrics[meta["companies_metric"]]["agg"] == "count_distinct"
+        else:
+            assert "min_companies" not in meta, row["kpi_name"]
+
+
+def test_public_table_has_the_public_metrics_and_no_sum_of_filed_values():
+    module = _module()
+    rows = module.read_catalogue()
+    sql = module.build_public_sql(rows)
+    final_select = sql.rsplit("\nselect\n", 1)[1]
+    for row in module.public_rows(rows):
+        assert (
+            f" as {row['kpi_name']}," in final_select or f"    {row['kpi_name']}," in final_select
+        )
+    assert "_num" not in sql and "_den" not in sql  # the building blocks are not even named
 
 
 def test_saved_queries_use_known_metrics_and_show_the_company_count():
@@ -294,3 +307,131 @@ def test_saved_query_shows_the_five_company_rule(semantic_manifest, tmp_path):
     assert publishable and withheld, "the real data has groups on both sides of the rule"
     assert {row["company_year__ranking_group"] for row in withheld} == {"Automobiles"}
     assert all(row["ghg_intensity_agg"] not in ("", None) for row in publishable)
+
+
+# ------------------------------------------- public table against mf query, cell by cell
+
+# Runs `mf query` several times in ONE process (the mf command itself, sharing its setup), in a
+# child process so that its DuckDB connection is closed again before other tests read the file.
+MF_BATCH = """
+import json, sys
+from click.testing import CliRunner
+from dbt_metricflow.cli.cli_configuration import CLIConfiguration
+from dbt_metricflow.cli.main import cli
+
+configuration, runner = CLIConfiguration(), CliRunner()
+for arguments in json.loads(sys.argv[1]):
+    result = runner.invoke(cli, ["query", *arguments, "--quiet"], obj=configuration)
+    if result.exit_code != 0:
+        sys.exit(f"mf query {arguments}: {result.output} {result.exception!r}")
+"""
+
+
+def test_public_group_metrics_equal_mf_query_cell_by_cell(semantic_manifest, tmp_path):
+    """Every figure shown in rpt_public_group_metrics is the figure mf query gives; every empty
+    one is empty for a stated reason."""
+    import json
+
+    import duckdb
+
+    module = _module()
+    catalogue = module.public_rows(module.read_catalogue())
+    names = [row["kpi_name"] for row in catalogue]
+
+    con = duckdb.connect(str(WAREHOUSE), read_only=True)
+    try:
+        table = con.sql("select * from rpt_public_group_metrics").df().to_dict("records")
+        latest = con.sql("select max(fiscal_year_label) from fct_company_year").fetchone()[0]
+    finally:
+        con.close()
+    assert table, "rpt_public_group_metrics is empty: run dev.ps1 dbt-build"
+
+    year = "company_year__fiscal_year_label"
+    batch, outputs = [], {}
+    for group_type in module.GROUP_TYPES:
+        outputs[group_type] = tmp_path / f"{group_type}.csv"
+        group_by = [year] if group_type == "all" else [f"company_year__{group_type}", year]
+        batch.append(
+            [
+                "--metrics",
+                ",".join(names),
+                "--group-by",
+                ",".join(group_by),
+                "--csv",
+                outputs[group_type].as_posix(),
+            ]
+        )
+    env = os.environ | {
+        "PYTHONUTF8": "1",
+        "ESG_DATA_DIR": os.getenv("ESG_DATA_DIR") or (ROOT / "data").as_posix(),
+    }
+    result = subprocess.run(
+        [sys.executable, "-c", MF_BATCH, json.dumps(batch)],
+        cwd=DBT_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    assert result.returncode == 0, f"{result.stdout}\n{result.stderr}"
+
+    from_mf = {}
+    for group_type, path in outputs.items():
+        with path.open(encoding="utf-8", newline="") as fh:
+            for row in csv.DictReader(fh):
+                value = (
+                    "All companies" if group_type == "all" else row[f"company_year__{group_type}"]
+                )
+                if value:  # company-years without a size band belong to no size group
+                    from_mf[(group_type, value, row[year])] = row
+
+    def empty(value) -> bool:
+        return value is None or value == "" or (isinstance(value, float) and math.isnan(value))
+
+    assert {(r["group_type"], r["group_value"], r["fiscal_year_label"]) for r in table} == set(
+        from_mf
+    )
+    compared = suppressed_small = suppressed_later = 0
+    largest = 0.0
+    for record in table:
+        row = from_mf[(record["group_type"], record["group_value"], record["fiscal_year_label"])]
+        observable = record["fiscal_year_label"] < latest
+        for metric in catalogue:
+            name, shown = metric["kpi_name"], record[metric["kpi_name"]]
+            statistic = metric["metric_type"] in module.STATISTICS
+            needs_later = metric["source_model"] == module.NEEDS_LATER_FILING
+            where = (name, record["group_type"], record["group_value"], record["fiscal_year_label"])
+            if empty(shown):
+                reasons = record["suppressed_reason"] or ""
+                if needs_later and not observable:
+                    assert module.NOT_YET_OBSERVABLE in reasons, where
+                    assert empty(row[name]) or float(row[name]) == 0, where
+                    suppressed_later += 1
+                else:
+                    assert statistic, where  # a plain count is never withheld
+                    assert record[metric["companies_metric"]] < 5, where
+                    assert module.FEWER_THAN_MIN in reasons, where
+                    suppressed_small += 1
+                continue
+            if statistic:
+                assert record[metric["companies_metric"]] >= 5, where
+            got = row[name]
+            if empty(got):  # mf has no row for the group in that table; the count is 0
+                assert not statistic and float(shown) == 0, where
+                got = 0
+            difference = abs(float(got) - float(shown))
+            assert math.isclose(float(got), float(shown), rel_tol=TOLERANCE, abs_tol=TOLERANCE), (
+                where,
+                got,
+                shown,
+            )
+            largest = max(largest, difference)
+            compared += 1
+    print(
+        f"\npublic table vs mf query: {len(table)} rows, {compared} cells compared, largest "
+        f"difference {largest:.3e}; withheld: {suppressed_small} for fewer than 5 companies, "
+        f"{suppressed_later} not yet observable"
+    )
+    assert compared > 2000 and suppressed_small > 0 and suppressed_later > 0

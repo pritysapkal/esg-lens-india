@@ -8,8 +8,12 @@
 --  3. a public model has a column named like a raw filed quantity (..._tco2e, ..._gj, ..._kl,
 --     ..._t, turnover, headcount) or a raw restatement value / filing text.
 -- The catalogue must also describe every numeric column of the two gold tables, and nothing else.
--- Only the company-level rows of the catalogue are meant (metric_type = 'company_value'); its
--- other rows are group metrics of the semantic layer, checked in tests/test_semantic_layer.py.
+-- Only the company-level rows of the catalogue are meant here (metric_type = 'company_value').
+-- Its other rows are the group metrics of the semantic layer; for rpt_public_group_metrics:
+--  4. a numeric column is not a public_safe group metric of the catalogue (this also keeps out
+--     the hidden sums of filed values, ..._num / ..._den), or a public group metric is missing;
+--  5. a group statistic (ratio, median, average, share) is shown although fewer than 5 companies
+--     stand behind it (its companies_metric of the catalogue).
 
 -- The column lists are read from information_schema, so tell dbt what must be built first:
 -- depends_on: {{ ref('fct_company_year') }}
@@ -17,6 +21,7 @@
 -- depends_on: {{ ref('fct_disclosure_quality') }}
 -- depends_on: {{ ref('rpt_public_disclosure_quality') }}
 -- depends_on: {{ ref('rpt_public_restatement_summary') }}
+-- depends_on: {{ ref('rpt_public_group_metrics') }}
 
 with model_pairs as (
     select
@@ -38,7 +43,7 @@ public_columns as (
     where
         table_name in (
             'rpt_public_company_year', 'rpt_public_disclosure_quality',
-            'rpt_public_restatement_summary'
+            'rpt_public_restatement_summary', 'rpt_public_group_metrics'
         )
 ),
 
@@ -61,6 +66,39 @@ catalogue as (
     from {{ ref('kpi_catalogue') }} as kpi_catalogue
     left join model_pairs on kpi_catalogue.source_model = model_pairs.source_model
     where kpi_catalogue.metric_type = 'company_value'
+),
+
+group_catalogue as (
+    select
+        kpi_name,
+        public_safe,
+        metric_type,
+        companies_metric
+    from {{ ref('kpi_catalogue') }}
+    where metric_type != 'company_value'
+),
+
+group_columns as (
+    select column_name
+    from public_columns
+    where table_name = 'rpt_public_group_metrics' and is_numeric
+),
+
+-- one row per figure that is shown (unpivot leaves out the empty cells)
+group_cells as (
+    unpivot (
+        select
+            group_type,
+            group_value,
+            fiscal_year_label,
+            cast(
+                columns(* exclude (group_type, group_value, fiscal_year_label, suppressed_reason))
+                as double
+            )
+        from {{ ref('rpt_public_group_metrics') }}
+    )
+    on columns(* exclude (group_type, group_value, fiscal_year_label))
+    into name metric_name value metric_value
 )
 
 select
@@ -91,7 +129,9 @@ union all
 select 'raw-value column in a public model: ' || table_name || '.' || column_name as problem
 from public_columns
 where
-    regexp_matches(column_name, '(_tco2e|_gj|_kl|_t)(_annualised)?$|turnover|headcount')
+    regexp_matches(
+        column_name, '(_tco2e|_gj|_kl|_t)(_annualised)?$|turnover|headcount|_num$|_den$'
+    )
     or column_name in (
         'original_value', 'restated_value', 'abs_change', 'stated_reason', 'value_std',
         'best_value_std', 'raw_value', 'value_text', 'value_pct'
@@ -120,3 +160,48 @@ left join fact_columns
         catalogue.kpi_name = fact_columns.column_name
         and catalogue.source_model = fact_columns.table_name
 where fact_columns.column_name is null
+
+union all
+
+select
+    'rpt_public_group_metrics column is not a public_safe group metric: '
+    || group_columns.column_name as problem
+from group_columns
+left join group_catalogue on group_columns.column_name = group_catalogue.kpi_name
+where not coalesce(group_catalogue.public_safe, false)
+
+union all
+
+select
+    'public_safe group metric missing from rpt_public_group_metrics: ' || group_catalogue.kpi_name
+        as problem
+from group_catalogue
+left join group_columns on group_catalogue.kpi_name = group_columns.column_name
+where group_catalogue.public_safe and group_columns.column_name is null
+
+union all
+
+select 'group statistic without a companies_metric: ' || kpi_name as problem
+from group_catalogue
+where
+    public_safe
+    and metric_type in ('ratio_of_sums', 'median', 'average', 'share')
+    and companies_metric is null
+
+union all
+
+select
+    'statistic shown for fewer than 5 companies: ' || statistic.metric_name || ' ('
+    || statistic.group_type || ' / ' || statistic.group_value || ' / '
+    || statistic.fiscal_year_label || ')' as problem
+from group_cells as statistic
+inner join group_catalogue on statistic.metric_name = group_catalogue.kpi_name
+left join group_cells as companies
+    on
+        group_catalogue.companies_metric = companies.metric_name
+        and statistic.group_type = companies.group_type
+        and statistic.group_value = companies.group_value
+        and statistic.fiscal_year_label = companies.fiscal_year_label
+where
+    group_catalogue.metric_type in ('ratio_of_sums', 'median', 'average', 'share')
+    and coalesce(companies.metric_value, 0) < 5

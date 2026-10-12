@@ -18,7 +18,7 @@ wherever the two differ. Plain English on purpose.
 | Restatements | Flag every changed number | A **scale-error class** (values more than 100x apart, 10x for percentages) is set aside, and KPIs use the **best available value** (the later report) | Most "huge restatements" were unit slips, not restatements |
 | Publishing | Publish the dashboards | **Publication policy: derived values only** ([ADR 0004](adr/0004-publication-policy.md)) | We have no permission to republish filed values, percentages included |
 | Disclosure Quality Score | Many consistency signals, weights to be decided | **Lean score of four parts** (completeness 0.30, internal consistency 0.30, temporal consistency 0.20, assurance 0.20), each a rate; a part that cannot be tested is left out and the weights re-normalised. **Version 2** measures what is voluntary: completeness is half mandatory metrics and half Leadership indicators answered, and assurance gives half the points for the Core assurance SEBI requires and the rest for assuring the whole report | Version 1 could not tell companies apart (187 of 196 grade A): everything it measured is mandatory for the NIFTY 50. The fix changes what is measured, not the weights or cut-offs ([method](disclosure_quality_score.md)) |
-| Semantic layer | Metric definitions in a semantic layer, Databricks as a stretch | **MetricFlow on DuckDB, generated from `kpi_catalogue.csv`**: 25 group metrics, each either a ratio of sums (`_agg`), a median (`_median`), a share or a count - never an average of company ratios; group figures on filed values carry a "5 companies or more" rule; Databricks not done | One definition for Power BI, Excel, Streamlit and the AI analyst; an average of intensities describes neither the group nor its typical company ([guide](semantic_layer.md)) |
+| Semantic layer | Metric definitions in a semantic layer, Databricks as a stretch | **MetricFlow on DuckDB, generated from `kpi_catalogue.csv`**: 29 group metrics, each either a ratio of sums (`_agg`), a median (`_median`), a share or a count - never an average of company ratios; a public table from the same definitions where a statistic is empty below 5 companies; Databricks not done | One definition for Power BI, Excel, Streamlit and the AI analyst; an average of intensities describes neither the group nor its typical company ([guide](semantic_layer.md)) |
 | Housekeeping | - | **Hardening** before Week 8: public models, accepted-exception seed (build ends with 0 warnings), KPI catalogue as single source of truth, [START_HERE](START_HERE.md) | So the next seven weeks build on something that stays tidy |
 
 ## b) Done
@@ -34,10 +34,10 @@ wherever the two differ. Plain English on purpose.
 | Week 7 | Gold star schema and restatement tracker | Facts and dimensions with enforced contracts, KPIs, peer benchmarks and percentiles, restatement classes, scale-error handling | `2cb3bad`, `265e856`, `a7a3f0c` |
 | Hardening | Before Week 8 | Publication policy and public models, exception tracking, KPI single source, START_HERE, tags and selectors | `fa44d82`, `440c88c` |
 | Week 8 | Disclosure Quality Score | One score 0-100 per company-year from four visible parts, with grade, rank in group and year, reason codes, a public model and a weight sensitivity check; then version 2: voluntary depth (Leadership indicators read from the taxonomy), beyond-compliance assurance, a grade only with three components, provisional flag for the latest year ([method](disclosure_quality_score.md)) | `cda7200`, "feat: DQS v2" |
-| Week 9 | Semantic layer | 25 group metrics in MetricFlow, generated from the KPI catalogue; 4 semantic models, a time spine, 8 saved queries; `mf query` equals plain SQL on the gold tables within 1e-9 ([guide](semantic_layer.md)) | "feat: Week 9 semantic layer (MetricFlow)" |
+| Week 9 | Semantic layer | 29 group metrics in MetricFlow, generated from the KPI catalogue; 4 semantic models, a time spine, 8 saved queries; `mf query` equals plain SQL on the gold tables within 1e-9. Public table `rpt_public_group_metrics` from the same definitions, with statistics withheld below 5 companies, equal to `mf query` in all 2,562 shown cells ([guide](semantic_layer.md)) | `e2d0c2f`, "feat: public group metrics with min-5 suppression" |
 
 State of the warehouse: 51 companies, 196 company-years, 21,706 metric values, 73 company-level
-KPIs (25 public), 25 group metrics in the semantic layer, 4,115 compared restatement pairs, 196
+KPIs (25 public), 29 group metrics in the semantic layer, 4,115 compared restatement pairs, 196
 Disclosure Quality Scores (version 2: median 85.0; 98 grade A, 90 B, 7 C, 1 without a grade);
 full build and test in about 3 minutes with 0 warnings.
 
@@ -68,9 +68,10 @@ Known limitations (each documented where it belongs):
   grade D), scores are comparable only within a year, the latest year is provisional, assurance
   is self-reported, and some voluntary indicators do not apply to Financials:
   [disclosure_quality_score.md](disclosure_quality_score.md).
-- **The semantic layer does not enforce the "5 companies or more" rule itself** (the consuming
-  tool must), has no live connection for Power BI or Excel, and runs on DuckDB only:
-  [semantic_layer.md](semantic_layer.md).
+- **The semantic layer withholds nothing itself**, so public tools read
+  `rpt_public_group_metrics` (statistics empty below 5 companies) and never the layer; it has no
+  live connection for Power BI or Excel and runs on DuckDB only. dbt partial parsing is off
+  because of a dbt 1.12.5 issue, to be re-checked on upgrade: [semantic_layer.md](semantic_layer.md).
 - NIC division names and NIC code corrections are still unverified (`verified_by` empty in the
   seeds).
 

@@ -22,7 +22,8 @@ clean-targets:
 # Partial parsing is switched off: with metrics attached to models (the dbt 1.12 semantic-layer
 # spec) dbt 1.12.5 fails a partial re-parse with a false "dbt found two metrics with the name ..."
 # error, for example when ESG_DATA_DIR is set in one run and not in the next. A full parse on
-# every run costs about 20 seconds and is always right.
+# every run costs about 20 seconds and is always right. RE-CHECK ON EVERY dbt UPGRADE: remove
+# the flag, run `dbt parse` with and without ESG_DATA_DIR set, and drop it if the error is gone.
 flags:
   partial_parse: false
   warn_error_options:
@@ -81,6 +82,8 @@ models:
         +tags: [dqs]
       rpt_public_disclosure_quality:
         +tags: [dqs, public]
+      rpt_public_group_metrics: # generated; reads the views of the semantic layer
+        +tags: [semantic, public]
     semantic:
       +materialized: view
       +tags: [semantic]

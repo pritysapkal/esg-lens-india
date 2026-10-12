@@ -63,9 +63,12 @@ exposures:
       email: sapkalprity01@gmail.com
     description: >
       Anything published outside this laptop (Streamlit report card, public Power BI version,
-      screenshots): reads only the public models, which hold values we calculate. The Disclosure
-      Quality Score shown there is not an ESG rating. Policy: docs/publication_policy.md.
+      screenshots): reads only the public models, which hold values we calculate. Group figures
+      come from rpt_public_group_metrics, never from the semantic layer: there a statistic is
+      already empty when fewer than 5 companies stand behind it. The Disclosure Quality Score
+      shown there is not an ESG rating. Policy: docs/publication_policy.md.
     depends_on:
       - ref('rpt_public_company_year')
       - ref('rpt_public_disclosure_quality')
+      - ref('rpt_public_group_metrics')
       - ref('rpt_public_restatement_summary')

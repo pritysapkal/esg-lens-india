@@ -2,8 +2,8 @@
 # named set of metrics and group-by dimensions. Run one with (from dbt/):
 #     mf query --saved-query ghg_intensity_by_sector_year
 # Metrics are generated from the kpi_catalogue seed (_semantic_layer.yml); this file is written
-# by hand. Guide: docs/semantic_layer.md. All of these read local data; before anything is
-# published apply the rule of docs/publication_policy.md (see public_rule_min_5_companies).
+# by hand. Guide: docs/semantic_layer.md. These are for the analyst on the laptop: they return
+# every row. Public tools read rpt_public_group_metrics, where small groups are already empty.
 version: 2
 
 saved_queries:
@@ -99,9 +99,9 @@ saved_queries:
 
   - name: public_rule_min_5_companies
     description: >
-      Shows the publication rule. A whole-group or typical-company figure may be published only
-      for rows where its companies metric is 5 or more; the consumer must drop the other rows
-      (here the Automobiles rows of three years).
+      Shows the five-company rule in raw output. A statistic counts as reliable only where its
+      companies metric is 5 or more; the other rows (here Automobiles in three years) are the
+      ones left empty in the public table rpt_public_group_metrics.
     query_params:
       metrics: [ghg_intensity_agg, ghg_intensity_median, companies_with_ghg_intensity]
       group_by:

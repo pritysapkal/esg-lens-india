@@ -100,6 +100,7 @@ erDiagram
 | `fct_company_kpi_percentile` | company x financial year x KPI | `isin`, `fiscal_year_label`, `kpi_name` |
 | `fct_restatement` | company x metric x breakdown x year restated x restating filing | `isin`, `metric_id`, `dimension_key`, `value_fiscal_year_label`, `restating_filing_id` |
 | `fct_disclosure_quality` | company x financial year (Disclosure Quality Score, [method](disclosure_quality_score.md)) | `isin`, `fiscal_year_label` |
+| `rpt_public_group_metrics` | group type x group x financial year (public group figures, [guide](semantic_layer.md)) | `group_type`, `group_value`, `fiscal_year_label` |
 | `rpt_restatement_summary` | level (overall / metric / peer group / company) x key | `level`, `group_key` |
 | `dim_metric` | one per catalogue metric | `metric_id` |
 | `dim_assurer` | one per assurance provider (variants merged) | `assurer_key` |
