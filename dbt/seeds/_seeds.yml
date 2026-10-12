@@ -395,14 +395,16 @@ seeds:
 
   - name: kpi_catalogue
     description: >
-      Single source of truth for the KPIs of fct_company_year and fct_disclosure_quality: one row
-      per numeric column, with label, formula, unit, direction, the catalogue metric that decides
-      materiality, whether the value may be published (public_safe) and a plain-English
-      definition. Drives the peer benchmarks, the public models and the KPI table in
-      docs/kpi_definitions.md (scripts/build_kpi_docs.py).
+      Single source of truth for KPIs and metrics. Rows with metric_type = company_value are the
+      numeric columns of fct_company_year and fct_disclosure_quality (one value per company-year);
+      the other rows are the group metrics of the semantic layer (MetricFlow). Each row has label,
+      formula, unit, direction, whether the value may be published (public_safe) and a
+      plain-English definition. Drives the peer benchmarks, the public models, the KPI table in
+      docs/kpi_definitions.md (scripts/build_kpi_docs.py) and the semantic layer
+      (scripts/build_semantic_layer.py, docs/semantic_layer.md).
     columns:
       - name: kpi_name
-        description: Column of the table named in source_model.
+        description: Column of the table named in source_model, or the name of the group metric.
         tests: [unique, not_null]
       - name: label
         tests: [not_null]
@@ -410,9 +412,13 @@ seeds:
         description: How the value is obtained ("as filed" or the formula).
         tests: [not_null]
       - name: numerator
-        description: Numerator of a computed KPI; empty for filed values.
+        description: >
+          Numerator of a computed KPI; empty for filed values. For a group metric: the column
+          summed, taken the median or average of, or the condition counted.
       - name: denominator
-        description: Denominator of a computed KPI; empty for filed values.
+        description: >
+          Denominator of a computed KPI; empty for filed values. For a group metric: the column
+          summed, or the condition that says which rows are in scope.
       - name: unit
         tests: [not_null]
       - name: unit_type
@@ -448,7 +454,34 @@ seeds:
           - not_null
           - accepted_values:
               arguments:
-                values: [fct_company_year, fct_disclosure_quality]
+                values: [fct_company_year, fct_disclosure_quality, fct_restatement]
+      - name: metric_type
+        description: >
+          company_value = a column with one value per company-year. Otherwise how the semantic
+          layer aggregates over a group: ratio_of_sums (sum / sum, named ..._agg), median
+          (typical company, named ..._median), average, share (rows counted / rows in scope x
+          100), count, count_distinct (companies). An average of company intensities is refused.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - company_value
+                  - ratio_of_sums
+                  - median
+                  - average
+                  - share
+                  - count
+                  - count_distinct
+      - name: companies_metric
+        description: >
+          For a group metric that may be published only for 5 companies or more: the
+          count_distinct metric that gives the number of companies behind it.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('kpi_catalogue')
+                field: kpi_name
 
   - name: dqs_weights
     description: >

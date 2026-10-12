@@ -28,9 +28,14 @@ FACTS_WITH_POLICY = [
 ]
 
 
-def _catalogue() -> list[dict[str, str]]:
+def _all_rows() -> list[dict[str, str]]:
     with SEED.open(encoding="utf-8", newline="") as fh:
         return list(csv.DictReader(fh))
+
+
+def _catalogue() -> list[dict[str, str]]:
+    """The company-level KPIs (columns of gold tables); group metrics: test_semantic_layer.py."""
+    return [row for row in _all_rows() if row["metric_type"] == "company_value"]
 
 
 def _models() -> dict[str, dict]:
@@ -52,7 +57,7 @@ def test_kpi_docs_are_generated_from_the_seed():
 
 
 def test_catalogue_rows_are_complete():
-    rows = _catalogue()
+    rows = _all_rows()
     names = [row["kpi_name"] for row in rows]
     assert len(names) == len(set(names))
     for row in rows:

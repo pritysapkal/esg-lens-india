@@ -11,8 +11,21 @@ exposures:
     description: >
       Power BI report over the gold star schema: company report cards, peer benchmarks, KPI
       percentiles and disclosure quality. Reads the facts and dimensions below; no logic lives
-      in the report.
+      in the report. Group figures (a sector, a peer group, a year) are the metrics of the
+      semantic layer listed below, exported from its saved queries, so they equal the numbers of
+      every other tool (docs/semantic_layer.md).
     depends_on:
+      - metric('ghg_intensity_agg')
+      - metric('ghg_intensity_median')
+      - metric('energy_intensity_agg')
+      - metric('water_intensity_agg')
+      - metric('waste_intensity_agg')
+      - metric('renewable_share_agg')
+      - metric('female_workforce_agg')
+      - metric('dqs_median')
+      - metric('dqs_grade_a_share')
+      - metric('material_restatement_share')
+      - metric('companies_reporting')
       - ref('fct_company_year')
       - ref('fct_esg_value')
       - ref('fct_peer_benchmark')

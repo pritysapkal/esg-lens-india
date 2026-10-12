@@ -22,8 +22,9 @@
 | 6 | [company_identity.md](company_identity.md) | companies, peer groups, sectors, structural breaks |
 | 7 | [restatement_method.md](restatement_method.md) | how restatements are found and classified |
 | 8 | [disclosure_quality_score.md](disclosure_quality_score.md) | the Disclosure Quality Score: what it measures, the formula, its limits |
-| 9 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
-| 10 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
+| 9 | [semantic_layer.md](semantic_layer.md) | the metrics every tool must use, whole group versus typical company, how to query them |
+| 10 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
+| 11 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
 
 ## The pipeline in six boxes
 
@@ -42,7 +43,8 @@
 ```
 
 Boxes 1-3 are Python (`ingestion/`); boxes 4-6 are dbt on DuckDB (`dbt/models/staging`,
-`intermediate`, `marts`).
+`intermediate`, `marts`). On top of gold sits the semantic layer (`dbt/models/semantic`,
+MetricFlow): the group metrics, defined once.
 
 ## The six tables to know
 
@@ -57,6 +59,11 @@ Boxes 1-3 are Python (`ingestion/`); boxes 4-6 are dbt on DuckDB (`dbt/models/st
 
 For anything published use `rpt_public_company_year`, `rpt_public_disclosure_quality` and
 `rpt_public_restatement_summary` (derived values only).
+
+For a figure about a **group** (a sector, a peer group, a year) do not write your own SQL: ask
+the semantic layer for the metric by name, for example `mf query --metrics ghg_intensity_agg
+--group-by company_year__sector_group`. The metric is defined once, in `kpi_catalogue.csv`
+([semantic_layer.md](semantic_layer.md)).
 
 ## Where rules and decisions live
 
@@ -74,6 +81,7 @@ For anything published use `rpt_public_company_year`, `rpt_public_disclosure_qua
 .\scripts\dev.ps1 setup       # once: virtual environment, packages, dbt deps
 .\scripts\dev.ps1 dbt-build   # build and test the whole warehouse (about 3 minutes)
 .\scripts\dev.ps1 test        # Python tests
+.\scripts\dev.ps1 semantic    # regenerate the semantic layer from the catalogue and validate it
 ```
 
 New filings: follow [how_to_add_filings.md](how_to_add_filings.md), then `intake`, `parse`,

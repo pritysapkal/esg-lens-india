@@ -49,6 +49,11 @@ or definition, edit the seed and re-run the script; do not edit the table. A tes
 two differ, and another if a numeric column of `fct_company_year` has no catalogue row.
 "Public" follows [publication_policy.md](publication_policy.md).
 
+The table lists the company-level KPIs: one value per company and year. Figures for a group
+(a sector, a peer group, a year) are the metrics of the semantic layer; they are rows of the same
+seed (`metric_type` other than `company_value`) and are listed in
+[semantic_layer.md](semantic_layer.md).
+
 The last eleven rows (`dqs_*`) are the Disclosure Quality Score. They are columns of
 `fct_disclosure_quality`, not of `fct_company_year` (seed column `source_model`); the method is
 in [disclosure_quality_score.md](disclosure_quality_score.md).

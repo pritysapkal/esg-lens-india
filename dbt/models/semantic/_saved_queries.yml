@@ -1,0 +1,112 @@
+# Saved queries of the semantic layer: the questions of the Week 10 business analysis, each as a
+# named set of metrics and group-by dimensions. Run one with (from dbt/):
+#     mf query --saved-query ghg_intensity_by_sector_year
+# Metrics are generated from the kpi_catalogue seed (_semantic_layer.yml); this file is written
+# by hand. Guide: docs/semantic_layer.md. All of these read local data; before anything is
+# published apply the rule of docs/publication_policy.md (see public_rule_min_5_companies).
+version: 2
+
+saved_queries:
+  - name: ghg_intensity_by_sector_year
+    description: >
+      How carbon-heavy is each sector group, year by year - as a whole (ratio of sums) and for
+      its typical company (median)?
+    query_params:
+      metrics: [ghg_intensity_agg, ghg_intensity_median, companies_with_ghg_intensity]
+      group_by:
+        - Dimension('company_year__sector_group')
+        - Dimension('company_year__fiscal_year_label')
+      order_by:
+        - Dimension('company_year__sector_group')
+        - Dimension('company_year__fiscal_year_label')
+
+  - name: resource_intensity_by_sector_year
+    description: >
+      How much energy, water and waste does each sector group need per Rs crore of turnover,
+      year by year?
+    query_params:
+      metrics:
+        - energy_intensity_agg
+        - energy_intensity_median
+        - water_intensity_agg
+        - water_intensity_median
+        - waste_intensity_agg
+        - waste_intensity_median
+      group_by:
+        - Dimension('company_year__sector_group')
+        - Dimension('company_year__fiscal_year_label')
+      order_by:
+        - Dimension('company_year__sector_group')
+        - Dimension('company_year__fiscal_year_label')
+
+  - name: renewable_share_by_peer_group
+    description: Which peer groups run on the most renewable energy, and is the share rising?
+    query_params:
+      metrics: [renewable_share_agg, companies_with_renewable_share]
+      group_by:
+        - Dimension('company_year__peer_group')
+        - Dimension('company_year__fiscal_year_label')
+      order_by:
+        - Dimension('company_year__peer_group')
+        - Dimension('company_year__fiscal_year_label')
+
+  - name: female_workforce_by_ownership
+    description: >
+      Do government, private Indian and multinational companies employ women at different
+      rates?
+    query_params:
+      metrics: [female_workforce_agg, companies_with_female_workforce]
+      group_by:
+        - Dimension('company_year__ownership_type')
+        - Dimension('company_year__fiscal_year_label')
+      order_by:
+        - Dimension('company_year__ownership_type')
+        - Dimension('company_year__fiscal_year_label')
+
+  - name: dqs_by_ranking_group_year
+    description: >
+      How good is disclosure in each ranking group and year (compare within a year only)?
+    query_params:
+      metrics: [dqs_avg, dqs_median, dqs_grade_a_share, voluntary_depth_avg, companies_reporting]
+      group_by:
+        - Dimension('company_year__ranking_group')
+        - Dimension('company_year__fiscal_year_label')
+      order_by:
+        - Dimension('company_year__fiscal_year_label')
+        - Dimension('company_year__ranking_group')
+
+  - name: material_restatement_share_by_year
+    description: >
+      What share of last year's figures do companies change materially in the next report, and
+      how many are unit slips instead?
+    query_params:
+      metrics: [material_restatements, material_restatement_share, suspected_scale_errors]
+      group_by:
+        - Dimension('company_year__fiscal_year_label')
+      order_by:
+        - Dimension('company_year__fiscal_year_label')
+
+  - name: coverage_by_year
+    description: >
+      How many companies report each year, and how many of them disclose Scope 3 emissions?
+      Uses the time dimension (the year of the financial-year end).
+    query_params:
+      metrics: [companies_reporting, scope3_disclosed_share]
+      group_by:
+        - TimeDimension('metric_time', 'year')
+      order_by:
+        - TimeDimension('metric_time', 'year')
+
+  - name: public_rule_min_5_companies
+    description: >
+      Shows the publication rule. A whole-group or typical-company figure may be published only
+      for rows where its companies metric is 5 or more; the consumer must drop the other rows
+      (here the Automobiles rows of three years).
+    query_params:
+      metrics: [ghg_intensity_agg, ghg_intensity_median, companies_with_ghg_intensity]
+      group_by:
+        - Dimension('company_year__ranking_group')
+        - Dimension('company_year__fiscal_year_label')
+      order_by:
+        - Dimension('company_year__fiscal_year_label')
+        - Dimension('company_year__ranking_group')

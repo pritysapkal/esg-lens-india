@@ -19,6 +19,8 @@ Values that are the result of our own work on the filings:
 - gaps we compute (pay-equity gap, attrition gap);
 - percentiles and rankings within a peer group; peer-group medians and quartiles (also for KPIs
   whose underlying value is filed: the position is ours, the value is not shown);
+- group figures of the semantic layer (whole-group ratios, medians, shares and counts), for
+  groups of 5 companies or more;
 - the label of the denominator a company used for its filed intensity (`*_filed_basis`);
 - Disclosure Quality Scores: the total, the component scores, grade, rank, percentile, the
   provisional flag, assurance level and scope, and reason codes (not the counts behind them, and
@@ -36,6 +38,8 @@ Values that are the result of our own work on the filings:
 - **filed percentages and rates**, which are copied values too: share of wages paid to women,
   women on the board, attrition rates, LTIFR, days payable, related-party shares, MSME sourcing,
   well-being spend, POSH complaints, and the intensities as the company filed them;
+- group totals of filed values (total emissions, energy, water, waste, turnover or headcount
+  of a sector or peer group), whatever the size of the group;
 - anything that gives a filed value back by simple arithmetic: the filed-versus-computed ratios
   (ratio x our intensity = the filed intensity), a company's own KPI value in the percentile
   table, and the minimum and maximum of a peer group (each is one company's value);
@@ -53,6 +57,7 @@ Values that are the result of our own work on the filings:
 | `rpt_public_disclosure_quality` | The Disclosure Quality Score with its component scores, grade, rank, percentile and reason codes. The counts behind the components (`int_dqs_components`, `int_dqs_leadership_disclosure`: which metrics are missing, which voluntary indicators were answered, how many checks failed) stay local. |
 | `rpt_public_restatement_summary` | Restatement classes, counts and percentages. No original or restated value. |
 | `fct_peer_benchmark`, `fct_company_kpi_percentile` | Public: medians, quartiles, counts, percentiles. Not public: `min_value` / `max_value` and the percentile table's `value` column (marked `public_safe: false`). |
+| Semantic layer (`dbt/models/semantic`) | Every metric carries `meta.public_safe` from `kpi_catalogue.csv`. Sums of filed values exist only as hidden building blocks of a ratio and are never public. A group figure built on filed values (`..._agg`, `..._median`) may be published only where its companies metric is 5 or more: the layer returns every row, so **the publishing tool must drop the smaller groups** ([semantic_layer.md](semantic_layer.md), saved query `public_rule_min_5_companies`). The views `sem_*` hold raw values and stay local. |
 | Tests | `assert_public_models_safe` (dbt) fails the build if a public model gets a non-public column or a column named like a raw quantity; `tests/test_kpi_catalogue.py` checks the flags against the catalogue. |
 | Git | `data/`, Parquet and DuckDB files are never committed (`.gitignore`). |
 

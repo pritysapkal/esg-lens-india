@@ -5,8 +5,10 @@
 
 dbt/seeds/kpi_catalogue.csv is the single source of truth for the KPIs of fct_company_year and
 fct_disclosure_quality (the dqs_* rows): name, label, formula, unit, direction, whether the value
-may be published and a plain-English definition. Only the part of the page between the two
-markers is generated; the hand-written prose around it is left untouched.
+may be published and a plain-English definition. Only its company-level rows (metric_type =
+company_value) are listed here; the group metrics of the semantic layer have their own table in
+docs/semantic_layer.md (scripts/build_semantic_layer.py). Only the part of the page between the
+two markers is generated; the hand-written prose around it is left untouched.
 """
 
 from __future__ import annotations
@@ -42,7 +44,7 @@ def cell(text: str) -> str:
 
 def build_table(seed: Path = SEED) -> str:
     with seed.open(encoding="utf-8", newline="") as fh:
-        rows = list(csv.DictReader(fh))
+        rows = [row for row in csv.DictReader(fh) if row["metric_type"] == "company_value"]
     lines = [
         f"{len(rows)} KPIs, {sum(r['public_safe'] == 'true' for r in rows)} public, "
         f"{sum(r['is_benchmarked'] == 'true' for r in rows)} benchmarked against peers.",

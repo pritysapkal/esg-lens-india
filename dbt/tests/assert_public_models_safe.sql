@@ -8,6 +8,8 @@
 --  3. a public model has a column named like a raw filed quantity (..._tco2e, ..._gj, ..._kl,
 --     ..._t, turnover, headcount) or a raw restatement value / filing text.
 -- The catalogue must also describe every numeric column of the two gold tables, and nothing else.
+-- Only the company-level rows of the catalogue are meant (metric_type = 'company_value'); its
+-- other rows are group metrics of the semantic layer, checked in tests/test_semantic_layer.py.
 
 -- The column lists are read from information_schema, so tell dbt what must be built first:
 -- depends_on: {{ ref('fct_company_year') }}
@@ -58,6 +60,7 @@ catalogue as (
         model_pairs.public_model
     from {{ ref('kpi_catalogue') }} as kpi_catalogue
     left join model_pairs on kpi_catalogue.source_model = model_pairs.source_model
+    where kpi_catalogue.metric_type = 'company_value'
 )
 
 select

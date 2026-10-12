@@ -14,12 +14,28 @@ clean-targets:
   - target
   - dbt_packages
 
+# dbt also writes target/osi_document.json (Open Semantic Interchange, an export we do not use)
+# and prints one notice per hidden metric left out of it. The hidden metrics are the numerators
+# and denominators of the ratio metrics - sums of filed values that must stay hidden - so that
+# notice is silenced; every other warning still shows.
+#
+# Partial parsing is switched off: with metrics attached to models (the dbt 1.12 semantic-layer
+# spec) dbt 1.12.5 fails a partial re-parse with a false "dbt found two metrics with the name ..."
+# error, for example when ESG_DATA_DIR is set in one run and not in the next. A full parse on
+# every run costs about 20 seconds and is always right.
+flags:
+  partial_parse: false
+  warn_error_options:
+    silence:
+      - MFConverterIssue
+
 vars:
   # required by dbt_date (dependency of dbt_expectations)
   "dbt_date:time_zone": "Asia/Kolkata"
 
 # Tags (see selectors.yml): core = the pipeline every report needs; quality = data-quality lists;
-# restatement, benchmark, public, dqs = optional gold families built on top of core.
+# restatement, benchmark, public, dqs = optional gold families built on top of core;
+# semantic = the views and time spine of the semantic layer (MetricFlow), on top of gold.
 models:
   esg_lens:
     staging:
@@ -65,6 +81,11 @@ models:
         +tags: [dqs]
       rpt_public_disclosure_quality:
         +tags: [dqs, public]
+    semantic:
+      +materialized: view
+      +tags: [semantic]
+      time_spine_day:
+        +materialized: table
   elementary:
     +schema: elementary
 
@@ -86,6 +107,8 @@ seeds:
         is_benchmarked: boolean
         definition_plain: varchar
         source_model: varchar
+        metric_type: varchar
+        companies_metric: varchar
     dqs_weights:
       +column_types:
         component: varchar

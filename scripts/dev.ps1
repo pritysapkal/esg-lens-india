@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'app')]
+    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'app')]
     [string]$Task = 'help'
 )
 
@@ -37,7 +37,7 @@ Push-Location $Root
 try {
     switch ($Task) {
         'help' {
-            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|app>'
+            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|app>'
         }
         'setup' {
             if (-not (Test-Path $Py)) { Invoke-Step 'py' @('-3.12', '-m', 'venv', $Venv) }
@@ -91,6 +91,17 @@ try {
             try {
                 Invoke-Step $Dbt @('docs', 'generate', '--profiles-dir', '.')
                 Invoke-Step $Dbt @('docs', 'serve', '--profiles-dir', '.')
+            } finally { Pop-Location }
+        }
+        'semantic' {
+            # Regenerate the semantic layer from kpi_catalogue.csv and validate it with MetricFlow.
+            Assert-Venv
+            $env:PYTHONUTF8 = '1'  # the mf command prints symbols a Windows console cannot encode
+            Invoke-Step $Py @('scripts/build_semantic_layer.py')
+            Push-Location $DbtDir
+            try {
+                Invoke-Step $Dbt @('parse', '--profiles-dir', '.')
+                Invoke-Step (Join-Path $Venv 'Scripts\mf.exe') @('validate-configs')
             } finally { Pop-Location }
         }
         'app' {
