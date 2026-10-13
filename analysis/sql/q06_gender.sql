@@ -10,7 +10,9 @@
 --                    gap, because wages in rupees are not filed and a ratio of sums is not
 --                    possible. Trend on a balanced panel: companies with the figure in every
 --                    year it exists and no comparability break. The wage share is filed from
---                    FY2023-24, so the gap has one year less than the workforce share.
+--                    FY2023-24, so the gap has one year less than the workforce share. Each
+--                    company's gap is then sorted into moved closer to zero, moved away from
+--                    zero, or unchanged (a move of 0.5 percentage points or less).
 -- SQL techniques     Two balanced panels built with HAVING, UNION ALL of panels, ratio of sums,
 --                    MEDIAN, FULL OUTER JOIN of two measures with different coverage, named
 --                    WINDOW with FIRST_VALUE and LAG.
@@ -197,10 +199,12 @@ select
     count(*) as n_companies,
     case when count(*) >= 5 then round(median(gap_first), 1) end as gap_median_first_year_pp,
     case when count(*) >= 5 then round(median(gap_latest), 1) end as gap_median_latest_year_pp,
-    -- a gap is narrower when it is closer to zero
-    count(*) filter (where abs(gap_latest) < abs(gap_first)) as n_companies_gap_narrower,
-    round(100.0 * count(*) filter (where abs(gap_latest) < abs(gap_first)) / count(*), 1)
-        as share_gap_narrower_pct
+    -- a gap is narrower when it is closer to zero (a move of 0.5 points or less is no move)
+    count(*) filter (where abs(gap_latest) - abs(gap_first) < -0.5) as n_moved_closer_to_zero,
+    count(*) filter (where abs(gap_latest) - abs(gap_first) > 0.5) as n_moved_away_from_zero,
+    count(*) filter (where abs(abs(gap_latest) - abs(gap_first)) <= 0.5) as n_unchanged,
+    round(100.0 * count(*) filter (where abs(gap_latest) - abs(gap_first) < -0.5) / count(*), 1)
+        as share_moved_closer_pct
 from with_total
 group by sector_group
 order by sector_group;

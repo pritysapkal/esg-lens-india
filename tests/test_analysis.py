@@ -186,7 +186,7 @@ def _disclosure_quality(company_years: pd.DataFrame) -> pd.DataFrame:
 
 def _restatements(company_years: pd.DataFrame) -> pd.DataFrame:
     rows = []
-    metrics = ["ghg_scope1_tco2e", "water_consumption_kl", "attrition_rate_pct", "ltifr"]
+    metrics = ["ghg_scope1_tco2e", "ghg_scope2_tco2e", "water_consumption_kl", "ltifr"]
     observable = company_years[company_years["fiscal_year_label"] != YEARS[-1]]
     for index, row in observable.reset_index(drop=True).iterrows():
         for m, metric in enumerate(metrics):
@@ -319,6 +319,34 @@ def test_group_statistics_respect_the_five_company_rule(synthetic_results):
         small_groups_seen += len(small)
         assert small[statistic].isna().all(), result_id
     assert small_groups_seen > 0, "the synthetic data should contain groups below 5 companies"
+
+
+def test_q3_ranks_only_pairs_confirmed_by_a_later_report(synthetic_results):
+    frame = synthetic_results["q03_ghg_leaders_laggards__yoy_changes_with_confidence"]
+    ranked = frame[frame["is_ranked"]]
+    assert len(ranked) > 0 and set(ranked["confidence"]) == {"confirmed"}
+    assert (ranked["n_companies_compared"] >= 5).all()
+    unranked = frame[~frame["is_ranked"]]
+    assert unranked["improvement_rank_in_group"].isna().all()
+    assert unranked["improvement_rank_overall"].isna().all()
+    # the latest year has no later report: every pair that ends there is provisional
+    latest = frame["to_year"].max()
+    at_the_end = frame[frame["to_year"] == latest]
+    assert set(at_the_end["confidence"]) <= {"provisional", "one_year_reversal"}
+    assert "one_year_reversal" in set(frame["confidence"])  # the spike planted in the fixture
+
+
+def test_q5_sets_implausible_changes_aside(synthetic_results):
+    frame = synthetic_results["q05_decoupling__decoupling_by_company"]
+    review = frame[frame["decoupling_class"] == "needs_review"]
+    assert len(review) > 0 and review["review_reason"].notna().all()
+    assert frame[frame["decoupling_class"] != "needs_review"]["review_reason"].isna().all()
+    plausible = frame[frame["decoupling_class"] != "needs_review"]
+    assert plausible["turnover_change_pct"].between(-50, 100).all()
+    assert plausible["emissions_change_pct"].between(-50, 100).all()
+    by_group = synthetic_results["q05_decoupling__decoupling_by_sector_group"]
+    total = by_group[by_group["sector_group"] == "All sector groups"]
+    assert total["n_companies"].sum() == total["n_companies_before_screen"].sum() == len(frame)
 
 
 def test_no_query_averages_company_ratios_into_a_group_intensity():

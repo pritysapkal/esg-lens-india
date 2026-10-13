@@ -14,10 +14,10 @@
 -- SQL techniques     Scalar subquery for the year, MEDIAN as a window function, CASE quadrants,
 --                    cross-tabulation with COUNT FILTER, share of total with SUM OVER, UNION ALL
 --                    total row.
--- Caveats            DESCRIPTIVE ONLY. A count in a quadrant says the two things are
---                    "associated with" each other in this small sample; it does not say that one
---                    causes the other, and with 34 companies a few of them moving would
---                    change the picture. Week 11 tests the relationship properly. A company
+-- Caveats            DESCRIPTIVE ONLY. The most this split can say is whether an association
+--                    is visible in it or not; it cannot show that there is none, and it says
+--                    nothing about cause. With 34 companies a few of them changing side would
+--                    change the picture. The relationship is tested formally in Week 11. A company
 --                    exactly on the group median counts as "at or above".
 
 -- result: quadrants_overall

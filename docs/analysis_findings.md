@@ -33,16 +33,19 @@ Run it yourself: `.\scripts\dev.ps1 analysis` writes every result to `data/proce
    of the figures that can be checked against the next report were changed materially (14.1%,
    then 5.7%, then 4.0% by year). Of those with a direction, 47.7% make the trend look better -
    a coin toss, not a pattern (Q9).
-4. **A third of companies grew while cutting emissions.** On the balanced panel, 14 of 38
-   companies (36.8%) raised turnover and lowered absolute Scope 1+2 emissions; another 11 only
-   lowered emissions per rupee; 8 did neither (Q5).
-5. **Good disclosure is not associated with a lower carbon intensity.** Among 34 ranked
-   companies, 47% sit on the "same side" (better on both, or worse on both) - what chance
-   alone would give. A well-made report says the numbers can be trusted, not that they are good
-   (Q10).
+4. **At least a quarter of companies grew while cutting emissions.** On the balanced panel, 9
+   of 38 companies (23.7%) raised turnover and lowered absolute Scope 1+2 emissions, and 9 more
+   only lowered emissions per rupee. Another 10 are set aside because their changes are too
+   large to accept unread; without that screen the count would have been 14 (Q5).
+5. **The biggest year-on-year moves are data problems, not performance.** Every change in GHG
+   intensity beyond a factor of two traced back to a first-year unit, a scale slip, a one-year
+   reversal or an unconfirmed latest-year figure. Among moves a later report confirms, the
+   largest improvement is 40% and the largest deterioration 22% (Q3).
 
-Two more that matter: the pay-equity gap is **not** narrowing (Q6), and eleven companies report
-a work-related death in every one of the four years (Q12).
+Three more that matter: the pay-equity gap is **not** narrowing - 8 companies moved closer to
+zero, 11 away, 17 did not move (Q6); eleven companies report a work-related death in every one of
+the four years (Q12); and a simple split shows no visible association between disclosure quality
+and carbon intensity, which Week 11 tests formally (Q10).
 
 ## SQL techniques used
 
@@ -54,7 +57,8 @@ a work-related death in every one of the four years (Q12).
 | Balanced panel with `HAVING` on per-company counts and `BOOL_OR` | Q1, Q5, Q6 |
 | `SEMI JOIN` / `ANTI JOIN` | Q1, Q3 |
 | Window functions: `ROW_NUMBER`, `RANK`, running total with an explicit frame | Q2, Q3, Q8, Q9 |
-| `LAG` / `LEAD` over a named `WINDOW` | Q3, Q4, Q6, Q8 |
+| `LAG` / `LEAD` over a named `WINDOW` | Q3, Q4, Q5, Q6, Q8 |
+| Confidence label and plausibility screen with a prioritised `CASE`, `BOOL_OR`, conditional rank | Q3, Q5 |
 | `FIRST_VALUE` for change against the first year | Q1, Q6 |
 | `QUALIFY` to filter on a window function | Q2, Q3, Q4, Q8, Q9 |
 | `PIVOT` (years to columns) and conditional pivot with `MAX(CASE ...)` | Q7; Q1, Q5, Q6 |
@@ -122,25 +126,81 @@ SQL: [q02_emission_concentration.sql](../analysis/sql/q02_emission_concentration
 ### Q3. Who moved most on GHG intensity in one year?
 
 **Question.** Within each ranking group, which company had the largest year-on-year improvement
-and the largest deterioration in GHG intensity, comparability breaks and suspected errors
-excluded?
+and the largest deterioration in GHG intensity - counting only moves that a later report
+confirms?
 
-**Answer.** Largest improvements: BEL -74.2% (Asset-heavy), Wipro -52.9% (IT services), Eternal
--48.3% (Consumer), Cipla -21.5% (Healthcare), all from FY2024-25 to FY2025-26. Largest
-deteriorations: Tata Consumer +278.7% (Consumer) and Adani Enterprises +62.2% (Asset-heavy),
-both from FY2022-23 to FY2023-24; Max Healthcare +3.5% (Healthcare). Two one-year spikes were
-set aside (a value 44 times and one 4.6 times its neighbours, both back to normal a year later).
+**Answer.** Each year-on-year pair gets a confidence label. Only **confirmed** pairs are ranked:
+for both years the next report repeats Scope 1 and Scope 2 unchanged, and no unit was inferred.
+That leaves 20 ranked pairs in three ranking groups (of 99 pairs in all).
 
-**So what.** The extreme moves sit at the two ends of the window - the first year, where units
-were partly inferred, and the latest year, which no later report can confirm yet. They are a
-reading list, not a league table: the right next step for each is to open the report. Where
-the data is steadier (Healthcare, once its spike is set aside) the largest deterioration is
-3.5%.
+| Confirmed pairs only | Company | Ranking group | Years | Intensity (tCO2e per Rs crore) | Change |
+|---|---|---|---|---|---|
+| Largest improvement | Hindustan Unilever | Consumer | FY2023-24 to FY2024-25 | 0.24 to 0.15 | -40.3% |
+| 2nd | Dr. Reddy's | Healthcare | FY2023-24 to FY2024-25 | 15.61 to 10.27 | -34.2% |
+| 3rd | BEL | Asset-heavy | FY2023-24 to FY2024-25 | 1.74 to 1.18 | -32.3% |
+| Largest deterioration | Asian Paints | Consumer | FY2023-24 to FY2024-25 | 3.16 to 3.86 | +22.2% |
+| 2nd | UltraTech Cement | Asset-heavy | FY2023-24 to FY2024-25 | 1,047 to 1,171 | +11.8% |
+| 3rd | JSW Steel | Asset-heavy | FY2023-24 to FY2024-25 | 398 to 436 | +9.5% |
 
-**Caveat.** The spike screen (a year more than 3 times above or below both neighbours) is a rule
-of this analysis, not of the warehouse, and it cannot test a company's first or latest year.
-Financials are not ranked on GHG intensity (not material). A turnover swing moves intensity
-without any change in emissions.
+Within each ranked group: Asset-heavy BEL (-32.3%) and UltraTech Cement (+11.8%); Consumer
+Hindustan Unilever (-40.3%) and Asian Paints (+22.2%); Healthcare Dr. Reddy's (-34.2%), where no
+confirmed pair got worse (the smallest improvement is Sun Pharma, -0.9%).
+
+**Unconfirmed - not ranked.** The 79 other pairs, by reason: 36 provisional (they end in
+FY2025-26, which no later report confirms yet), 24 with an inferred unit (FY2022-23 emissions
+unit not filed, taken from the next report), 7 restated later, 4 one-year reversals, and 8
+confirmed pairs in a group with fewer than 5 comparable companies that year. The larger ones
+(beyond 30% either way):
+
+| Company | Years | Change | Why it is not ranked |
+|---|---|---|---|
+| Apollo Hospitals | FY2022-23 to FY2023-24, and back | +359.0%, then -86.9% | one-year reversal |
+| Tata Consumer | FY2022-23 to FY2023-24 | +278.7% | inferred unit |
+| Eicher Motors | FY2023-24 to FY2024-25, and back | -56.0%, then +200.1% | one-year reversal |
+| BEL | FY2024-25 to FY2025-26 | -74.2% | provisional |
+| Trent | FY2022-23 to FY2023-24 | +68.3% | restated later |
+| Adani Enterprises | FY2022-23 to FY2023-24 | +62.2% | inferred unit |
+| Cipla | FY2022-23 to FY2023-24 | +57.0% | inferred unit |
+| Wipro | FY2024-25 to FY2025-26 | -52.9% | provisional |
+| Adani Enterprises | FY2023-24 to FY2024-25 | +51.5% | restated later |
+| Bharti Airtel | FY2024-25 to FY2025-26 | -48.7% | provisional |
+| Eternal | FY2024-25 to FY2025-26 | -48.3% | provisional |
+| Titan | FY2024-25 to FY2025-26 | -41.5% | provisional |
+| Coal India | FY2023-24 to FY2024-25 | +36.5% | confirmed, but only 3 comparable companies in the group |
+| TCS | FY2022-23 to FY2023-24 | -35.2% | inferred unit |
+| Adani Enterprises | FY2024-25 to FY2025-26 | -33.7% | provisional |
+| HCLTech | FY2023-24 to FY2024-25 | -31.4% | confirmed, but only 4 comparable companies in the group |
+
+**What is behind the moves beyond a factor of two.** Each was looked up in the filed data
+(unit, scale, boundary, corporate event, restatement). None of them is a confirmed real change.
+
+| Company, year | Move | What the data shows | Verdict |
+|---|---|---|---|
+| Tata Consumer, FY2022-23 to FY2023-24 | x 3.8 | The FY2022-23 emissions unit was not filed and was inferred. Scope 1 is almost exactly 10 times lower than a year later (x 9.99); energy per rupee also triples in the same step and the renewable share starts at 0%. Same reporting boundary, no corporate event that year. The level then stays where it is for three years. | Data issue in the first-year filing (unit or coverage), not a tripling. Not ranked. |
+| Apollo Hospitals, FY2023-24 | x 4.6, then back | Scope 1 is 91 times the year before and falls back to a fiftieth the year after; energy per rupee does the same. The next report repeats the high figure as its comparative, which is why the warehouse's scale-error rule (it compares the two reports) does not see it. | Scale slip in the FY2023-24 filing. Not ranked. |
+| Eicher Motors, FY2024-25 | halved, then x 3.0 | Scope 2 falls to 27% and is 7.2 times higher a year later, while energy per rupee is flat in all three years. | Scope 2 of one year is filed on another basis or is wrong. Not ranked. |
+| BEL, FY2025-26 | -74% | Scope 2 is filed as zero while about a tenth of the energy is still non-renewable. | Unconfirmed: a zero or a market-based claim. Provisional, not ranked. |
+| Wipro, FY2025-26 | -53% | Scope 2 falls to a third as the renewable share rises from 79% to 89%. | Direction plausible, size unconfirmed. Provisional, not ranked. |
+| Bajaj Finserv, three years | x 44, then back, then x 9 | Emissions are steady; turnover is filed on a different scale in different years. | Turnover scale problem. Financials are not ranked on GHG. |
+| SBI Life, FY2022-23 to FY2023-24 | x 3.0 | First-year unit read from a text field with a gram conversion; Scope 1 jumps 31-fold. | Unit issue in the first-year filing. Not ranked (Financials). |
+| Shriram Finance, FY2022-23 to FY2023-24 | -64% | Merger in FY2022-23; the next report restates Scope 1 to less than a tenth. | Corporate event plus restatement. Not ranked (Financials). |
+| Jio Financial, BSE, FY2025-26 | -70%, -54% | First years after a demerger; a year of very fast revenue growth. | Provisional. Not ranked (Financials). |
+
+**So what.** Once only confirmed pairs are ranked, the picture is calm: the largest confirmed
+improvement is 40% and the largest confirmed deterioration 22%. Every move beyond a factor of
+two turned out to be a first-year unit, a scale slip, a one-year reversal or a figure nobody has
+confirmed yet. A league table of raw year-on-year changes would have named the companies with
+the worst data, not the best or worst performers.
+
+**Caveat.** "Confirmed" means the company repeated the figure a year later, not that the figure
+is right; turnover has no comparative in the filings and cannot be confirmed this way. The
+largest confirmed improver is itself set aside in Q5, because its emissions fell by more than
+half over the three years: confirmed twice by the company, and still worth reading. The
+ranking can only cover FY2022-23 to FY2024-25, and mostly its second half. The reversal screen
+(a year more than twice, or less than half of, both neighbours) is a rule of this analysis and
+cannot test a company's first or latest year. Financials are not ranked on GHG intensity; IT
+services, Energy & utilities and Automobiles had fewer than 5 comparable companies. A turnover
+swing moves intensity without any change in emissions.
 
 SQL: [q03_ghg_leaders_laggards.sql](../analysis/sql/q03_ghg_leaders_laggards.sql)
 
@@ -173,19 +233,34 @@ SQL: [q04_renewable_share.sql](../analysis/sql/q04_renewable_share.sql)
 **Question.** Between FY2022-23 and FY2025-26, which companies raised turnover and cut absolute
 Scope 1+2 emissions (absolute decoupling), and which only cut emissions per rupee (relative)?
 
-**Answer.** Of the 38 companies in the balanced panel: 14 absolute decoupling (36.8%), 11
-relative decoupling (28.9%), 8 no decoupling (21.1%), 5 with falling turnover (13.2%). Absolute
-decoupling by sector group: Asset-light 6 of 13, Financials 4 of 10, Asset-heavy 4 of 15.
+**Answer.** Of the 38 companies in the balanced panel, 10 are set aside as **needs review**:
+their turnover or emissions changed by more than -50% or +100% with no recorded corporate event,
+or have a one-year reversal. Of the other 28: 9 absolute decoupling, 9 relative decoupling, 6 no
+decoupling, 4 with falling turnover.
 
-**So what.** Two thirds of the companies can show a falling intensity, but only one third a
-falling footprint. Relative decoupling is what a growing company gets almost for free; absolute
-decoupling is what the climate notices. In heavy industry it is the exception (4 of 15), and the
-companies outside the panel are the largest emitters.
+| Class | Before the screen | After the screen |
+|---|---|---|
+| Absolute decoupling | 14 (36.8%) | 9 (23.7%) |
+| Relative decoupling | 11 | 9 |
+| No decoupling | 8 | 6 |
+| Turnover fell | 5 | 4 |
+| Needs review | - | 10 (26.3%) |
 
-**Caveat.** Turnover is in current rupees, so part of all "growth" is inflation and decoupling
-looks easier than it is. Only two end points are compared: one odd year at either end decides
-the class, and a few changes in the panel are implausibly large (they look like filing
-differences, not business changes). Scope 1+2 only.
+Absolute decoupling after the screen, by sector group: Asset-heavy 3 of 15, Asset-light 3 of 13,
+Financials 3 of 10. Five of the 14 companies first counted as absolute decouplers are among those
+set aside: four because their emissions fell by more than half, one for a one-year reversal.
+
+**So what.** A safe statement is "at least 9 of 38 companies (about a quarter) grew while
+cutting emissions"; the 14 of the unscreened count leaned on the least believable changes. Even
+among the plausible cases, as many companies only lowered emissions per rupee as lowered
+emissions. Relative decoupling is what a growing company gets almost for free; absolute
+decoupling is what the climate notices - and in heavy industry it is 3 of 15, with the largest
+emitters outside the panel.
+
+**Caveat.** "Needs review" is not "wrong": a company can really halve its emissions or double
+its turnover in three years, and the thresholds are a rule of this analysis. The screened count
+is a floor, not an estimate. Turnover is in current rupees, so part of all "growth" is inflation.
+Only two end points are compared. Scope 1+2 only.
 
 SQL: [q05_decoupling.sql](../analysis/sql/q05_decoupling.sql)
 
@@ -198,9 +273,18 @@ group, and is the gap narrowing on a balanced panel?
 7.0%, Asset-light 32.4% to 33.3%, Financials 23.4% to 23.2%. Pay-equity gap (women's share of
 wages minus their share of headcount), typical company on the balanced panel, FY2023-24 to
 FY2025-26: Asset-light -2.7 to -6.3 points, Financials -4.9 to -5.6, Asset-heavy +0.9 to +1.0;
-all 36 companies -2.2 to -2.3. The gap moved closer to zero at 12 of 36 companies (33.3%).
+all 36 companies -2.2 to -2.3. Company by company (a move of 0.5 points or less counts as
+unchanged):
 
-**So what.** The gap is **not narrowing**; in Asset-light it more than doubled. Where women are
+| Sector group | Companies | Gap moved closer to zero | Moved away from zero | Unchanged |
+|---|---|---|---|---|
+| All | 36 | 8 | 11 | 17 |
+| Asset-heavy | 14 | 3 | 4 | 7 |
+| Asset-light | 12 | 2 | 3 | 7 |
+| Financials | 10 | 3 | 4 | 3 |
+
+**So what.** The gap is **not narrowing**: at about half the companies it did not move, and
+among those where it did, more moved away from zero (11) than towards it (8). Where women are
 a third of the workforce they receive a clearly smaller slice of the wage bill, which points to
 where in the hierarchy they work. In heavy industry the gap is near zero, but there women are
 about one in fourteen - a small, probably more office-based group. Headcount share alone would have
@@ -208,7 +292,9 @@ told a mildly positive story; the wage share turns it around.
 
 **Caveat.** The gap mixes how many women are employed with which roles they hold; it is not
 "equal pay for equal work". The wage share exists only from FY2023-24: three years, two steps.
-Medians of 10 to 14 companies move when one company moves.
+Medians of 10 to 14 companies move when one company moves: the Asset-light median fell from
+-2.7 to -6.3 although only 3 of its 12 companies moved away from zero, so read the counts, not
+the median.
 
 SQL: [q06_gender.sql](../analysis/sql/q06_gender.sql)
 
@@ -292,15 +378,14 @@ or below the group median) by GHG intensity (better or worse half)?
 intensity, 9 with better disclosure and higher intensity, 9 with weaker disclosure and lower
 intensity, 6 with weaker disclosure and higher intensity. 47.1% sit on the same side on both.
 
-**So what.** In this sample disclosure quality is **not associated with** carbon intensity:
-knowing that a company reports well tells you nothing about whether it emits little for its
-size. That is what the score is designed to be - a measure of how far the numbers can be
-trusted - and it is a warning against using reporting quality as a stand-in for performance.
+**So what.** No visible association in this descriptive split; tested formally in Week 11.
+Until then the practical reading is a cautious one: the score is built to say how far the
+numbers can be trusted, and this split gives no reason to use it as a stand-in for performance.
 
 **Caveat.** Descriptive only: 34 companies, one year, a two-by-two table; two or three companies
-changing side would change the picture. No causal claim is made in either direction. Financials
-are not ranked on GHG intensity and Automobiles had fewer than 5 companies that year. Week 11
-tests the relationship properly.
+changing side would change the picture. A split like this cannot show that there is no
+relationship, and no causal claim is made in either direction. Financials are not ranked on GHG
+intensity and Automobiles had fewer than 5 companies that year.
 
 SQL: [q10_dqs_vs_performance.sql](../analysis/sql/q10_dqs_vs_performance.sql)
 
@@ -323,7 +408,8 @@ with", not as "clean".
 **Caveat.** No financial company can qualify (the six KPIs are not ranked there); IT services
 are ranked on three only. Groups have 5 to 11 companies, so "top quartile" can mean first or
 second of five. One leader files almost none of the voluntary indicators (Q8's score sees
-that); one owes part of its place to a 74% one-year fall that no later report confirms yet (Q3).
+that); one owes part of its place to a 74% one-year fall that is provisional and rests on a
+Scope 2 figure filed as zero (Q3).
 
 SQL: [q11_environmental_leaders.sql](../analysis/sql/q11_environmental_leaders.sql)
 
@@ -355,8 +441,11 @@ SQL: [q12_safety.sql](../analysis/sql/q12_safety.sql)
   (Q4) exist for five groups only; rankings fall back to the sector group there.
 - **Pay equity.** Three years and 10 to 14 companies per sector group (Q6).
 - **Disclosure against performance.** 34 companies in one year (Q10).
-- **Year-on-year moves.** The first and the latest year cannot be screened for one-year spikes
-  (Q3), and the largest moves are exactly there.
+- **Year-on-year moves.** Only 20 of 99 pairs are confirmed by a later report and in a group
+  with 5 comparable companies (Q3); the first and the latest year cannot be confirmed or
+  screened at all, and the largest moves are exactly there.
+- **Decoupling.** 10 of 38 panel companies need a look at the report before they can be
+  classed (Q5).
 - **Restatements of the latest year** are not observable yet (Q9).
 
 ## How these numbers are checked
