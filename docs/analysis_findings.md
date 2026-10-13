@@ -45,7 +45,8 @@ Run it yourself: `.\scripts\dev.ps1 analysis` writes every result to `data/proce
 Three more that matter: the pay-equity gap is **not** narrowing - 8 companies moved closer to
 zero, 11 away, 17 did not move (Q6); eleven companies report a work-related death in every one of
 the four years (Q12); and a simple split shows no visible association between disclosure quality
-and carbon intensity, which Week 11 tests formally (Q10).
+and carbon intensity - the formal test of Week 11 finds none either, but is too small to rule
+one out (Q10).
 
 ## SQL techniques used
 
@@ -379,8 +380,16 @@ intensity, 9 with better disclosure and higher intensity, 9 with weaker disclosu
 intensity, 6 with weaker disclosure and higher intensity. 47.1% sit on the same side on both.
 
 **So what.** No visible association in this descriptive split; tested formally in Week 11.
-Until then the practical reading is a cautious one: the score is built to say how far the
-numbers can be trusted, and this split gives no reason to use it as a stand-in for performance.
+The practical reading is a cautious one: the score is built to say how far the numbers can be
+trusted, and nothing here gives a reason to use it as a stand-in for performance.
+
+**Formal result (Week 11, Study 1).** Rank correlation between the score and GHG intensity
+inside ranking groups, pooled: **rho = -0.02**, 95% interval -0.53 to +0.47, p = 0.93 (24
+companies in 4 ranking groups, FY2024-25, confirmed figures only; stratified permutation
+test). The null hypothesis of no association is not rejected. The test could only have found a
+correlation of 0.68 or more, so this is "cannot tell", not "there is none". Including the
+unconfirmed companies (34) gives +0.19, p = 0.30. Details:
+[stats_findings.md](stats_findings.md).
 
 **Caveat.** Descriptive only: 34 companies, one year, a two-by-two table; two or three companies
 changing side would change the picture. A split like this cannot show that there is no
@@ -440,7 +449,8 @@ SQL: [q12_safety.sql](../analysis/sql/q12_safety.sql)
 - **Peer groups.** Four of nine peer groups have fewer than 5 companies, so peer-group figures
   (Q4) exist for five groups only; rankings fall back to the sector group there.
 - **Pay equity.** Three years and 10 to 14 companies per sector group (Q6).
-- **Disclosure against performance.** 34 companies in one year (Q10).
+- **Disclosure against performance.** 34 companies in one year (Q10); 24 once only confirmed
+  figures count, too few to find anything but a very strong association.
 - **Year-on-year moves.** Only 20 of 99 pairs are confirmed by a later report and in a group
   with 5 comparable companies (Q3); the first and the latest year cannot be confirmed or
   screened at all, and the largest moves are exactly there.

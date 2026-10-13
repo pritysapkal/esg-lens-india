@@ -222,9 +222,8 @@ def _contract_columns() -> dict[str, dict[str, str]]:
     }
 
 
-def build_synthetic_gold(con: duckdb.DuckDBPyConnection) -> None:
-    """Create the gold tables the analysis reads, with the real column names and types (from
-    the dbt contracts in _marts.yml) and made-up rows. No real company, no filed value."""
+def synthetic_frames() -> dict[str, pd.DataFrame]:
+    """Made-up rows for the gold tables the analysis reads. No real company, no filed value."""
     company_years = _company_years()
     companies = company_years.drop_duplicates("isin")[
         ["isin", "display_name", "peer_group", "sector_group", "ranking_group", "ownership_type"]
@@ -242,7 +241,7 @@ def build_synthetic_gold(con: duckdb.DuckDBPyConnection) -> None:
             }
         ]
     )
-    frames = {
+    return {
         "dim_company": companies,
         "fct_company_year": company_years,
         "fct_esg_value": esg_values,
@@ -250,6 +249,14 @@ def build_synthetic_gold(con: duckdb.DuckDBPyConnection) -> None:
         "fct_disclosure_quality": _disclosure_quality(company_years),
         "fct_restatement": _restatements(company_years),
     }
+
+
+def build_synthetic_gold(
+    con: duckdb.DuckDBPyConnection, frames: dict[str, pd.DataFrame] | None = None
+) -> None:
+    """Create the gold tables with the real column names and types (from the dbt contracts in
+    _marts.yml) and the made-up rows of `frames` (default: `synthetic_frames`)."""
+    frames = frames or synthetic_frames()
     contracts = _contract_columns()
     assert set(contracts) == set(GOLD_TABLES)
     for table, columns in contracts.items():

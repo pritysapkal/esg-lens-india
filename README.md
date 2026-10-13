@@ -77,16 +77,16 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Week 8 - Disclosure Quality Score | `dbt/models/marts/fct_disclosure_quality.sql`, `dbt/seeds/dqs_*.csv`, `dbt/seeds/leadership_indicator_map.csv` | ✅ Done - one score 0-100 per company-year from completeness (0.30: half mandatory metrics, half voluntary Leadership indicators), internal consistency (0.30), temporal consistency (0.20) and assurance (0.20: Core assurance is compliance, whole-report assurance earns the rest), re-weighted when a part cannot be tested; grade, rank in group and year, reason codes, public model. Version 2, 196 scores: median 85.0, 98 grade A, 90 B, 7 C (version 1: 187 A, 75 at exactly 100). Ranking barely moves with equal weights (Spearman 0.99). Compare within a year only. Not an ESG rating ([method](docs/disclosure_quality_score.md)) |
 | Week 9 - Semantic layer | `dbt/models/semantic/`, `scripts/build_semantic_layer.py` | ✅ Done - 29 group metrics in MetricFlow (dbt-metricflow 0.15.0 on DuckDB, dbt 1.12 YAML spec), generated from `kpi_catalogue.csv`: whole-group ratios of sums (`_agg`), typical-company medians (`_median`), Disclosure Quality, restatement and coverage metrics; never an average of company ratios. 8 saved queries; `mf validate-configs` clean; `mf query` equals plain SQL on the gold tables within 1e-9 (102 values). Public tools read `rpt_public_group_metrics`, generated from the same definitions, where a statistic is empty below 5 companies (equal to `mf query` in all 2,562 shown cells). Databricks not done ([guide](docs/semantic_layer.md)) |
 | Week 10 - SQL business analysis | `analysis/sql/`, `scripts/run_analysis.py` | ✅ Done - 12 business questions in SQL on the gold tables (window functions, QUALIFY, PIVOT, GROUPING SETS, balanced panels), each with answer, insight and caveat. Five companies hold 85% of Scope 1+2 emissions; the 15% fall in heavy-industry intensity turns into +3.7% on a like-for-like panel; 6.7% of comparable figures are restated materially and 47.7% of those flatter the trend (a coin toss); at least 9 of 38 companies grew while cutting emissions (10 more need review); every year-on-year intensity move beyond a factor of two is a data issue, and only moves confirmed by a later report are ranked. Q1 and Q8 equal `mf query` (48 figures). Findings use derived values only ([findings](docs/analysis_findings.md)) |
+| Week 11 - Statistics studies | `analysis/stats/` | ✅ Done - five studies fixed in advance ([hypotheses](docs/stats_hypotheses.md), committed before any result): stratified permutation, Wilcoxon signed-rank, exact binomial, Fisher's exact and a stratified Mann-Whitney comparison, with company-level bootstrap and permutation, Benjamini-Hochberg over 8 primary tests and a minimum detectable effect for each. Restatements do not flatter trends (47.7%, interval 41.5% to 54.0%, well powered); the typical company's carbon intensity fell 9% in the one confirmed year (p = 0.015 alone, 0.12 after correction); no association between disclosure quality and carbon intensity, but too few companies to rule one out. Methods checked on made-up data (power 79.5% to 97%, false alarms 2.4% to 6.6%) ([findings](docs/stats_findings.md)) |
 
-Weeks 1-10 and the hardening step are done; details and commit hashes are in
+Weeks 1-11 and the hardening step are done; details and commit hashes are in
 [docs/project_plan.md](docs/project_plan.md).
 
 ### Roadmap
 
 | Week | Goal | Status |
 |---|---|---|
-| 11 | Statistics studies | 🔲 Next |
-| 12 | Power BI and Excel: full local version + public version from `rpt_public_*` | 🔲 |
+| 12 | Power BI and Excel: full local version + public version from `rpt_public_*` | 🔲 Next |
 | 13 | Airflow (watches the inbox, never downloads), Streamlit report card (reads `rpt_public_*` only), AI analyst | 🟡 Streamlit placeholder page |
 | 14 | Insight report, README polish, 3-minute demo video | 🔲 |
 
@@ -113,7 +113,7 @@ dbt seed  --profiles-dir .
 cd ..
 ```
 
-Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|load|dbt-build|dbt-docs|app`
+Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|app`
 (Linux/CI: `make <target>`). To add filings, see [docs/how_to_add_filings.md](docs/how_to_add_filings.md).
 
 > dbt always runs from `dbt/` with `--profiles-dir .` - the profile lives in the repo, not in `~/.dbt`.

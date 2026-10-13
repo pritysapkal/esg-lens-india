@@ -1,6 +1,6 @@
 # Project plan (current)
 
-The plan as it stands on 2026-10-13, after ten weeks of work. It replaces the original blueprint
+The plan as it stands on 2026-10-13, after eleven weeks of work. It replaces the original blueprint
 wherever the two differ. Plain English on purpose.
 
 ## a) What changed from the original blueprint, and why
@@ -36,6 +36,7 @@ wherever the two differ. Plain English on purpose.
 | Week 8 | Disclosure Quality Score | One score 0-100 per company-year from four visible parts, with grade, rank in group and year, reason codes, a public model and a weight sensitivity check; then version 2: voluntary depth (Leadership indicators read from the taxonomy), beyond-compliance assurance, a grade only with three components, provisional flag for the latest year ([method](disclosure_quality_score.md)) | `cda7200`, "feat: DQS v2" |
 | Week 9 | Semantic layer | 29 group metrics in MetricFlow, generated from the KPI catalogue; 4 semantic models, a time spine, 8 saved queries; `mf query` equals plain SQL on the gold tables within 1e-9. Public table `rpt_public_group_metrics` from the same definitions, with statistics withheld below 5 companies, equal to `mf query` in all 2,562 shown cells ([guide](semantic_layer.md)) | `e2d0c2f`, "feat: public group metrics with min-5 suppression" |
 | Week 10 | SQL business analysis | Twelve business questions in SQL on the gold tables (`analysis/sql/`), each with answer, insight and caveat; balanced panels, ratio of sums and medians, the 5-company rule; confidence labels and plausibility screens before any company is named; Q1 and Q8 equal to `mf query`; findings with derived values only ([findings](analysis_findings.md)) | `3811b25`, "fix: Week 10 confidence screens and wording" |
+| Week 11 | Statistics studies | Five studies, written down before any result was computed ([hypotheses](stats_hypotheses.md)): Spearman with a stratified permutation, Wilcoxon signed-rank, exact binomial, Fisher's exact, a stratified Mann-Whitney comparison; company-level bootstrap and permutation, Benjamini-Hochberg over 8 primary tests, minimum detectable effect for each; methods checked on made-up data. No primary test rejects its null hypothesis; one null is well powered (restatements do not flatter trends), four are likely underpowered ([findings](stats_findings.md)) | "docs: Week 11 pre-registered hypotheses", "feat: Week 11 statistics studies" |
 
 State of the warehouse: 51 companies, 196 company-years, 21,706 metric values, 73 company-level
 KPIs (25 public), 29 group metrics in the semantic layer, 4,115 compared restatement pairs, 196
@@ -46,7 +47,6 @@ full build and test in about 3 minutes with 0 warnings.
 
 | Week | Goal | Scope notes |
 |---|---|---|
-| 11 | **Statistics studies** | A few careful studies (for example size versus intensity, assurance versus restatement), with the small-sample caveats stated. First candidate, from Week 10: is disclosure quality related to carbon intensity at all (the quadrant count says no)? |
 | 12 | **Power BI and Excel** | Two versions: the full local one (raw values, never shared) and a public one built only on `rpt_public_*`. |
 | 13 | **Airflow, Streamlit report card, AI analyst** | Airflow watches the inbox and never downloads. The report card reads `rpt_public_*` only. The AI analyst answers from the public models with citations. |
 | 14 | **Insight report, README polish, demo video** | A short written report of findings, a tidy README, and a 3-minute demo video of the local dashboards (checked against the publication policy). |
@@ -75,6 +75,9 @@ Known limitations (each documented where it belongs):
 - **The analysis describes, it does not prove**: small groups (four peer groups below 5
   companies), three or four years, end-point comparisons, and the largest year-on-year moves
   sitting in the two years that cannot be screened: [analysis_findings.md](analysis_findings.md).
+- **The statistics can only show large effects**: about 50 companies and two or three usable
+  years; four of five studies are likely underpowered, and no result survives the correction
+  for multiple tests: [stats_findings.md](stats_findings.md).
 - NIC division names and NIC code corrections are still unverified (`verified_by` empty in the
   seeds).
 

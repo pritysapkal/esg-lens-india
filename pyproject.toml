@@ -24,7 +24,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["ingestion"]
+known-first-party = ["ingestion", "analysis"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

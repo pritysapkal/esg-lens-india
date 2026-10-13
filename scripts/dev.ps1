@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'analysis', 'app')]
+    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'analysis', 'stats', 'app')]
     [string]$Task = 'help'
 )
 
@@ -37,7 +37,7 @@ Push-Location $Root
 try {
     switch ($Task) {
         'help' {
-            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|app>'
+            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|app>'
         }
         'setup' {
             if (-not (Test-Path $Py)) { Invoke-Step 'py' @('-3.12', '-m', 'venv', $Venv) }
@@ -109,6 +109,14 @@ try {
             # data/processed/analysis (local, never committed). Findings: docs/analysis_findings.md.
             Assert-Venv
             Invoke-Step $Py @('scripts/run_analysis.py')
+        }
+        'stats' {
+            # Run the five statistics studies (analysis/stats) on the gold tables and save every
+            # test in data/processed/stats (local). Fixed beforehand in docs/stats_hypotheses.md;
+            # findings in docs/stats_findings.md. Method checks on made-up data: pytest, or
+            # python -m analysis.stats.validate.
+            Assert-Venv
+            Invoke-Step $Py @('-m', 'analysis.stats.run')
         }
         'app' {
             Assert-Venv

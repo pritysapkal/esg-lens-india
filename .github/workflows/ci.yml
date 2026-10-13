@@ -95,3 +95,9 @@ jobs:
       # returns rows on synthetic gold tables with several companies and years.
       - name: SQL business analysis runs on the synthetic warehouse
         run: python scripts/run_analysis.py --allow-empty --out "$RUNNER_TEMP/analysis"
+
+      # The five statistics studies must run against the same tables. With one company each
+      # must answer "not enough data"; pytest checks the methods on made-up data and the
+      # studies on synthetic gold tables with several companies and years.
+      - name: Statistics studies run on the synthetic warehouse
+        run: python -m analysis.stats.run --allow-empty --out "$RUNNER_TEMP/stats"
