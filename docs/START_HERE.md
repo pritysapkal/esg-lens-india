@@ -23,8 +23,9 @@
 | 7 | [restatement_method.md](restatement_method.md) | how restatements are found and classified |
 | 8 | [disclosure_quality_score.md](disclosure_quality_score.md) | the Disclosure Quality Score: what it measures, the formula, its limits |
 | 9 | [semantic_layer.md](semantic_layer.md) | the metrics every tool must use, whole group versus typical company, how to query them |
-| 10 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
-| 11 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
+| 10 | [analysis_findings.md](analysis_findings.md) | what the data says: twelve business questions, each with answer, insight and caveat |
+| 11 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
+| 12 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
 
 ## The pipeline in six boxes
 
@@ -76,6 +77,7 @@ companies. Both come from one definition in `kpi_catalogue.csv`
 | Editable rules: peer groups, materiality, KPI list, overrides, accepted exceptions, score weights and assurance points | `dbt/seeds/*.csv` (each has an entry in `dbt/seeds/_seeds.yml`) |
 | What every column means, and the data types that are enforced | `dbt/models/*/_*.yml` |
 | Checks that must hold | `dbt/tests/` (data) and `tests/` (Python) |
+| The business questions and their SQL | `analysis/sql/q01_...sql` to `q12_...sql`; findings in [analysis_findings.md](analysis_findings.md) |
 
 ## How to run (Windows, PowerShell)
 
@@ -84,6 +86,7 @@ companies. Both come from one definition in `kpi_catalogue.csv`
 .\scripts\dev.ps1 dbt-build   # build and test the whole warehouse (about 3 minutes)
 .\scripts\dev.ps1 test        # Python tests
 .\scripts\dev.ps1 semantic    # regenerate the semantic layer from the catalogue and validate it
+.\scripts\dev.ps1 analysis    # run the 12 business questions; results in data/processed/analysis
 ```
 
 New filings: follow [how_to_add_filings.md](how_to_add_filings.md), then `intake`, `parse`,

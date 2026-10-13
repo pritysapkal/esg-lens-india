@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'app')]
+    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'analysis', 'app')]
     [string]$Task = 'help'
 )
 
@@ -37,7 +37,7 @@ Push-Location $Root
 try {
     switch ($Task) {
         'help' {
-            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|app>'
+            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|app>'
         }
         'setup' {
             if (-not (Test-Path $Py)) { Invoke-Step 'py' @('-3.12', '-m', 'venv', $Venv) }
@@ -52,7 +52,7 @@ try {
             Assert-Venv
             Invoke-Step $Py @('-m', 'ruff', 'check', '.')
             Invoke-Step $Py @('-m', 'ruff', 'format', '--check', '.')
-            Invoke-Step $Py @('-m', 'sqlfluff', 'lint', 'dbt/models', 'dbt/tests', 'dbt/analyses', 'dbt/macros')
+            Invoke-Step $Py @('-m', 'sqlfluff', 'lint', 'dbt/models', 'dbt/tests', 'dbt/analyses', 'dbt/macros', 'analysis/sql')
         }
         'test' {
             Assert-Venv
@@ -103,6 +103,12 @@ try {
                 Invoke-Step $Dbt @('parse', '--profiles-dir', '.')
                 Invoke-Step (Join-Path $Venv 'Scripts\mf.exe') @('validate-configs')
             } finally { Pop-Location }
+        }
+        'analysis' {
+            # Run the 12 business questions (analysis/sql) and save the results as CSV files in
+            # data/processed/analysis (local, never committed). Findings: docs/analysis_findings.md.
+            Assert-Venv
+            Invoke-Step $Py @('scripts/run_analysis.py')
         }
         'app' {
             Assert-Venv

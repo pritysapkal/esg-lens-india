@@ -27,7 +27,7 @@ repos:
       # lint only: `sqlfluff fix` once silently dropped a VALUES column alias (week 5), so fixes
       # are run by hand and reviewed:  sqlfluff fix <path>
       - id: sqlfluff-lint
-        files: ^dbt/(models|snapshots|analyses|macros|tests)/.*\.sql$
+        files: ^(dbt/(models|snapshots|analyses|macros|tests)|analysis/sql)/.*\.sql$
 
   - repo: local
     hooks:
