@@ -64,8 +64,16 @@ Values that are the result of our own work on the filings:
 
 ## Dashboards and the public showcase
 
-- **Full dashboards** (Power BI, Streamlit) that show raw values stay **local**. They are not
-  published and their files are not shared.
+- **Dashboards are published only as screenshots or a video of the public Power BI model**
+  (`powerbi/esg_lens_public`, which reads `exports/public`: the `rpt_public_*` models and
+  nothing else). The `.pbip` projects, their caches and the export folders are never shared;
+  only the image or the video leaves the laptop.
+- **Full dashboards** (the local Power BI model, Streamlit) that show raw values stay
+  **local**. They are not published and their files are not shared.
+- **Exports** (`scripts/export_bi.py`): `exports/local` holds raw filed values and is
+  gitignored; `exports/public` may hold only the four `rpt_public_*` files and the public Excel
+  workbook built from them - the script stops if anything else lands there. The workbook shows
+  "n<5" where a statistic is withheld and never recomputes one from company rows.
 - The **public showcase** uses screenshots or a demo video of those dashboards **plus derived
   numbers** from the public models (`rpt_public_company_year`, `rpt_public_disclosure_quality`,
   `rpt_public_group_metrics`, `rpt_public_restatement_summary`). Before publishing a screenshot, check that it shows no raw

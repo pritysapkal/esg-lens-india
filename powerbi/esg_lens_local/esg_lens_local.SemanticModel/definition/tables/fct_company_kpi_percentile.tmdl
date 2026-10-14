@@ -1,0 +1,68 @@
+table fct_company_kpi_percentile
+	lineageTag: b47fdd5f-0c04-5e63-95fb-4993c2642cf6
+
+	/// ISIN of the company (key of dim_company).
+	column isin
+		dataType: string
+		isHidden
+		lineageTag: e72edf98-6400-5153-b4f2-02e1d6bdcc2e
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// Financial year, e.g. FY2025-26.
+	column fiscal_year_label
+		dataType: string
+		isHidden
+		lineageTag: 26320bc5-b218-5aa3-8ef4-155d2965e093
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	/// KPI column of fct_company_year.
+	column kpi_name
+		dataType: string
+		lineageTag: da84c28a-8278-5a30-beb6-ba8a4da7c0c5
+		summarizeBy: none
+		sourceColumn: kpi_name
+
+	/// Group the company is ranked in.
+	column ranking_group
+		dataType: string
+		lineageTag: 7c370f05-3fd6-5bf1-b2ff-f7ad54de3c09
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// LOCAL ONLY - not public (publication policy). The company's KPI value.
+	column value
+		dataType: double
+		lineageTag: b069d8a7-ebf0-5409-815d-a962423e6859
+		summarizeBy: none
+		sourceColumn: value
+
+	/// Companies in the group with a value.
+	column group_n
+		dataType: int64
+		lineageTag: 2f996ca2-974a-5831-8200-37aec9dbb070
+		summarizeBy: none
+		sourceColumn: group_n
+
+	/// 0-100, direction-aware (100 = best).
+	column percentile_in_group
+		dataType: double
+		lineageTag: ac9b0814-751e-57f0-b8ac-d28ce036ece8
+		summarizeBy: none
+		sourceColumn: percentile_in_group
+
+	/// Why the percentile is empty.
+	column percentile_null_reason
+		dataType: string
+		lineageTag: 06190783-b9a5-5740-b1e4-193a856fbd12
+		summarizeBy: none
+		sourceColumn: percentile_null_reason
+
+	partition fct_company_kpi_percentile = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\fct_company_kpi_percentile.parquet"))
+				in
+				    Source

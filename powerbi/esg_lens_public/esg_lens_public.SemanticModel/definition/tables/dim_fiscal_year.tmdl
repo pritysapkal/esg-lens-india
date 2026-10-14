@@ -1,0 +1,32 @@
+/// Financial years of the public tables, sorted by start year.
+table dim_fiscal_year
+	lineageTag: 6df41b01-ebb4-56ef-9e1e-4c588b915983
+
+	column fiscal_year_label
+		dataType: string
+		lineageTag: 69818fa6-ffac-5499-82c5-5a15f097a612
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+		sortByColumn: fy_start_year
+
+	/// Calendar year in which the financial year starts.
+	column fy_start_year
+		dataType: int64
+		lineageTag: bc501815-a095-5422-9983-68aba519317d
+		summarizeBy: none
+		sourceColumn: fy_start_year
+
+	partition dim_fiscal_year = m
+		mode: import
+		source =
+				let
+				    Years = Table.Distinct (
+				        Table.Combine ( {
+				            Table.SelectColumns ( rpt_public_company_year, {"fiscal_year_label"} ),
+				            Table.SelectColumns ( rpt_public_disclosure_quality, {"fiscal_year_label"} ),
+				            Table.SelectColumns ( rpt_public_group_metrics, {"fiscal_year_label"} )
+				        } )
+				    ),
+				    WithStart = Table.AddColumn ( Years, "fy_start_year", each Number.FromText ( Text.Middle ( [fiscal_year_label], 2, 4 ) ), Int64.Type )
+				in
+				    WithStart

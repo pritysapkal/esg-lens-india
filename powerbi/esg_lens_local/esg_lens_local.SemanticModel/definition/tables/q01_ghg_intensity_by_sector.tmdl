@@ -1,0 +1,71 @@
+/// Week 10 result q01_decarbonisation__ghg_intensity_by_sector (analysis/sql/q01_decarbonisation.sql). Local only.
+table q01_ghg_intensity_by_sector
+	lineageTag: f85bab66-48ee-5d32-b62a-71c765a8e99d
+
+	column panel
+		dataType: string
+		lineageTag: 16cb5f22-2325-5648-8cab-0612068f3258
+		summarizeBy: none
+		sourceColumn: panel
+
+	column sector_group
+		dataType: string
+		lineageTag: 131c506d-ea2d-5355-be61-5f15dee497ee
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	column fiscal_year_label
+		dataType: string
+		lineageTag: 482b0f04-bfb2-5433-b372-41cc4a7170e8
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	column n_companies
+		dataType: int64
+		lineageTag: 6077147d-99a4-58cd-9f54-70142ada01c0
+		summarizeBy: none
+		sourceColumn: n_companies
+
+	column ghg_intensity_agg
+		dataType: double
+		lineageTag: b97eb282-38f9-5288-b505-205f3bec2f8c
+		summarizeBy: none
+		sourceColumn: ghg_intensity_agg
+
+	column ghg_intensity_median
+		dataType: double
+		lineageTag: 63277b90-1bc6-54e8-9c15-0471a3cd6e90
+		summarizeBy: none
+		sourceColumn: ghg_intensity_median
+
+	column agg_change_vs_first_year_pct
+		dataType: double
+		lineageTag: cce81557-6d40-5b39-9339-c0ec09e06fec
+		summarizeBy: none
+		sourceColumn: agg_change_vs_first_year_pct
+
+	column median_change_vs_first_year_pct
+		dataType: double
+		lineageTag: ecbec354-9169-51ca-a279-0f2e81c838ad
+		summarizeBy: none
+		sourceColumn: median_change_vs_first_year_pct
+
+	column ghg_intensity_agg_exact
+		dataType: double
+		lineageTag: 530fade0-d963-5855-a417-5b05f1bcd1ba
+		summarizeBy: none
+		sourceColumn: ghg_intensity_agg_exact
+
+	column ghg_intensity_median_exact
+		dataType: double
+		lineageTag: 2dcbc888-e069-52cf-bec8-367f643f5605
+		summarizeBy: none
+		sourceColumn: ghg_intensity_median_exact
+
+	partition q01_ghg_intensity_by_sector = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\analysis\q01_decarbonisation__ghg_intensity_by_sector.parquet"))
+				in
+				    Source

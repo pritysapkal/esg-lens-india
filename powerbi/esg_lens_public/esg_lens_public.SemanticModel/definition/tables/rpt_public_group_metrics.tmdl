@@ -1,0 +1,209 @@
+/// Public model rpt_public_group_metrics: derived values only (docs/publication_policy.md).
+table rpt_public_group_metrics
+	lineageTag: adef8fee-de23-5812-a8be-eb2f2e0c6d5d
+
+	column group_type
+		dataType: string
+		lineageTag: 6b4ad28a-7bf2-5605-8544-c7e44927909e
+		summarizeBy: none
+		sourceColumn: group_type
+
+	column group_value
+		dataType: string
+		lineageTag: 2091bfef-3b2d-5adb-938e-43333b8d829e
+		summarizeBy: none
+		sourceColumn: group_value
+
+	column fiscal_year_label
+		dataType: string
+		lineageTag: 16813f8d-d0eb-5dc5-8cf6-61cc89742ce5
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	column ghg_intensity_agg
+		dataType: double
+		lineageTag: 7526df72-fdfd-53b1-8f2a-1b6f5041c8f0
+		summarizeBy: none
+		sourceColumn: ghg_intensity_agg
+
+	column ghg_intensity_median
+		dataType: double
+		lineageTag: d842a0a0-9f9b-534a-86df-bfacdf017314
+		summarizeBy: none
+		sourceColumn: ghg_intensity_median
+
+	column companies_with_ghg_intensity
+		dataType: int64
+		lineageTag: 9701868e-3488-5eb6-ab81-4dc72982c31f
+		summarizeBy: none
+		sourceColumn: companies_with_ghg_intensity
+
+	column energy_intensity_agg
+		dataType: double
+		lineageTag: 47f28e76-57e8-5c15-b7c0-23cd6d06fc9f
+		summarizeBy: none
+		sourceColumn: energy_intensity_agg
+
+	column energy_intensity_median
+		dataType: double
+		lineageTag: 33f16f97-8822-5be8-b83b-154beed70fd1
+		summarizeBy: none
+		sourceColumn: energy_intensity_median
+
+	column companies_with_energy_intensity
+		dataType: int64
+		lineageTag: baf1f616-c5a8-5f0a-bba1-e51f58cf2876
+		summarizeBy: none
+		sourceColumn: companies_with_energy_intensity
+
+	column water_intensity_agg
+		dataType: double
+		lineageTag: f6c986ed-d468-5aa8-937f-cf26ea246110
+		summarizeBy: none
+		sourceColumn: water_intensity_agg
+
+	column water_intensity_median
+		dataType: double
+		lineageTag: 9f8d9c38-d801-5b76-b334-98ba10bf5a81
+		summarizeBy: none
+		sourceColumn: water_intensity_median
+
+	column companies_with_water_intensity
+		dataType: int64
+		lineageTag: 840c0282-6776-5893-853d-81a5cf44ac8e
+		summarizeBy: none
+		sourceColumn: companies_with_water_intensity
+
+	column waste_intensity_agg
+		dataType: double
+		lineageTag: 9fd6bcb0-3697-5637-a0d8-a25f117085ef
+		summarizeBy: none
+		sourceColumn: waste_intensity_agg
+
+	column waste_intensity_median
+		dataType: double
+		lineageTag: 3b9c6148-d957-544e-bd19-1b876b7c69ee
+		summarizeBy: none
+		sourceColumn: waste_intensity_median
+
+	column companies_with_waste_intensity
+		dataType: int64
+		lineageTag: 2c616754-84cc-557e-bab6-b72d866e974c
+		summarizeBy: none
+		sourceColumn: companies_with_waste_intensity
+
+	column renewable_share_agg
+		dataType: double
+		lineageTag: 3b7117e1-ffbc-54ac-8562-4ec2adbed8f8
+		summarizeBy: none
+		sourceColumn: renewable_share_agg
+
+	column companies_with_renewable_share
+		dataType: int64
+		lineageTag: eacc7b4c-8098-5207-9039-32a2a03126cc
+		summarizeBy: none
+		sourceColumn: companies_with_renewable_share
+
+	column female_workforce_agg
+		dataType: double
+		lineageTag: 12d785a0-a042-5558-af7a-e15c02e0b8c4
+		summarizeBy: none
+		sourceColumn: female_workforce_agg
+
+	column companies_with_female_workforce
+		dataType: int64
+		lineageTag: 4c56951d-43ab-5db4-bf5f-60d0a568321a
+		summarizeBy: none
+		sourceColumn: companies_with_female_workforce
+
+	column companies_reporting
+		dataType: int64
+		lineageTag: c47e2f47-07f8-5dbc-a4c6-f46a37a8a866
+		summarizeBy: none
+		sourceColumn: companies_reporting
+
+	column scope3_disclosed_share
+		dataType: double
+		lineageTag: 394b08be-cfff-51e1-abe0-c374bd8577b5
+		summarizeBy: none
+		sourceColumn: scope3_disclosed_share
+
+	column dqs_avg
+		dataType: double
+		lineageTag: 98b285f8-a583-50fc-ac3e-82daa49831fd
+		summarizeBy: none
+		sourceColumn: dqs_avg
+
+	column dqs_median
+		dataType: double
+		lineageTag: ac6be2ac-892b-5be9-844f-d993a00efa46
+		summarizeBy: none
+		sourceColumn: dqs_median
+
+	column dqs_grade_a_share
+		dataType: double
+		lineageTag: 78ffec41-c532-5d80-9d67-5c47d7f4d8c8
+		summarizeBy: none
+		sourceColumn: dqs_grade_a_share
+
+	column voluntary_depth_avg
+		dataType: double
+		lineageTag: 49740f57-96eb-55b6-bdef-bb7d347bc8d7
+		summarizeBy: none
+		sourceColumn: voluntary_depth_avg
+
+	column companies_with_dqs
+		dataType: int64
+		lineageTag: ddc029c4-2105-5573-80b4-bb029e883ed4
+		summarizeBy: none
+		sourceColumn: companies_with_dqs
+
+	column companies_with_dqs_grade
+		dataType: int64
+		lineageTag: 7dbf2935-350a-585c-8a4c-e3b471b1d467
+		summarizeBy: none
+		sourceColumn: companies_with_dqs_grade
+
+	column companies_with_voluntary_depth
+		dataType: int64
+		lineageTag: 2f200226-25ac-546d-b096-47ccb226fbc9
+		summarizeBy: none
+		sourceColumn: companies_with_voluntary_depth
+
+	column material_restatements
+		dataType: int64
+		lineageTag: 4adc1dc7-5c34-5735-ac5d-22b22b2242db
+		summarizeBy: none
+		sourceColumn: material_restatements
+
+	column material_restatement_share
+		dataType: double
+		lineageTag: 160b9ff9-f5ad-5c9d-b5be-c99555fd46b5
+		summarizeBy: none
+		sourceColumn: material_restatement_share
+
+	column suspected_scale_errors
+		dataType: int64
+		lineageTag: 541cf464-edab-5b5d-b37f-681f4b3b99d4
+		summarizeBy: none
+		sourceColumn: suspected_scale_errors
+
+	column companies_with_compared_restatements
+		dataType: int64
+		lineageTag: d7d6ef7a-2ddb-5281-8abf-ba25eac6351c
+		summarizeBy: none
+		sourceColumn: companies_with_compared_restatements
+
+	column suppressed_reason
+		dataType: string
+		lineageTag: 971d2808-78dc-57b4-9ce4-8db37540396f
+		summarizeBy: none
+		sourceColumn: suppressed_reason
+
+	partition rpt_public_group_metrics = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\rpt_public_group_metrics.parquet"))
+				in
+				    Source

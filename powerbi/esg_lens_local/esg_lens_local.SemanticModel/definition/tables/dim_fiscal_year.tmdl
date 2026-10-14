@@ -1,0 +1,53 @@
+table dim_fiscal_year
+	lineageTag: 6df41b01-ebb4-56ef-9e1e-4c588b915983
+
+	column fiscal_year_label
+		dataType: string
+		lineageTag: 69818fa6-ffac-5499-82c5-5a15f097a612
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+		sortByColumn: fy_sort
+
+	column fy_sort
+		dataType: int64
+		lineageTag: 8175a2b0-ddf7-5f7b-bb13-303e9ca3de03
+		summarizeBy: none
+		sourceColumn: fy_sort
+
+	column start_date
+		dataType: dateTime
+		lineageTag: ead7fe2c-d8d3-555c-9525-108496f5508e
+		summarizeBy: none
+		sourceColumn: start_date
+
+	column end_date
+		dataType: dateTime
+		lineageTag: c28b75ba-d146-5024-b127-84e2dc8932a0
+		summarizeBy: none
+		sourceColumn: end_date
+
+	column is_brsr_core_year
+		dataType: boolean
+		lineageTag: 18e4898f-68dc-5001-96b4-0f68afa58460
+		summarizeBy: none
+		sourceColumn: is_brsr_core_year
+
+	column assurance_fields_available
+		dataType: boolean
+		lineageTag: 75dd31fe-14a6-5c2e-aba9-232086f2c1eb
+		summarizeBy: none
+		sourceColumn: assurance_fields_available
+
+	column note
+		dataType: string
+		lineageTag: 4abb7c7d-4374-509d-b1b6-18bcffbdf8ff
+		summarizeBy: none
+		sourceColumn: note
+
+	partition dim_fiscal_year = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\dim_fiscal_year.parquet"))
+				in
+				    Source

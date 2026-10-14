@@ -1,0 +1,95 @@
+/// Week 10 result q03_ghg_leaders_laggards__yoy_changes_with_confidence (analysis/sql/q03_ghg_leaders_laggards.sql). Local only.
+table q03_yoy_changes_with_confidence
+	lineageTag: e64f74b2-ac27-5f80-8898-ff73a5445a3f
+
+	column ranking_group
+		dataType: string
+		lineageTag: a2041b9d-c3ca-5c86-9d3f-5410a6b9845c
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	column display_name
+		dataType: string
+		lineageTag: ef12153c-d5b8-5ce3-b354-2f2af0b3a6d7
+		summarizeBy: none
+		sourceColumn: display_name
+
+	column from_year
+		dataType: string
+		lineageTag: 445cafc1-73be-5d8d-9728-3589cf74825a
+		summarizeBy: none
+		sourceColumn: from_year
+
+	column to_year
+		dataType: string
+		lineageTag: 6758e2f1-7dd8-585a-969a-5c0b40f7eeb7
+		summarizeBy: none
+		sourceColumn: to_year
+
+	column intensity_from
+		dataType: double
+		lineageTag: abe2c914-4934-5b89-9ece-ba04d21a8616
+		summarizeBy: none
+		sourceColumn: intensity_from
+
+	column intensity_to
+		dataType: double
+		lineageTag: 0ed8fe98-0f97-5d73-9c48-40cb7fcd5504
+		summarizeBy: none
+		sourceColumn: intensity_to
+
+	column change_pct
+		dataType: double
+		lineageTag: f9d9408e-a00c-531a-9bb9-ff82b1ca0449
+		summarizeBy: none
+		sourceColumn: change_pct
+
+	column confidence
+		dataType: string
+		lineageTag: d0948805-62c6-5e00-b456-9755f2b23f05
+		summarizeBy: none
+		sourceColumn: confidence
+
+	column n_companies_compared
+		dataType: int64
+		lineageTag: 049e0abe-b091-5875-a11d-bfb23272d478
+		summarizeBy: none
+		sourceColumn: n_companies_compared
+
+	column is_ranked
+		dataType: boolean
+		lineageTag: 140cac01-83d4-5b5f-b20e-0d85e0176135
+		summarizeBy: none
+		sourceColumn: is_ranked
+
+	column improvement_rank_in_group
+		dataType: int64
+		lineageTag: bd14c5b8-4cdf-5d76-9a3e-f7a11826d27d
+		summarizeBy: none
+		sourceColumn: improvement_rank_in_group
+
+	column deterioration_rank_in_group
+		dataType: int64
+		lineageTag: e81349f4-308f-5420-bf2d-d2c8049a9e10
+		summarizeBy: none
+		sourceColumn: deterioration_rank_in_group
+
+	column improvement_rank_overall
+		dataType: int64
+		lineageTag: 200afdae-6a34-5c48-b9d5-869259e5924f
+		summarizeBy: none
+		sourceColumn: improvement_rank_overall
+
+	column deterioration_rank_overall
+		dataType: int64
+		lineageTag: b5fe06d9-cd41-580e-b022-149dcf97a3f8
+		summarizeBy: none
+		sourceColumn: deterioration_rank_overall
+
+	partition q03_yoy_changes_with_confidence = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\analysis\q03_ghg_leaders_laggards__yoy_changes_with_confidence.parquet"))
+				in
+				    Source

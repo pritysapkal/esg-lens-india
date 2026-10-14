@@ -1,0 +1,6 @@
+/// Folder that holds the exported Parquet files (exports\local). Set it once in
+/// Power BI Desktop: Transform data > Edit parameters. Do not commit your own path.
+expression ExportFolder = "SET-ME: full path of the exports\local folder, no backslash at the end" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+	lineageTag: 55274148-3237-551a-b226-7f5e02f46327
+
+	annotation PBI_ResultType = Text

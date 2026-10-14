@@ -23,6 +23,13 @@ select = [
     "SIM", # flake8-simplify
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Excel formulas and sheet text are long strings; splitting them hurts more than it helps.
+"scripts/build_excel.py" = ["E501"]
+"scripts/build_powerbi.py" = ["E501"]
+"scripts/reconcile_bi.py" = ["E501"]
+"tests/test_bi.py" = ["E501"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["ingestion", "analysis"]
 

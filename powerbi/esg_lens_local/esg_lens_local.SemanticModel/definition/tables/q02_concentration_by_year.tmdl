@@ -1,0 +1,53 @@
+/// Week 10 result q02_emission_concentration__concentration_by_year (analysis/sql/q02_emission_concentration.sql). Local only.
+table q02_concentration_by_year
+	lineageTag: 704d5f42-3591-5b74-838c-afc28218cd3c
+
+	column fiscal_year_label
+		dataType: string
+		lineageTag: b13a91c1-b664-5f1d-98bf-6a2914baf4b9
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	column n_companies
+		dataType: int64
+		lineageTag: 83483e06-bbcc-5ea6-834c-68918814f48c
+		summarizeBy: none
+		sourceColumn: n_companies
+
+	column top_1_share_pct
+		dataType: double
+		lineageTag: 4feedd0e-914f-5790-b1db-97c1ac6d7721
+		summarizeBy: none
+		sourceColumn: top_1_share_pct
+
+	column top_5_share_pct
+		dataType: double
+		lineageTag: e68cbd42-8acb-5cc5-afd6-b3936726ec1b
+		summarizeBy: none
+		sourceColumn: top_5_share_pct
+
+	column top_10_share_pct
+		dataType: double
+		lineageTag: 31222ff7-5728-53f3-a702-06de11731c64
+		summarizeBy: none
+		sourceColumn: top_10_share_pct
+
+	column companies_for_80_pct
+		dataType: int64
+		lineageTag: cd2e9f0a-351a-5e7f-812e-f2449aa2833e
+		summarizeBy: none
+		sourceColumn: companies_for_80_pct
+
+	column companies_for_90_pct
+		dataType: int64
+		lineageTag: 3d5a325e-fa5b-5947-aac4-bdfbb293d976
+		summarizeBy: none
+		sourceColumn: companies_for_90_pct
+
+	partition q02_concentration_by_year = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\analysis\q02_emission_concentration__concentration_by_year.parquet"))
+				in
+				    Source

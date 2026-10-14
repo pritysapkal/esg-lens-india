@@ -1,0 +1,53 @@
+/// Week 10 result q02_emission_concentration__pareto_top10_by_year (analysis/sql/q02_emission_concentration.sql). Local only.
+table q02_pareto_top10_by_year
+	lineageTag: 1ad9f426-d5a1-53d7-8ce6-bd79a8c103a9
+
+	column fiscal_year_label
+		dataType: string
+		lineageTag: 7b4e021b-b9da-5192-9468-bd2164766a23
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	column emitter_rank
+		dataType: int64
+		lineageTag: c2158ee2-2e72-5241-9e21-e4167692e2f4
+		summarizeBy: none
+		sourceColumn: emitter_rank
+
+	column display_name
+		dataType: string
+		lineageTag: 1a4cdfd7-38e2-56e8-a36c-bf74d4ceaafe
+		summarizeBy: none
+		sourceColumn: display_name
+
+	column sector_group
+		dataType: string
+		lineageTag: fbf94def-d946-5ddb-8cb0-979bf9e83d0e
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	column peer_group
+		dataType: string
+		lineageTag: 6cea2934-524e-5f58-8a55-b5ce3e53b456
+		summarizeBy: none
+		sourceColumn: peer_group
+
+	column share_of_total_pct
+		dataType: double
+		lineageTag: 3ac47282-fc68-59b8-b00c-36b3fb4af1c4
+		summarizeBy: none
+		sourceColumn: share_of_total_pct
+
+	column cumulative_share_pct
+		dataType: double
+		lineageTag: b76c64ed-a6a6-57a9-aece-6e366a2ab668
+		summarizeBy: none
+		sourceColumn: cumulative_share_pct
+
+	partition q02_pareto_top10_by_year = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\analysis\q02_emission_concentration__pareto_top10_by_year.parquet"))
+				in
+				    Source

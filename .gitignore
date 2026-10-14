@@ -32,6 +32,16 @@ logs/
 # Elementary report output
 edr_target/
 
+# BI exports (Week 12): rebuilt by dev.ps1 bi-export. exports/local holds raw filed values.
+exports/local/
+exports/public/*
+!exports/public/.gitkeep
+
+# Power BI project caches and personal settings (PBIP)
+powerbi/**/.pbi/localSettings.json
+powerbi/**/.pbi/cache.abf
+*.abf
+
 # Power BI backups / lock files
 *.pbix.bak
 *.pbit.bak

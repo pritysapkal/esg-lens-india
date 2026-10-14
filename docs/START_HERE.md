@@ -25,8 +25,9 @@
 | 9 | [semantic_layer.md](semantic_layer.md) | the metrics every tool must use, whole group versus typical company, how to query them |
 | 10 | [analysis_findings.md](analysis_findings.md) | what the data says: twelve business questions, each with answer, insight and caveat |
 | 11 | [stats_findings.md](stats_findings.md) | five questions put to a formal test, with what was fixed beforehand in [stats_hypotheses.md](stats_hypotheses.md) |
-| 12 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
-| 13 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
+| 12 | [powerbi_build_guide.md](powerbi_build_guide.md), [powerbi_reconciliation.md](powerbi_reconciliation.md) | the Power BI and Excel engine: exports, the two models, the measures, how to build the pages, the numbers to check |
+| 13 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
+| 14 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
 
 ## The pipeline in six boxes
 
@@ -79,6 +80,7 @@ companies. Both come from one definition in `kpi_catalogue.csv`
 | What every column means, and the data types that are enforced | `dbt/models/*/_*.yml` |
 | Checks that must hold | `dbt/tests/` (data) and `tests/` (Python) |
 | The business questions and their SQL | `analysis/sql/q01_...sql` to `q12_...sql`; findings in [analysis_findings.md](analysis_findings.md) |
+| Power BI and Excel | `scripts/export_bi.py` (exports), `scripts/build_powerbi.py` (generates `powerbi/`), `scripts/build_excel.py`; checks `scripts/reconcile_bi.py`, `check_tmdl.ps1`, `check_excel.ps1` |
 | The statistics studies | `analysis/stats/` (one module per study, `run.py`, `validate.py`); hypotheses in [stats_hypotheses.md](stats_hypotheses.md), findings in [stats_findings.md](stats_findings.md) |
 
 ## How to run (Windows, PowerShell)
@@ -90,6 +92,7 @@ companies. Both come from one definition in `kpi_catalogue.csv`
 .\scripts\dev.ps1 semantic    # regenerate the semantic layer from the catalogue and validate it
 .\scripts\dev.ps1 analysis    # run the 12 business questions; results in data/processed/analysis
 .\scripts\dev.ps1 stats       # run the 5 statistics studies; results in data/processed/stats
+.\scripts\dev.ps1 bi-export   # Parquet for Power BI (exports/local, exports/public) and the Excel workbook
 ```
 
 New filings: follow [how_to_add_filings.md](how_to_add_filings.md), then `intake`, `parse`,

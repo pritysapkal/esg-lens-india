@@ -1,0 +1,264 @@
+/// Public model rpt_public_company_year: derived values only (docs/publication_policy.md).
+table rpt_public_company_year
+	lineageTag: b44b505b-663e-50d1-8fa4-fd2d9d100082
+
+	/// ISIN of the company (key of dim_company).
+	column isin
+		dataType: string
+		isHidden
+		lineageTag: 329482df-7c9c-5ff6-876c-0c03294c0f0d
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// NSE symbol in the filing.
+	column symbol
+		dataType: string
+		lineageTag: 82c43cc1-0198-5ebf-a901-6b7779f556a6
+		summarizeBy: none
+		sourceColumn: symbol
+
+	/// Short company name for charts.
+	column display_name
+		dataType: string
+		lineageTag: 46ecf95c-3a00-5007-ac13-b5da30a1e459
+		summarizeBy: none
+		sourceColumn: display_name
+
+	/// Financial year, e.g. FY2025-26.
+	column fiscal_year_label
+		dataType: string
+		lineageTag: f8355c41-a0fa-585d-8728-b8c255d9e9f0
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	/// Peer group (seed peer_groups).
+	column peer_group
+		dataType: string
+		lineageTag: e24c3473-595c-5f78-900e-42a535f711c5
+		summarizeBy: none
+		sourceColumn: peer_group
+
+	/// Financials, Asset-light or Asset-heavy.
+	column sector_group
+		dataType: string
+		lineageTag: cb0cbb7c-7461-5007-b2ea-97e4173c31df
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	/// Group the company is ranked in.
+	column ranking_group
+		dataType: string
+		lineageTag: 925aa1a7-c95b-5601-b273-02a8c5063650
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// Large, Mid or Small (terciles within sector group and year).
+	column size_band
+		dataType: string
+		lineageTag: e015b0b1-2552-5e51-beac-3df8828f9ed2
+		summarizeBy: none
+		sourceColumn: size_band
+
+	/// Government, Private Indian or MNC subsidiary.
+	column ownership_type
+		dataType: string
+		lineageTag: 31dc7738-1a18-5725-9db8-d33db609dcde
+		summarizeBy: none
+		sourceColumn: ownership_type
+
+	/// Business group or Independent.
+	column business_group
+		dataType: string
+		lineageTag: 016a31e4-86cb-59d6-9574-0a8aa082ca45
+		summarizeBy: none
+		sourceColumn: business_group
+
+	/// standalone or consolidated.
+	column reporting_boundary
+		dataType: string
+		lineageTag: 3e5d74a7-8d45-5e04-92b2-c7b99169cf41
+		summarizeBy: none
+		sourceColumn: reporting_boundary
+
+	/// assured, assessed or not disclosed.
+	column brsr_core_assurance_status
+		dataType: string
+		lineageTag: ef0215a7-0dc9-5928-b004-72c3b67cb5b2
+		summarizeBy: none
+		sourceColumn: brsr_core_assurance_status
+
+	/// Scope of the BRSR Core assurance: All or Partial.
+	column assurance_type
+		dataType: string
+		lineageTag: c8c599e1-24f8-517b-a2b7-afd6dfb7f822
+		summarizeBy: none
+		sourceColumn: assurance_type
+
+	/// true if an event or boundary change breaks comparability with the previous year.
+	column has_comparability_break
+		dataType: boolean
+		lineageTag: 1e80f5c7-19b3-5245-a4d3-da14dde6772d
+		summarizeBy: none
+		sourceColumn: has_comparability_break
+
+	/// merger, demerger, boundary change or combined.
+	column comparability_break_reason
+		dataType: string
+		lineageTag: 8307fe4b-2730-55b4-8aef-3cd309dcb59a
+		summarizeBy: none
+		sourceColumn: comparability_break_reason
+
+	/// Length of the reporting period in months.
+	column period_months
+		dataType: int64
+		lineageTag: 50f9a5f2-dd88-5469-996f-dd31099203e0
+		summarizeBy: none
+		sourceColumn: period_months
+
+	/// 12 / period_months.
+	column annualisation_factor
+		dataType: double
+		lineageTag: 201386ea-3312-5da7-ad4c-7c3b746e51a8
+		summarizeBy: none
+		sourceColumn: annualisation_factor
+
+	/// headcount_female / headcount_total x 100.
+	column female_workforce_pct
+		dataType: double
+		lineageTag: 19d1978f-7be7-59d4-b64d-4c600d12dba1
+		summarizeBy: none
+		sourceColumn: female_workforce_pct
+
+	/// female_wage_share_pct - female_workforce_pct, in percentage points; negative = women get a smaller share of wages than of headcount.
+	column pay_equity_gap_pp
+		dataType: double
+		lineageTag: 35176b96-ce92-57e8-aefd-b36369d44813
+		summarizeBy: none
+		sourceColumn: pay_equity_gap_pp
+
+	/// attrition_female_pct - attrition_male_pct, in percentage points.
+	column attrition_gap_pp
+		dataType: double
+		lineageTag: d0010df3-cb1f-5f77-94e0-323614bd3f66
+		summarizeBy: none
+		sourceColumn: attrition_gap_pp
+
+	/// true if a Scope 3 value is filed.
+	column scope3_disclosed
+		dataType: boolean
+		lineageTag: 5fa59a9c-f464-598c-9ad6-9e6839351dc8
+		summarizeBy: none
+		sourceColumn: scope3_disclosed
+
+	/// ghg_s12_tco2e / turnover_cr (computed by us).
+	column ghg_intensity_tco2e_per_cr
+		dataType: double
+		lineageTag: 74c171a9-9f15-513b-8721-cd165b0ff884
+		summarizeBy: none
+		sourceColumn: ghg_intensity_tco2e_per_cr
+
+	/// Denominator the company used for its filed GHG intensity: per rupee (as required), per lakh, per million, per crore or other/unclear.
+	column ghg_intensity_filed_basis
+		dataType: string
+		lineageTag: bd948f67-0a39-597c-894e-9504dff27ffb
+		summarizeBy: none
+		sourceColumn: ghg_intensity_filed_basis
+
+	/// energy_renewable_gj / energy_total_gj x 100.
+	column renewable_share_pct
+		dataType: double
+		lineageTag: 3c95f413-21e5-5d3a-ab1d-b6928d3e85b8
+		summarizeBy: none
+		sourceColumn: renewable_share_pct
+
+	/// energy_total_gj / turnover_cr (computed).
+	column energy_intensity_gj_per_cr
+		dataType: double
+		lineageTag: 938a6e9c-b693-5501-b9ff-febf0b7b2891
+		summarizeBy: none
+		sourceColumn: energy_intensity_gj_per_cr
+
+	/// Denominator used for the filed energy intensity.
+	column energy_intensity_filed_basis
+		dataType: string
+		lineageTag: 2a33d6dd-359b-5d6c-b09e-2d7578b54088
+		summarizeBy: none
+		sourceColumn: energy_intensity_filed_basis
+
+	/// water_consumption_kl / turnover_cr (computed).
+	column water_intensity_kl_per_cr
+		dataType: double
+		lineageTag: d29a6836-955d-5e9f-8363-74f5ecb1a8a4
+		summarizeBy: none
+		sourceColumn: water_intensity_kl_per_cr
+
+	/// Denominator used for the filed water intensity.
+	column water_intensity_filed_basis
+		dataType: string
+		lineageTag: 9a9ee4fe-7bde-5a9b-a48b-c3c92b24f3c7
+		summarizeBy: none
+		sourceColumn: water_intensity_filed_basis
+
+	/// waste_recovered_t / waste_generated_t x 100.
+	column waste_recovery_rate_pct
+		dataType: double
+		lineageTag: 4a6ebe25-3597-5958-a5fa-6173840b77e7
+		summarizeBy: none
+		sourceColumn: waste_recovery_rate_pct
+
+	/// waste_generated_t / turnover_cr.
+	column waste_intensity_t_per_cr
+		dataType: double
+		lineageTag: 86f858f3-0485-5781-9818-7fcc3c8f9171
+		summarizeBy: none
+		sourceColumn: waste_intensity_t_per_cr
+
+	/// (generated - recovered - disposed) / generated x 100; far from 0 means inconsistent inputs.
+	column waste_balance_gap_pct
+		dataType: double
+		lineageTag: 7b555211-46fa-5333-9223-8da506b29ef9
+		summarizeBy: none
+		sourceColumn: waste_balance_gap_pct
+
+	/// true if fatalities_total > 0.
+	column any_fatality
+		dataType: boolean
+		lineageTag: 327ca5a5-9863-562c-901a-273ccdbab9e2
+		summarizeBy: none
+		sourceColumn: any_fatality
+
+	/// fatalities_total / headcount_total x 10,000.
+	column fatalities_per_10k_workforce
+		dataType: double
+		lineageTag: 08ad6dd0-1cd9-545e-873f-1dd2d3a76f65
+		summarizeBy: none
+		sourceColumn: fatalities_per_10k_workforce
+
+	/// true if the number of data breaches > 0.
+	column any_data_breach
+		dataType: boolean
+		lineageTag: ebd2460f-2217-59c6-9322-5fa355bee214
+		summarizeBy: none
+		sourceColumn: any_data_breach
+
+	/// Current-year values of this company-year replaced by the later comparative (suspected scale errors).
+	column n_values_replaced
+		dataType: int64
+		lineageTag: 041fc589-8b57-5ff6-85bf-8587dd80fd7a
+		summarizeBy: none
+		sourceColumn: n_values_replaced
+
+	/// Pipe-separated flags: implausible zeros set to empty, waste recovery above 100%, values replaced. Empty if none.
+	column kpi_flags
+		dataType: string
+		lineageTag: da819924-eb2a-5352-9ce6-4b1220b66043
+		summarizeBy: none
+		sourceColumn: kpi_flags
+
+	partition rpt_public_company_year = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\rpt_public_company_year.parquet"))
+				in
+				    Source

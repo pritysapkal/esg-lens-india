@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'analysis', 'stats', 'app')]
+    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'analysis', 'stats', 'bi-export', 'app')]
     [string]$Task = 'help'
 )
 
@@ -37,7 +37,7 @@ Push-Location $Root
 try {
     switch ($Task) {
         'help' {
-            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|app>'
+            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|bi-export|app>'
         }
         'setup' {
             if (-not (Test-Path $Py)) { Invoke-Step 'py' @('-3.12', '-m', 'venv', $Venv) }
@@ -117,6 +117,14 @@ try {
             # python -m analysis.stats.validate.
             Assert-Venv
             Invoke-Step $Py @('-m', 'analysis.stats.run')
+        }
+        'bi-export' {
+            # Parquet exports for Power BI and Excel (Week 12): exports/local (star schema with
+            # raw filed values, never shared) and exports/public (rpt_public_* only), then the
+            # Excel workbook. Power BI projects: powerbi/; guide: docs/powerbi_build_guide.md.
+            Assert-Venv
+            Invoke-Step $Py @('scripts/export_bi.py')
+            Invoke-Step $Py @('scripts/build_powerbi.py', '--check')
         }
         'app' {
             Assert-Venv

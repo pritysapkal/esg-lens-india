@@ -1,0 +1,94 @@
+table dim_metric
+	lineageTag: 1ac7c469-47d2-5e14-b1ef-415671ebe8b4
+
+	/// Stable metric name (snake_case).
+	column metric_id
+		dataType: string
+		lineageTag: 4b28e09a-3962-561c-a8e5-ef81ab52d2c9
+		summarizeBy: none
+		sourceColumn: metric_id
+
+	/// Plain-English name.
+	column metric_name
+		dataType: string
+		lineageTag: 989ef87b-4023-51c7-a6ed-8c52df172f11
+		summarizeBy: none
+		sourceColumn: metric_name
+
+	/// BRSR Core attribute or analysis area, e.g. 1 GHG.
+	column brsr_core_attribute
+		dataType: string
+		lineageTag: 3416f57a-deca-5e6a-9c1a-009395c05a5f
+		summarizeBy: none
+		sourceColumn: brsr_core_attribute
+
+	/// headline, input, secondary, check_only, flag, quality or context.
+	column role
+		dataType: string
+		lineageTag: 666e42ab-947c-54de-a778-d8408914b460
+		summarizeBy: none
+		sourceColumn: role
+
+	/// Standard unit; empty for text / enum metrics.
+	column unit_std
+		dataType: string
+		lineageTag: d556422e-ff29-5a79-b5ce-54bbea599b96
+		summarizeBy: none
+		sourceColumn: unit_std
+
+	/// pct, count, quantity, intensity, days or text.
+	column unit_type
+		dataType: string
+		lineageTag: 7c84070c-8d92-5ae4-8ac7-b599db407250
+		summarizeBy: none
+		sourceColumn: unit_type
+
+	/// lower_better, higher_better, context or n/a.
+	column direction
+		dataType: string
+		lineageTag: 55fa5f5b-7e56-55e1-83d1-cad8f5962685
+		summarizeBy: none
+		sourceColumn: direction
+
+	/// numeric, duration, text or enum.
+	column value_kind
+		dataType: string
+		lineageTag: 19a4048e-8036-584c-ab80-b4352460c6b2
+		summarizeBy: none
+		sourceColumn: value_kind
+
+	/// essential or leadership (metric_disclosure_requirement).
+	column indicator_type
+		dataType: string
+		lineageTag: aed35b98-954d-5c79-abe2-5e9133cc80bf
+		summarizeBy: none
+		sourceColumn: indicator_type
+
+	/// First year the metric must be disclosed; empty for voluntary.
+	column mandatory_from_fy
+		dataType: string
+		lineageTag: e2c22e4c-e165-591b-9064-218e1e578c49
+		summarizeBy: none
+		sourceColumn: mandatory_from_fy
+
+	/// true if the metric is a BRSR Core attribute.
+	column brsr_core
+		dataType: boolean
+		lineageTag: cffdc5bd-3d0a-54d9-804f-131639c7dc35
+		summarizeBy: none
+		sourceColumn: brsr_core
+
+	/// Display order (by attribute, then metric).
+	column sort_order
+		dataType: int64
+		lineageTag: 7a926350-3675-50d6-9447-773e9ab3fa7d
+		summarizeBy: none
+		sourceColumn: sort_order
+
+	partition dim_metric = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\dim_metric.parquet"))
+				in
+				    Source

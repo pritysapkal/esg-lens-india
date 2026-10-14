@@ -101,3 +101,11 @@ jobs:
       # studies on synthetic gold tables with several companies and years.
       - name: Statistics studies run on the synthetic warehouse
         run: python -m analysis.stats.run --allow-empty --out "$RUNNER_TEMP/stats"
+
+      # Week 12: the BI exports (Parquet, both folders, and the Excel workbook) are written
+      # from the synthetic warehouse, and the committed Power BI projects must be what the
+      # generator makes from the same queries (column names and types).
+      - name: BI exports and Power BI model on the synthetic warehouse
+        run: |
+          python scripts/export_bi.py --out "$RUNNER_TEMP/exports"
+          python scripts/build_powerbi.py --check

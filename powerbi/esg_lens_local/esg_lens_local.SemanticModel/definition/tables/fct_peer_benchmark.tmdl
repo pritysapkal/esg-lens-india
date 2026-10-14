@@ -1,0 +1,109 @@
+table fct_peer_benchmark
+	lineageTag: 1ef9c913-cc41-5285-aef3-60cd9eb8bc6e
+
+	/// Group the company is ranked in.
+	column ranking_group
+		dataType: string
+		lineageTag: e217d1b6-f873-5337-a3b3-13f660bfc3a0
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// Financial year, e.g. FY2025-26.
+	column fiscal_year_label
+		dataType: string
+		isHidden
+		lineageTag: 110c1419-4709-5843-ac38-3b0e2cdcdff3
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	/// KPI column of fct_company_year (seed kpi_catalogue).
+	column kpi_name
+		dataType: string
+		lineageTag: ad731cc6-98a5-5fb4-93e7-b9ce5933a2dd
+		summarizeBy: none
+		sourceColumn: kpi_name
+
+	/// Plain-English KPI name.
+	column kpi_label
+		dataType: string
+		lineageTag: 4579c084-61db-5c21-82b2-296ca9e1420d
+		summarizeBy: none
+		sourceColumn: kpi_label
+
+	/// pct, intensity or days.
+	column unit_type
+		dataType: string
+		lineageTag: 62c1fee9-b7a6-5566-bc50-b5e6978b3260
+		summarizeBy: none
+		sourceColumn: unit_type
+
+	/// lower_better, higher_better or context.
+	column direction
+		dataType: string
+		lineageTag: fdc8fc09-c724-53ce-9cf3-ba4a281393f8
+		summarizeBy: none
+		sourceColumn: direction
+
+	/// Companies in the ranking group that year.
+	column n_companies_in_group
+		dataType: int64
+		lineageTag: 1d7c28a8-12d5-5664-9a8a-d58a4bcbbf40
+		summarizeBy: none
+		sourceColumn: n_companies_in_group
+
+	/// Companies with a value for the KPI.
+	column n_companies
+		dataType: int64
+		lineageTag: 83803a6d-af7d-5072-a21f-0c16c105b33f
+		summarizeBy: none
+		sourceColumn: n_companies
+
+	/// true if at least 5 companies have a value.
+	column has_min_n
+		dataType: boolean
+		lineageTag: 670b1e29-da0f-58b6-8402-6018cb0012ae
+		summarizeBy: none
+		sourceColumn: has_min_n
+
+	/// Median of the KPI.
+	column median_value
+		dataType: double
+		lineageTag: 87019eaa-8eb6-5148-9f8d-dfad7a2392aa
+		summarizeBy: none
+		sourceColumn: median_value
+
+	/// 25th percentile.
+	column p25_value
+		dataType: double
+		lineageTag: f221ab80-2297-5921-af16-6bfe12a736de
+		summarizeBy: none
+		sourceColumn: p25_value
+
+	/// 75th percentile.
+	column p75_value
+		dataType: double
+		lineageTag: 5bf5cb98-90f0-5588-b8cb-a916521303ff
+		summarizeBy: none
+		sourceColumn: p75_value
+
+	/// LOCAL ONLY - not public (publication policy). Lowest value.
+	column min_value
+		dataType: double
+		lineageTag: bd4e750d-22dd-55b5-b4b1-197cb0626d1f
+		summarizeBy: none
+		sourceColumn: min_value
+
+	/// LOCAL ONLY - not public (publication policy). Highest value.
+	column max_value
+		dataType: double
+		lineageTag: a58f78a0-f5b4-5552-b942-959a2c9f62d2
+		summarizeBy: none
+		sourceColumn: max_value
+
+	partition fct_peer_benchmark = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\fct_peer_benchmark.parquet"))
+				in
+				    Source

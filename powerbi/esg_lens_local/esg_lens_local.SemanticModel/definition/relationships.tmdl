@@ -1,0 +1,51 @@
+relationship 65c48519-b598-5fd5-ae9c-1b0997b1c400
+	fromColumn: fct_company_year.isin
+	toColumn: dim_company.isin
+
+relationship 580cf784-d923-5ad5-8906-7146ef9ba40c
+	fromColumn: fct_company_year.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 30cc6a05-40e2-56c7-b5d0-cb9ddf35a2be
+	fromColumn: fct_disclosure_quality.isin
+	toColumn: dim_company.isin
+
+relationship 7f4bb5e7-6eeb-5cd9-b025-ce33991d0162
+	fromColumn: fct_disclosure_quality.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship dfaf1479-d480-5b66-95b9-39790af03ea5
+	fromColumn: fct_restatement.isin
+	toColumn: dim_company.isin
+
+relationship 89b583bf-e195-5cf2-9e63-0f76ada7cda9
+	fromColumn: fct_restatement.value_fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship d7379eeb-5dd5-56d4-9b21-d12b95948ef0
+	fromColumn: fct_restatement.metric_id
+	toColumn: dim_metric.metric_id
+
+relationship bd018167-175f-5408-8590-eaada6fe46a2
+	fromColumn: fct_company_kpi_percentile.isin
+	toColumn: dim_company.isin
+
+relationship 439f7801-33ec-5feb-9f1a-eb165cc5148f
+	fromColumn: fct_company_kpi_percentile.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 130ba8ad-22fe-5bab-a8c5-8271c63fb3f8
+	fromColumn: fct_peer_benchmark.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 4e6bbb3a-ec32-5c1a-881f-8b91d6f55278
+	fromColumn: q01_ghg_intensity_by_sector.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship bbeb2791-cb78-561e-b996-f1af3db7697b
+	fromColumn: q02_concentration_by_year.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 513d65b5-a7c2-573b-b64e-6f1728501283
+	fromColumn: q02_pareto_top10_by_year.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label

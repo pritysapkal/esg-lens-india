@@ -1,0 +1,173 @@
+/// Public model rpt_public_disclosure_quality: derived values only (docs/publication_policy.md).
+table rpt_public_disclosure_quality
+	lineageTag: 99b93ce4-5d9f-5751-a547-3d88705dc3fa
+
+	/// ISIN of the company (key of dim_company).
+	column isin
+		dataType: string
+		isHidden
+		lineageTag: 42e573ac-9213-5e1a-855e-c752765d634b
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// NSE symbol in the filing.
+	column symbol
+		dataType: string
+		lineageTag: c8395f65-c4ec-5ad5-adea-0c4377eba9a5
+		summarizeBy: none
+		sourceColumn: symbol
+
+	/// Short company name for charts.
+	column display_name
+		dataType: string
+		lineageTag: 129df6f9-1ddf-5114-b0b0-7c55f46c01d9
+		summarizeBy: none
+		sourceColumn: display_name
+
+	/// Financial year, e.g. FY2025-26.
+	column fiscal_year_label
+		dataType: string
+		lineageTag: 155fc6ca-5fa8-5b53-a710-eeca34b0552c
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	/// Peer group (seed peer_groups).
+	column peer_group
+		dataType: string
+		lineageTag: c4997f7e-d972-5711-8c87-ff8d85a06299
+		summarizeBy: none
+		sourceColumn: peer_group
+
+	/// Financials, Asset-light or Asset-heavy.
+	column sector_group
+		dataType: string
+		lineageTag: 0c555ced-b0b9-5947-84df-2d49ee859b4f
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	/// Group the company is ranked in.
+	column ranking_group
+		dataType: string
+		lineageTag: 3a6228ad-13f5-53f3-a991-d3706813c527
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// Disclosure Quality Score, 0-100, one decimal; empty if fewer than two components could be scored. Compare only within a financial year.
+	column dqs_total
+		dataType: double
+		lineageTag: d9bb379c-3ec1-5ba1-b10d-4133618ed8d6
+		summarizeBy: none
+		sourceColumn: dqs_total
+
+	/// A (85 and above), B (70 to below 85), C (55 to below 70), D (below 55); insufficient_data when fewer than three components could be scored.
+	column dqs_grade
+		dataType: string
+		lineageTag: f2c2c50b-fd9b-5b3c-bf93-8e42216eddaa
+		summarizeBy: none
+		sourceColumn: dqs_grade
+
+	/// Average of dqs_mandatory_completeness and dqs_voluntary_depth, 0-1.
+	column dqs_completeness
+		dataType: double
+		lineageTag: bf5e1ef5-4d3b-57af-b3e3-e13d853b5d46
+		summarizeBy: none
+		sourceColumn: dqs_completeness
+
+	/// Required metrics disclosed / required metrics, 0-1.
+	column dqs_mandatory_completeness
+		dataType: double
+		lineageTag: a4b9dca2-7fec-5a2b-bd43-cc1660671b7b
+		summarizeBy: none
+		sourceColumn: dqs_mandatory_completeness
+
+	/// Leadership (voluntary) indicators with a substantive value / Leadership indicators of the taxonomy, 0-1.
+	column dqs_voluntary_depth
+		dataType: double
+		lineageTag: 5bb92fd0-0f98-524b-8316-2f7e1aca74cd
+		summarizeBy: none
+		sourceColumn: dqs_voluntary_depth
+
+	/// 1 - failed checks / applicable checks inside the filing, 0-1.
+	column dqs_internal_consistency
+		dataType: double
+		lineageTag: d76cef88-b9c5-5ad0-95eb-0d27f3c3d009
+		summarizeBy: none
+		sourceColumn: dqs_internal_consistency
+
+	/// 1 - flagged metrics / comparable metrics against the next report, 0-1; empty when there is no later filing.
+	column dqs_temporal_consistency
+		dataType: double
+		lineageTag: 5ef5ad0d-433f-5528-8a1a-08ccfae97f1b
+		summarizeBy: none
+		sourceColumn: dqs_temporal_consistency
+
+	/// Assurance points, 0-1 (baseline of the level plus the whole-report bonus); empty before FY2023-24.
+	column dqs_assurance
+		dataType: double
+		lineageTag: 0ff7c10d-e9fd-5388-b374-89fb3ccb062e
+		summarizeBy: none
+		sourceColumn: dqs_assurance
+
+	/// How many of the four components could be scored.
+	column dqs_components_used
+		dataType: int64
+		lineageTag: 31f4bb9a-736d-57fd-bdc2-3af046534462
+		summarizeBy: none
+		sourceColumn: dqs_components_used
+
+	/// true when the temporal check could not be run because no later filing exists yet; the score can still fall.
+	column is_provisional
+		dataType: boolean
+		lineageTag: e3411aa4-7661-57d4-9bbe-846abea2ec2c
+		summarizeBy: none
+		sourceColumn: is_provisional
+
+	/// reasonable, assessment, limited or not_disclosed; empty before FY2023-24.
+	column assurance_level
+		dataType: string
+		lineageTag: 16a36c71-c1d0-560c-84b2-b1a4775ca764
+		summarizeBy: none
+		sourceColumn: assurance_level
+
+	/// all (whole report covered) or partial; empty when nothing is assured.
+	column assurance_scope
+		dataType: string
+		lineageTag: 1f16d78e-e438-5241-85f1-2ded98283331
+		summarizeBy: none
+		sourceColumn: assurance_scope
+
+	/// Companies of the ranking group with a gradable score that financial year.
+	column dqs_group_n
+		dataType: int64
+		lineageTag: 063b746d-60c9-5474-a1d2-90bef3b2b617
+		summarizeBy: none
+		sourceColumn: dqs_group_n
+
+	/// Rank within ranking group and financial year, 1 = best; only with at least three components and dqs_group_n of at least 5.
+	column dqs_rank_in_group
+		dataType: int64
+		lineageTag: d88465db-5a7e-572a-9dcb-1f602f823e67
+		summarizeBy: none
+		sourceColumn: dqs_rank_in_group
+
+	/// Percentile within ranking group and financial year, 100 = best; same conditions as the rank.
+	column dqs_percentile_in_group
+		dataType: double
+		lineageTag: d75b75a5-dda9-5b1a-97df-1bdde01b01d1
+		summarizeBy: none
+		sourceColumn: dqs_percentile_in_group
+
+	/// Up to three reasons for lost points, largest first, separated by a pipe: missing_required_metrics, low_voluntary_disclosure, waste_balance_gap, waste_recovery_over_100, implausible_zero, unit_inconsistency, suspected_scale_error, material_restatement, unexplained_yoy_anomaly, assurance_core_only, assessment_not_assurance, limited_assurance, no_assurance.
+	column dqs_reason_codes
+		dataType: string
+		lineageTag: c2fc703a-dc5c-5c83-95c2-07fa59ac010c
+		summarizeBy: none
+		sourceColumn: dqs_reason_codes
+
+	partition rpt_public_disclosure_quality = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\rpt_public_disclosure_quality.parquet"))
+				in
+				    Source

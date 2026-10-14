@@ -1,0 +1,187 @@
+table fct_restatement
+	lineageTag: 59f7e745-6f22-5f1f-b0b5-c91bf511aec9
+
+	/// ISIN of the company (key of dim_company).
+	column isin
+		dataType: string
+		isHidden
+		lineageTag: 4bb7f870-430c-5071-b5c4-d7fa27f8b748
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// NSE symbol in the filing.
+	column symbol
+		dataType: string
+		lineageTag: 39549693-f6db-5068-ac25-2c81eb7c7c9a
+		summarizeBy: none
+		sourceColumn: symbol
+
+	/// Catalogue metric (key of dim_metric).
+	column metric_id
+		dataType: string
+		lineageTag: 1d68f7fe-fac3-53b2-885c-18436482e148
+		summarizeBy: none
+		sourceColumn: metric_id
+
+	/// Breakdown of the value (axis=member pairs); empty = company-wide.
+	column dimension_key
+		dataType: string
+		lineageTag: c3a89f21-b5b8-5369-87f7-5a48557da0ef
+		summarizeBy: none
+		sourceColumn: dimension_key
+
+	/// Year Y the value belongs to.
+	column value_fiscal_year_label
+		dataType: string
+		isHidden
+		lineageTag: 739aa060-1f61-58b4-ba12-e42523f36435
+		summarizeBy: none
+		sourceColumn: value_fiscal_year_label
+
+	/// Year Y+1 of the filing that restates it.
+	column restating_fiscal_year_label
+		dataType: string
+		lineageTag: 277982de-dc3a-5bd0-86f2-4bcf40aeea33
+		summarizeBy: none
+		sourceColumn: restating_fiscal_year_label
+
+	/// Filing for year Y.
+	column original_filing_id
+		dataType: string
+		lineageTag: b1793bd6-cf0b-5d99-aaca-47fccd035146
+		summarizeBy: none
+		sourceColumn: original_filing_id
+
+	/// Filing for year Y+1.
+	column restating_filing_id
+		dataType: string
+		lineageTag: aa9de305-b2b9-5e39-b1c1-5db95a7fabea
+		summarizeBy: none
+		sourceColumn: restating_filing_id
+
+	/// LOCAL ONLY - not public (publication policy). CY value of year Y from the filing for Y.
+	column original_value
+		dataType: double
+		lineageTag: 9b001ac0-597f-54c1-a451-3463341fecdb
+		summarizeBy: none
+		sourceColumn: original_value
+
+	/// LOCAL ONLY - not public (publication policy). PY value of year Y from the filing for Y+1.
+	column restated_value
+		dataType: double
+		lineageTag: 8c3000b9-6c00-59cc-adb6-446fff577731
+		summarizeBy: none
+		sourceColumn: restated_value
+
+	/// LOCAL ONLY - not public (publication policy). restated - original.
+	column abs_change
+		dataType: double
+		lineageTag: de1d38e5-5f31-522b-a51c-7ff60016a442
+		summarizeBy: none
+		sourceColumn: abs_change
+
+	/// (restated - original) / |original|; empty when original is 0.
+	column pct_change
+		dataType: double
+		lineageTag: 5e8f9a89-a86b-55d1-acce-2b7d8c2e5fbe
+		summarizeBy: none
+		sourceColumn: pct_change
+
+	/// restated - original in percentage points (percent metrics only).
+	column pp_change
+		dataType: double
+		lineageTag: f40d8661-0fac-5b0f-a070-38618e80780f
+		summarizeBy: none
+		sourceColumn: pp_change
+
+	/// pct, count, quantity, intensity or days.
+	column unit_type
+		dataType: string
+		lineageTag: 6febcb5c-51f8-54bb-95ff-a3ef31e2e869
+		summarizeBy: none
+		sourceColumn: unit_type
+
+	/// lower_better, higher_better, context or n/a.
+	column direction
+		dataType: string
+		lineageTag: f3a91ee1-be77-5331-bcec-61c55a7c57d1
+		summarizeBy: none
+		sourceColumn: direction
+
+	/// no_change, minor, material, unit_inconsistency, from_zero, to_zero, suspected_scale_error or unit_inferred_from_restating_filing.
+	column classification
+		dataType: string
+		lineageTag: 86c7b710-f0bb-54a4-8eeb-c5a128d815e1
+		summarizeBy: none
+		sourceColumn: classification
+
+	/// false for circular pairs and suspected scale errors; those are excluded from statistics.
+	column is_compared
+		dataType: boolean
+		lineageTag: 706a5fe9-c8d1-566f-8af0-3fd519ba086b
+		summarizeBy: none
+		sourceColumn: is_compared
+
+	/// restated / original (both positive).
+	column ratio
+		dataType: double
+		lineageTag: 01caf822-595c-5df1-bffb-067870dd1fef
+		summarizeBy: none
+		sourceColumn: ratio
+
+	/// How the unit of the original value was decided.
+	column original_unit_resolution_method
+		dataType: string
+		lineageTag: a18d056a-cd7a-5ed5-b80e-8cdbf2ce974c
+		summarizeBy: none
+		sourceColumn: original_unit_resolution_method
+
+	/// merger/demerger, boundary change, possible note (weak), or empty.
+	column explained_by
+		dataType: string
+		lineageTag: 317559dd-4e9f-53a6-84de-204131e13e55
+		summarizeBy: none
+		sourceColumn: explained_by
+
+	/// LOCAL ONLY - not public (publication policy). Snippet (<= 300 characters) of the possible restatement note; no links.
+	column stated_reason
+		dataType: string
+		lineageTag: 540b9274-274b-5586-a272-cfa967fd7b86
+		summarizeBy: none
+		sourceColumn: stated_reason
+
+	/// For material pairs: true if the restatement makes the Y to Y+1 change look better.
+	column flatters_trend
+		dataType: boolean
+		lineageTag: 2f772c09-aff5-53b8-bb16-8d60b28802ec
+		summarizeBy: none
+		sourceColumn: flatters_trend
+
+	/// material, flattering and with no explanation of any kind.
+	column red_flag
+		dataType: boolean
+		lineageTag: 099a161d-9fad-5c9e-8871-73a24c7ffa6c
+		summarizeBy: none
+		sourceColumn: red_flag
+
+	/// material, flattering and not explained by a merger / demerger or boundary change (a weak note does not count).
+	column red_flag_strict
+		dataType: boolean
+		lineageTag: f9e2b23b-2c83-5453-9d6b-c7e0f10f10c5
+		summarizeBy: none
+		sourceColumn: red_flag_strict
+
+	/// Whether the metric is ranked for the company peer group.
+	column is_metric_material
+		dataType: boolean
+		lineageTag: 5e30da85-25e1-5e1b-b0c7-8dc796ba6ecf
+		summarizeBy: none
+		sourceColumn: is_metric_material
+
+	partition fct_restatement = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\fct_restatement.parquet"))
+				in
+				    Source

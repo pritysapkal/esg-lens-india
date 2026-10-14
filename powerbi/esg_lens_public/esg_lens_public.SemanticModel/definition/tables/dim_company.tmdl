@@ -1,0 +1,62 @@
+/// One row per company (its latest name and groups), built from rpt_public_company_year.
+table dim_company
+	lineageTag: 0c1f0510-7dfd-5263-9a26-91e05d46e602
+
+	column isin
+		dataType: string
+		lineageTag: f0c71d21-5df9-5743-a39a-d719d55e0b6d
+		summarizeBy: none
+		sourceColumn: isin
+
+	column display_name
+		dataType: string
+		lineageTag: cb2efca4-79c2-5b3d-a92f-20b53eb95d3e
+		summarizeBy: none
+		sourceColumn: display_name
+
+	column symbol
+		dataType: string
+		lineageTag: 0a010f00-c65e-5c6d-be66-c321e67161e3
+		summarizeBy: none
+		sourceColumn: symbol
+
+	column peer_group
+		dataType: string
+		lineageTag: 31ceb429-4600-5d3d-9496-8a4d5a3e4bec
+		summarizeBy: none
+		sourceColumn: peer_group
+
+	column sector_group
+		dataType: string
+		lineageTag: ae41b125-35b7-518c-a6fa-2007460b68d8
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	column ranking_group
+		dataType: string
+		lineageTag: 84f6fa05-b393-586b-9d34-0b0a52ae5ab9
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	column ownership_type
+		dataType: string
+		lineageTag: 567918b4-facd-5a5b-8131-cd3e2ec6c301
+		summarizeBy: none
+		sourceColumn: ownership_type
+
+	column business_group
+		dataType: string
+		lineageTag: 03fd6e22-8693-54f1-a53f-bdf804d8f17f
+		summarizeBy: none
+		sourceColumn: business_group
+
+	partition dim_company = m
+		mode: import
+		source =
+				let
+				    Source = rpt_public_company_year,
+				    Latest = Table.Buffer ( Table.Sort ( Source, {{"fiscal_year_label", Order.Descending}} ) ),
+				    Kept = Table.SelectColumns ( Latest, {"isin", "display_name", "symbol", "peer_group", "sector_group", "ranking_group", "ownership_type", "business_group"} ),
+				    Companies = Table.Distinct ( Kept, {"isin"} )
+				in
+				    Companies

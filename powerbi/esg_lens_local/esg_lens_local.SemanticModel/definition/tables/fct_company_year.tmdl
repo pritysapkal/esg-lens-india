@@ -1,0 +1,614 @@
+table fct_company_year
+	lineageTag: bb6f9eb7-2d06-57c7-afd1-23fb8b4a67e1
+
+	/// ISIN of the company (key of dim_company).
+	column isin
+		dataType: string
+		isHidden
+		lineageTag: 9118ba53-34ba-5dfe-8d8f-28a1a61b1be8
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// Financial year, e.g. FY2025-26.
+	column fiscal_year_label
+		dataType: string
+		isHidden
+		lineageTag: 87eb7e8e-f615-5b41-9d3d-02a11f51c396
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	/// Latest filing of the company-year.
+	column filing_id
+		dataType: string
+		lineageTag: f35fa3f7-0420-5f3d-864d-40a74a202e07
+		summarizeBy: none
+		sourceColumn: filing_id
+
+	/// NSE symbol in the filing.
+	column symbol
+		dataType: string
+		lineageTag: 6031b1f8-956e-5b04-be29-c1e10d9ac14e
+		summarizeBy: none
+		sourceColumn: symbol
+
+	/// Short company name for charts.
+	column display_name
+		dataType: string
+		lineageTag: 3f0e8289-fac8-51c1-a481-5446bd77fa8c
+		summarizeBy: none
+		sourceColumn: display_name
+
+	/// Peer group (seed peer_groups).
+	column peer_group
+		dataType: string
+		lineageTag: d21ac28a-d60f-54e9-a1c2-f22cedb6f1b7
+		summarizeBy: none
+		sourceColumn: peer_group
+
+	/// Financials, Asset-light or Asset-heavy.
+	column sector_group
+		dataType: string
+		lineageTag: b1e84ce0-0c95-5805-9804-2c1dae145fcb
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	/// Group the company is ranked in.
+	column ranking_group
+		dataType: string
+		lineageTag: 87824f43-d30a-5819-b4b0-8443ee9f4e93
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// Large, Mid or Small (terciles within sector group and year).
+	column size_band
+		dataType: string
+		lineageTag: 455c6222-15db-50bb-a11e-bab928d0be5b
+		summarizeBy: none
+		sourceColumn: size_band
+
+	/// total_headcount (Financials) or turnover_inr.
+	column size_band_basis
+		dataType: string
+		lineageTag: e0a394de-e7a5-5a56-9556-77c99ac2bdbe
+		summarizeBy: none
+		sourceColumn: size_band_basis
+
+	/// Government, Private Indian or MNC subsidiary.
+	column ownership_type
+		dataType: string
+		lineageTag: c054ad21-224a-5283-976c-3057ace497f3
+		summarizeBy: none
+		sourceColumn: ownership_type
+
+	/// Business group or Independent.
+	column business_group
+		dataType: string
+		lineageTag: cf568ec0-1996-5906-9c0f-d177434e446f
+		summarizeBy: none
+		sourceColumn: business_group
+
+	/// standalone or consolidated.
+	column reporting_boundary
+		dataType: string
+		lineageTag: 4ec1daa9-46e9-5d7c-8794-71c1e1fc0209
+		summarizeBy: none
+		sourceColumn: reporting_boundary
+
+	/// assured, assessed or not disclosed.
+	column brsr_core_assurance_status
+		dataType: string
+		lineageTag: 4279d839-3a5a-5c16-b081-ef3c286ae189
+		summarizeBy: none
+		sourceColumn: brsr_core_assurance_status
+
+	/// Scope of the BRSR Core assurance: All or Partial.
+	column assurance_type
+		dataType: string
+		lineageTag: 464e4855-c0f3-59d7-a912-c1e49a526389
+		summarizeBy: none
+		sourceColumn: assurance_type
+
+	/// true if an event or boundary change breaks comparability with the previous year.
+	column has_comparability_break
+		dataType: boolean
+		lineageTag: 52c61ff3-b65f-50ee-ae69-c26d79ecec17
+		summarizeBy: none
+		sourceColumn: has_comparability_break
+
+	/// merger, demerger, boundary change or combined.
+	column comparability_break_reason
+		dataType: string
+		lineageTag: aca979b5-0286-574c-894a-6293fb10714d
+		summarizeBy: none
+		sourceColumn: comparability_break_reason
+
+	/// Length of the reporting period in months.
+	column period_months
+		dataType: int64
+		lineageTag: e8b7d37e-ae70-5cb1-862d-5451eb16d968
+		summarizeBy: none
+		sourceColumn: period_months
+
+	/// 12 / period_months.
+	column annualisation_factor
+		dataType: double
+		lineageTag: 0a45cf26-3834-5b59-8daf-4742c410584b
+		summarizeBy: none
+		sourceColumn: annualisation_factor
+
+	/// LOCAL ONLY - not public (publication policy). Corrected turnover in INR.
+	column turnover_inr
+		dataType: double
+		lineageTag: a49482df-ec53-5b98-b762-941914c4e77c
+		summarizeBy: none
+		sourceColumn: turnover_inr
+
+	/// LOCAL ONLY - not public (publication policy). turnover_inr / 1e7 (Rs crore).
+	column turnover_cr
+		dataType: double
+		lineageTag: b96cb137-e641-59e9-882b-21f7d1eb3801
+		summarizeBy: none
+		sourceColumn: turnover_cr
+
+	/// LOCAL ONLY - not public (publication policy). Employees + workers, permanent and other than permanent.
+	column headcount_total
+		dataType: double
+		lineageTag: 27ee466a-3413-5a24-80d5-de639c953721
+		summarizeBy: none
+		sourceColumn: headcount_total
+
+	/// LOCAL ONLY - not public (publication policy). Female employees + female workers (same basis).
+	column headcount_female
+		dataType: double
+		lineageTag: 5d77835b-acee-5fc7-a64d-986bebc405a4
+		summarizeBy: none
+		sourceColumn: headcount_female
+
+	/// headcount_female / headcount_total x 100.
+	column female_workforce_pct
+		dataType: double
+		lineageTag: ce7b8795-8845-53d9-a370-33f983da7b26
+		summarizeBy: none
+		sourceColumn: female_workforce_pct
+
+	/// LOCAL ONLY - not public (publication policy). Share of gross wages paid to women, as filed (BRSR Core).
+	column female_wage_share_pct
+		dataType: double
+		lineageTag: 951dffa2-f71d-5ed7-a846-be7253ce516d
+		summarizeBy: none
+		sourceColumn: female_wage_share_pct
+
+	/// female_wage_share_pct - female_workforce_pct, in percentage points; negative = women get a smaller share of wages than of headcount.
+	column pay_equity_gap_pp
+		dataType: double
+		lineageTag: 7bc9d1a1-81fd-5a25-aff0-830be7e46f04
+		summarizeBy: none
+		sourceColumn: pay_equity_gap_pp
+
+	/// LOCAL ONLY - not public (publication policy). Share of women on the board, as filed.
+	column female_board_pct
+		dataType: double
+		lineageTag: f438c966-32c0-5e5f-90e2-3ab5ec4426cb
+		summarizeBy: none
+		sourceColumn: female_board_pct
+
+	/// LOCAL ONLY - not public (publication policy). Attrition rate of permanent female employees, as filed.
+	column attrition_female_pct
+		dataType: double
+		lineageTag: ede02dbd-86dc-5ff8-9d42-0f897bd6233f
+		summarizeBy: none
+		sourceColumn: attrition_female_pct
+
+	/// LOCAL ONLY - not public (publication policy). Attrition rate of permanent male employees, as filed.
+	column attrition_male_pct
+		dataType: double
+		lineageTag: 7834d8b1-b6b8-55b1-94a9-dc93d2a58c24
+		summarizeBy: none
+		sourceColumn: attrition_male_pct
+
+	/// attrition_female_pct - attrition_male_pct, in percentage points.
+	column attrition_gap_pp
+		dataType: double
+		lineageTag: 17b7eabc-3515-52fe-b2d4-26e4a6131e35
+		summarizeBy: none
+		sourceColumn: attrition_gap_pp
+
+	/// LOCAL ONLY - not public (publication policy). Scope 1 emissions, tCO2e.
+	column ghg_s1_tco2e
+		dataType: double
+		lineageTag: b15b858a-c0d1-50a5-a025-d4a94bc527e9
+		summarizeBy: none
+		sourceColumn: ghg_s1_tco2e
+
+	/// LOCAL ONLY - not public (publication policy). Scope 2 emissions, tCO2e.
+	column ghg_s2_tco2e
+		dataType: double
+		lineageTag: 5969e1dd-31c1-5e84-9774-fc8aa8982db3
+		summarizeBy: none
+		sourceColumn: ghg_s2_tco2e
+
+	/// LOCAL ONLY - not public (publication policy). Scope 1 + Scope 2, tCO2e; null if either is missing.
+	column ghg_s12_tco2e
+		dataType: double
+		lineageTag: 3e9ca953-44aa-5c5f-9731-d5b22f318ae7
+		summarizeBy: none
+		sourceColumn: ghg_s12_tco2e
+
+	/// LOCAL ONLY - not public (publication policy). Scope 3 emissions, tCO2e (voluntary).
+	column ghg_s3_tco2e
+		dataType: double
+		lineageTag: b5c01d38-5fea-5e11-bca8-15ba1fa0f27e
+		summarizeBy: none
+		sourceColumn: ghg_s3_tco2e
+
+	/// true if a Scope 3 value is filed.
+	column scope3_disclosed
+		dataType: boolean
+		lineageTag: e5e20e0b-b8b5-5d6a-9632-8d50b2d9761a
+		summarizeBy: none
+		sourceColumn: scope3_disclosed
+
+	/// ghg_s12_tco2e / turnover_cr (computed by us).
+	column ghg_intensity_tco2e_per_cr
+		dataType: double
+		lineageTag: 6ee8be70-c98d-5315-937b-2d9fe798a50e
+		summarizeBy: none
+		sourceColumn: ghg_intensity_tco2e_per_cr
+
+	/// LOCAL ONLY - not public (publication policy). Scope 1+2 intensity as the company filed it.
+	column ghg_intensity_filed_per_cr
+		dataType: double
+		lineageTag: 577e4916-c67b-589a-8698-3a35478f8e1b
+		summarizeBy: none
+		sourceColumn: ghg_intensity_filed_per_cr
+
+	/// LOCAL ONLY - not public (publication policy). Filed / computed intensity; near 1 when consistent.
+	column ghg_intensity_filed_vs_computed_ratio
+		dataType: double
+		lineageTag: 51ebdc0d-4b92-59c5-b6f9-04e5065ff349
+		summarizeBy: none
+		sourceColumn: ghg_intensity_filed_vs_computed_ratio
+
+	/// Denominator the company used for its filed GHG intensity: per rupee (as required), per lakh, per million, per crore or other/unclear.
+	column ghg_intensity_filed_basis
+		dataType: string
+		lineageTag: 290c24cc-2478-5896-8786-c7d2e3125f6e
+		summarizeBy: none
+		sourceColumn: ghg_intensity_filed_basis
+
+	/// LOCAL ONLY - not public (publication policy). Total energy consumed, GJ.
+	column energy_total_gj
+		dataType: double
+		lineageTag: 2d81fd38-2fec-53bd-9d6e-fdfe373caa5b
+		summarizeBy: none
+		sourceColumn: energy_total_gj
+
+	/// LOCAL ONLY - not public (publication policy). Energy from renewable sources, GJ.
+	column energy_renewable_gj
+		dataType: double
+		lineageTag: 79e0e42a-f186-5290-aecc-aa8abcf406b4
+		summarizeBy: none
+		sourceColumn: energy_renewable_gj
+
+	/// energy_renewable_gj / energy_total_gj x 100.
+	column renewable_share_pct
+		dataType: double
+		lineageTag: 4e56dd37-966f-5848-a3c0-5d4d4f82f8e1
+		summarizeBy: none
+		sourceColumn: renewable_share_pct
+
+	/// energy_total_gj / turnover_cr (computed).
+	column energy_intensity_gj_per_cr
+		dataType: double
+		lineageTag: 76b0f62d-3eb9-5a0d-af77-85c30559a338
+		summarizeBy: none
+		sourceColumn: energy_intensity_gj_per_cr
+
+	/// LOCAL ONLY - not public (publication policy). Energy intensity as filed.
+	column energy_intensity_filed_gj_per_cr
+		dataType: double
+		lineageTag: f29e7316-740a-510d-90a9-56b68b2a60e2
+		summarizeBy: none
+		sourceColumn: energy_intensity_filed_gj_per_cr
+
+	/// LOCAL ONLY - not public (publication policy). Filed / computed energy intensity.
+	column energy_intensity_filed_vs_computed_ratio
+		dataType: double
+		lineageTag: 3e3318b9-7b97-5268-adcb-80f7e76e4546
+		summarizeBy: none
+		sourceColumn: energy_intensity_filed_vs_computed_ratio
+
+	/// Denominator used for the filed energy intensity.
+	column energy_intensity_filed_basis
+		dataType: string
+		lineageTag: ab81fbef-f304-5954-a97c-fe3a5d0b9b2f
+		summarizeBy: none
+		sourceColumn: energy_intensity_filed_basis
+
+	/// LOCAL ONLY - not public (publication policy). Total water withdrawal, kl.
+	column water_withdrawal_kl
+		dataType: double
+		lineageTag: d03cda4d-daac-507c-aebf-9a9ee411ed36
+		summarizeBy: none
+		sourceColumn: water_withdrawal_kl
+
+	/// LOCAL ONLY - not public (publication policy). Total water consumption, kl.
+	column water_consumption_kl
+		dataType: double
+		lineageTag: d92cb723-b4d7-5777-944d-47658e028d1d
+		summarizeBy: none
+		sourceColumn: water_consumption_kl
+
+	/// water_consumption_kl / turnover_cr (computed).
+	column water_intensity_kl_per_cr
+		dataType: double
+		lineageTag: 510c07e7-b453-581a-888f-795b81cef110
+		summarizeBy: none
+		sourceColumn: water_intensity_kl_per_cr
+
+	/// LOCAL ONLY - not public (publication policy). Water intensity as filed.
+	column water_intensity_filed_kl_per_cr
+		dataType: double
+		lineageTag: 1e630d9b-d158-5b85-9f85-aef2db7d7a2f
+		summarizeBy: none
+		sourceColumn: water_intensity_filed_kl_per_cr
+
+	/// LOCAL ONLY - not public (publication policy). Filed / computed water intensity.
+	column water_intensity_filed_vs_computed_ratio
+		dataType: double
+		lineageTag: c5e26cfb-3bae-5fa4-8107-756a900c36fa
+		summarizeBy: none
+		sourceColumn: water_intensity_filed_vs_computed_ratio
+
+	/// Denominator used for the filed water intensity.
+	column water_intensity_filed_basis
+		dataType: string
+		lineageTag: 58768a3a-264d-5ef3-8ed0-b84817fa6798
+		summarizeBy: none
+		sourceColumn: water_intensity_filed_basis
+
+	/// LOCAL ONLY - not public (publication policy). Total waste generated, tonnes.
+	column waste_generated_t
+		dataType: double
+		lineageTag: e86524e2-96aa-5bb0-934e-97f2dace0c46
+		summarizeBy: none
+		sourceColumn: waste_generated_t
+
+	/// LOCAL ONLY - not public (publication policy). Total waste recovered, tonnes.
+	column waste_recovered_t
+		dataType: double
+		lineageTag: 9308c34e-bb71-54dc-b7b2-2aa934e783e5
+		summarizeBy: none
+		sourceColumn: waste_recovered_t
+
+	/// LOCAL ONLY - not public (publication policy). Total waste disposed, tonnes.
+	column waste_disposed_t
+		dataType: double
+		lineageTag: c1430d7b-7f90-5fc8-9a92-9f14c7a53dcb
+		summarizeBy: none
+		sourceColumn: waste_disposed_t
+
+	/// waste_recovered_t / waste_generated_t x 100.
+	column waste_recovery_rate_pct
+		dataType: double
+		lineageTag: 105ab4a3-ba5f-5f66-9b3e-afcb99f22ed4
+		summarizeBy: none
+		sourceColumn: waste_recovery_rate_pct
+
+	/// waste_generated_t / turnover_cr.
+	column waste_intensity_t_per_cr
+		dataType: double
+		lineageTag: a64a122c-1ffb-5f21-8f67-bbe2f534844c
+		summarizeBy: none
+		sourceColumn: waste_intensity_t_per_cr
+
+	/// (generated - recovered - disposed) / generated x 100; far from 0 means inconsistent inputs.
+	column waste_balance_gap_pct
+		dataType: double
+		lineageTag: 8b09e552-76c1-52f4-807f-531b3cf1e53a
+		summarizeBy: none
+		sourceColumn: waste_balance_gap_pct
+
+	/// LOCAL ONLY - not public (publication policy). Lost time injury frequency rate, employees (per million hours).
+	column ltifr_employees
+		dataType: double
+		lineageTag: 759c1aab-51d0-59f6-ae01-3a4c944cd774
+		summarizeBy: none
+		sourceColumn: ltifr_employees
+
+	/// LOCAL ONLY - not public (publication policy). Lost time injury frequency rate, workers (per million hours).
+	column ltifr_workers
+		dataType: double
+		lineageTag: 21ef47cf-3b57-58fd-b1ad-c9831c34727f
+		summarizeBy: none
+		sourceColumn: ltifr_workers
+
+	/// LOCAL ONLY - not public (publication policy). Recordable injuries, employees + workers.
+	column recordable_injuries_total
+		dataType: double
+		lineageTag: 23246f63-7372-538d-bbba-eb8f286ccd0a
+		summarizeBy: none
+		sourceColumn: recordable_injuries_total
+
+	/// LOCAL ONLY - not public (publication policy). Fatalities, employees + workers.
+	column fatalities_total
+		dataType: double
+		lineageTag: b2dd21a8-193d-517c-8cfa-0508b8b8cbea
+		summarizeBy: none
+		sourceColumn: fatalities_total
+
+	/// true if fatalities_total > 0.
+	column any_fatality
+		dataType: boolean
+		lineageTag: 03af5b68-81b4-58ce-b825-bb6d85fa9d4d
+		summarizeBy: none
+		sourceColumn: any_fatality
+
+	/// fatalities_total / headcount_total x 10,000.
+	column fatalities_per_10k_workforce
+		dataType: double
+		lineageTag: 10c185ec-e120-5b6a-8a7a-fe7a9cc70aa2
+		summarizeBy: none
+		sourceColumn: fatalities_per_10k_workforce
+
+	/// LOCAL ONLY - not public (publication policy). POSH complaints as % of female employees and workers, as filed.
+	column posh_complaints_pct_female
+		dataType: double
+		lineageTag: f3e592b3-1303-5149-bc52-5b5c2bd125b9
+		summarizeBy: none
+		sourceColumn: posh_complaints_pct_female
+
+	/// LOCAL ONLY - not public (publication policy). POSH complaints upheld.
+	column posh_upheld_count
+		dataType: double
+		lineageTag: 5bd2b65b-6d10-5f8a-952f-5cc3bfff9d7f
+		summarizeBy: none
+		sourceColumn: posh_upheld_count
+
+	/// LOCAL ONLY - not public (publication policy). Well-being spend as % of revenue, as filed.
+	column wellbeing_cost_pct_revenue
+		dataType: double
+		lineageTag: 97e91195-180c-5a13-aa62-72a79ec4b2a4
+		summarizeBy: none
+		sourceColumn: wellbeing_cost_pct_revenue
+
+	/// LOCAL ONLY - not public (publication policy). Input sourced directly from MSMEs / small producers, %.
+	column msme_sourcing_pct
+		dataType: double
+		lineageTag: f92ce352-f9d4-5f39-83d8-8565e37c85c3
+		summarizeBy: none
+		sourceColumn: msme_sourcing_pct
+
+	/// LOCAL ONLY - not public (publication policy). Days of accounts payable; empty for Financials.
+	column days_payable
+		dataType: double
+		lineageTag: d8c45a62-9a19-5b24-88cb-f3dd32f8b783
+		summarizeBy: none
+		sourceColumn: days_payable
+
+	/// LOCAL ONLY - not public (publication policy). Purchases from related parties, % of purchases.
+	column rpt_purchases_pct
+		dataType: double
+		lineageTag: bb5d9ce7-6a17-571b-abb5-0257fb26bb61
+		summarizeBy: none
+		sourceColumn: rpt_purchases_pct
+
+	/// LOCAL ONLY - not public (publication policy). Sales to related parties, % of sales.
+	column rpt_sales_pct
+		dataType: double
+		lineageTag: 477f8638-551b-57bc-9efc-5358dfea45fb
+		summarizeBy: none
+		sourceColumn: rpt_sales_pct
+
+	/// LOCAL ONLY - not public (publication policy). ghg s1 tco2e annualised
+	column ghg_s1_tco2e_annualised
+		dataType: double
+		lineageTag: f31b12c1-623f-5d01-ae6e-2f733fc92505
+		summarizeBy: none
+		sourceColumn: ghg_s1_tco2e_annualised
+
+	/// LOCAL ONLY - not public (publication policy). ghg s2 tco2e annualised
+	column ghg_s2_tco2e_annualised
+		dataType: double
+		lineageTag: d9fed43b-ea73-56bd-b02d-a5f04c2aed7f
+		summarizeBy: none
+		sourceColumn: ghg_s2_tco2e_annualised
+
+	/// LOCAL ONLY - not public (publication policy). ghg s12 tco2e annualised
+	column ghg_s12_tco2e_annualised
+		dataType: double
+		lineageTag: 2f60db47-2f4f-5b4f-b49a-38c200e01cd0
+		summarizeBy: none
+		sourceColumn: ghg_s12_tco2e_annualised
+
+	/// LOCAL ONLY - not public (publication policy). ghg s3 tco2e annualised
+	column ghg_s3_tco2e_annualised
+		dataType: double
+		lineageTag: ee1c505a-b1a1-56ba-bba9-e6f61948f22c
+		summarizeBy: none
+		sourceColumn: ghg_s3_tco2e_annualised
+
+	/// LOCAL ONLY - not public (publication policy). energy total gj annualised
+	column energy_total_gj_annualised
+		dataType: double
+		lineageTag: 24c51b37-6eec-58ac-bf0a-afc2d8b6573e
+		summarizeBy: none
+		sourceColumn: energy_total_gj_annualised
+
+	/// LOCAL ONLY - not public (publication policy). energy renewable gj annualised
+	column energy_renewable_gj_annualised
+		dataType: double
+		lineageTag: 39c5ce84-da94-5302-8ecd-e546e32869a1
+		summarizeBy: none
+		sourceColumn: energy_renewable_gj_annualised
+
+	/// LOCAL ONLY - not public (publication policy). water withdrawal kl annualised
+	column water_withdrawal_kl_annualised
+		dataType: double
+		lineageTag: 4ea9614a-38ec-56bb-a348-9e5be3028f23
+		summarizeBy: none
+		sourceColumn: water_withdrawal_kl_annualised
+
+	/// LOCAL ONLY - not public (publication policy). water consumption kl annualised
+	column water_consumption_kl_annualised
+		dataType: double
+		lineageTag: f3a4a03d-dd67-5051-aa6c-3eec0a723763
+		summarizeBy: none
+		sourceColumn: water_consumption_kl_annualised
+
+	/// LOCAL ONLY - not public (publication policy). waste generated t annualised
+	column waste_generated_t_annualised
+		dataType: double
+		lineageTag: 4921c0d0-432b-54d1-90d3-5aa5fe5ad396
+		summarizeBy: none
+		sourceColumn: waste_generated_t_annualised
+
+	/// LOCAL ONLY - not public (publication policy). waste recovered t annualised
+	column waste_recovered_t_annualised
+		dataType: double
+		lineageTag: 126446f9-cc07-5502-8674-7d3c709baed4
+		summarizeBy: none
+		sourceColumn: waste_recovered_t_annualised
+
+	/// LOCAL ONLY - not public (publication policy). waste disposed t annualised
+	column waste_disposed_t_annualised
+		dataType: double
+		lineageTag: 9e1b6fd0-07bc-5c79-9051-3d8321df5c04
+		summarizeBy: none
+		sourceColumn: waste_disposed_t_annualised
+
+	/// LOCAL ONLY - not public (publication policy). turnover inr annualised
+	column turnover_inr_annualised
+		dataType: double
+		lineageTag: c2ffb7f3-4fab-5d97-94d6-a32355926917
+		summarizeBy: none
+		sourceColumn: turnover_inr_annualised
+
+	/// true if the number of data breaches > 0.
+	column any_data_breach
+		dataType: boolean
+		lineageTag: cbf0df2e-0ab7-5a17-8a9a-73b2e0f27f23
+		summarizeBy: none
+		sourceColumn: any_data_breach
+
+	/// Current-year values of this company-year replaced by the later comparative (suspected scale errors).
+	column n_values_replaced
+		dataType: int64
+		lineageTag: ed0e91a7-2f21-5d28-8781-395a66bb73c3
+		summarizeBy: none
+		sourceColumn: n_values_replaced
+
+	/// Pipe-separated flags: implausible zeros set to empty, waste recovery above 100%, values replaced. Empty if none.
+	column kpi_flags
+		dataType: string
+		lineageTag: 37dae3d3-2996-5b8d-b018-4d3e05b1f545
+		summarizeBy: none
+		sourceColumn: kpi_flags
+
+	partition fct_company_year = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\fct_company_year.parquet"))
+				in
+				    Source

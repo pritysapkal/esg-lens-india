@@ -1,0 +1,365 @@
+/// All measures, in display folders. Group figures mirror the semantic layer.
+table _Measures
+	lineageTag: 28d3f736-db23-5871-a4fe-a4f667adfc90
+
+	/// Companies with a report in the current selection.
+	measure 'Companies in selection' =
+			DISTINCTCOUNT ( rpt_public_company_year[isin] )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 85fd57ef-61dd-5c6d-95b9-05f6bbe4e07a
+
+	/// The group figures show a value only when exactly one row of rpt_public_group_metrics is selected: one group type, one group, one year.
+	measure 'Group rows in selection' =
+			COUNTROWS ( rpt_public_group_metrics )
+		formatString: 0
+		displayFolder: 5 Data status and labels
+		lineageTag: abb80dec-21ff-585d-8a87-dd17951d2609
+
+	/// Why a group figure is empty: fewer than 5 companies (n<5), or a restatement figure of a year with no later report.
+	measure 'Withheld note' =
+			VAR reason = IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[suppressed_reason] ) )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( reason ), BLANK (),
+			        CONTAINSSTRING ( reason, "fewer_than_5" ) && CONTAINSSTRING ( reason, "not_yet" ),
+			            "n<5; restatements not yet observable",
+			        CONTAINSSTRING ( reason, "fewer_than_5" ), "n<5: fewer than 5 companies",
+			        "Restatements not yet observable: no later report"
+			    )
+		displayFolder: 5 Data status and labels
+		lineageTag: d5ca809c-1f3c-5deb-85d1-85c60ab3a779
+
+	/// tCO2e per Rs crore. All the Scope 1+2 emissions of the group divided by all its turnover: the intensity of the group as if it were one company. Large companies weigh more. Published value from rpt_public_group_metrics.ghg_intensity_agg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'GHG intensity, whole group' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[ghg_intensity_agg] ) )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: d0d7642e-eab8-5524-acb7-5ef2b2c94b34
+
+	/// tCO2e per Rs crore. The intensity of the company in the middle of the group: half the companies are below it, half above. Every company weighs the same. Published value from rpt_public_group_metrics.ghg_intensity_median; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'GHG intensity, typical company' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[ghg_intensity_median] ) )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 9589fc37-6387-57df-b7e9-575ed61e6261
+
+	/// companies. How many companies of the group have a ghg intensity. The whole-group and typical-company figures may be published only when this is 5 or more. Published value from rpt_public_group_metrics.companies_with_ghg_intensity; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a ghg intensity' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_ghg_intensity] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 116aa9c9-d8b9-5330-8236-c0f9fe06bcc3
+
+	/// GJ per Rs crore. All the energy used of the group divided by all its turnover: the intensity of the group as if it were one company. Large companies weigh more. Published value from rpt_public_group_metrics.energy_intensity_agg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Energy intensity, whole group' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[energy_intensity_agg] ) )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 2f11710b-68fb-5e46-9676-f9eddc783877
+
+	/// GJ per Rs crore. The intensity of the company in the middle of the group: half the companies are below it, half above. Every company weighs the same. Published value from rpt_public_group_metrics.energy_intensity_median; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Energy intensity, typical company' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[energy_intensity_median] ) )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: b25eb486-c2cf-56a4-93a8-bad749403d7b
+
+	/// companies. How many companies of the group have a energy intensity. The whole-group and typical-company figures may be published only when this is 5 or more. Published value from rpt_public_group_metrics.companies_with_energy_intensity; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a energy intensity' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_energy_intensity] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: b078d046-6456-5f9b-8769-1ef0f14511dd
+
+	/// kl per Rs crore. All the water consumed of the group divided by all its turnover: the intensity of the group as if it were one company. Large companies weigh more. Published value from rpt_public_group_metrics.water_intensity_agg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Water intensity, whole group' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[water_intensity_agg] ) )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 5ea1f102-03e4-505c-87cb-1814109789ea
+
+	/// kl per Rs crore. The intensity of the company in the middle of the group: half the companies are below it, half above. Every company weighs the same. Published value from rpt_public_group_metrics.water_intensity_median; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Water intensity, typical company' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[water_intensity_median] ) )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 02e9e06f-a131-5bd3-827e-1d278fc8e5d9
+
+	/// companies. How many companies of the group have a water intensity. The whole-group and typical-company figures may be published only when this is 5 or more. Published value from rpt_public_group_metrics.companies_with_water_intensity; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a water intensity' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_water_intensity] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: d39ea03a-91ed-561c-9bf5-18b065f28752
+
+	/// t per Rs crore. All the waste generated of the group divided by all its turnover: the intensity of the group as if it were one company. Large companies weigh more. Published value from rpt_public_group_metrics.waste_intensity_agg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Waste intensity, whole group' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[waste_intensity_agg] ) )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: f678c664-14d2-579c-9adc-5cd4ce42b859
+
+	/// t per Rs crore. The intensity of the company in the middle of the group: half the companies are below it, half above. Every company weighs the same. Published value from rpt_public_group_metrics.waste_intensity_median; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Waste intensity, typical company' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[waste_intensity_median] ) )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: e1b7e6f9-ff39-5357-b5ae-d515e17884d4
+
+	/// companies. How many companies of the group have a waste intensity. The whole-group and typical-company figures may be published only when this is 5 or more. Published value from rpt_public_group_metrics.companies_with_waste_intensity; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a waste intensity' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_waste_intensity] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: ee20e122-6389-5ac4-9b05-5444af0c3505
+
+	/// %. Out of all the energy the group used, the percentage that was renewable. Large energy users weigh more. Published value from rpt_public_group_metrics.renewable_share_agg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Renewable share of energy, whole group (%)' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[renewable_share_agg] ) )
+		formatString: 0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 900e321a-03c4-5871-b9f9-2226bc620c22
+
+	/// companies. How many companies of the group have a renewable share. The whole-group figure may be published only when this is 5 or more. Published value from rpt_public_group_metrics.companies_with_renewable_share; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a renewable share' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_renewable_share] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 4e36ed52-7fc4-5859-bd2c-d16746db2902
+
+	/// %. Out of everyone working for the companies of the group, the percentage who are women. Large employers weigh more. Published value from rpt_public_group_metrics.female_workforce_agg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Women in workforce, whole group (%)' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[female_workforce_agg] ) )
+		formatString: 0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 9339e2f7-5252-526c-b9b2-5b513f833885
+
+	/// companies. How many companies of the group have a women-in-workforce share. The whole-group figure may be published only when this is 5 or more. Published value from rpt_public_group_metrics.companies_with_female_workforce; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a women-in-workforce share' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_female_workforce] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: fbf69cf9-99b4-5362-b826-bfa7b3f28c4c
+
+	/// companies. How many companies have a report in the group and year. Published value from rpt_public_group_metrics.companies_reporting; shown only when one group, one group type and one year are selected.
+	measure 'Companies reporting' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_reporting] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 3770e208-995f-50a6-9321-7161f02c14ef
+
+	/// %. Out of every 100 company reports, how many give a Scope 3 emissions figure. Published value from rpt_public_group_metrics.scope3_disclosed_share; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Companies disclosing Scope 3 (%)' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[scope3_disclosed_share] ) )
+		formatString: 0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 61f10d1e-976e-579b-8423-00ae18161de5
+
+	/// points (0-100). The average Disclosure Quality Score of the group. Compare within one financial year only. Published value from rpt_public_group_metrics.dqs_avg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Disclosure Quality Score, average' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[dqs_avg] ) )
+		formatString: 0.0
+		displayFolder: 3 Disclosure quality (group)
+		lineageTag: da1c4b35-e1e7-512f-8c5b-852b5ac49efd
+
+	/// points (0-100). The Disclosure Quality Score of the company in the middle of the group. Published value from rpt_public_group_metrics.dqs_median; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Disclosure Quality Score, typical company' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[dqs_median] ) )
+		formatString: 0.0
+		displayFolder: 3 Disclosure quality (group)
+		lineageTag: 92f903b7-2f9c-5371-883a-ec26da9f0898
+
+	/// %. Out of every 100 graded company reports, how many reach grade A (85 points or more). Published value from rpt_public_group_metrics.dqs_grade_a_share; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Company-years graded A (%)' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[dqs_grade_a_share] ) )
+		formatString: 0.0
+		displayFolder: 3 Disclosure quality (group)
+		lineageTag: 19d43db1-d1d5-570a-acba-df1195771ba3
+
+	/// share (0-1). On average, the share of the voluntary (Leadership) indicators that the companies of the group answered. Published value from rpt_public_group_metrics.voluntary_depth_avg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Voluntary depth, average' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[voluntary_depth_avg] ) )
+		formatString: #,##0.00
+		displayFolder: 3 Disclosure quality (group)
+		lineageTag: 6797bd0d-4ced-59c4-b92c-92e216c017ff
+
+	/// companies. How many companies of the group have a Disclosure Quality Score. Published value from rpt_public_group_metrics.companies_with_dqs; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a Disclosure Quality Score' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_dqs] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: abfe6a18-7a74-5f4c-aa53-12252a06734c
+
+	/// companies. How many companies of the group have a grade (at least three components scored). Published value from rpt_public_group_metrics.companies_with_dqs_grade; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a Disclosure Quality grade' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_dqs_grade] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 7a0f1a72-f583-521f-827a-40a93f0778a0
+
+	/// companies. How many companies of the group have a voluntary depth figure. Published value from rpt_public_group_metrics.companies_with_voluntary_depth; shown only when one group, one group type and one year are selected.
+	measure 'Companies with a voluntary depth' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_voluntary_depth] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 822be261-2391-5548-aa17-0aecd82a9b0e
+
+	/// restated values. How many figures were changed materially in the next year's report. A restatement is not wrongdoing. Published value from rpt_public_group_metrics.material_restatements; shown only when one group, one group type and one year are selected.
+	measure 'Material restatements' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[material_restatements] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 3e2f0be7-85cc-56c6-932d-fdbd403f4499
+
+	/// %. Out of every 100 figures that could be compared with the next year's report, how many were changed materially. Published value from rpt_public_group_metrics.material_restatement_share; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
+	measure 'Figures materially restated (%)' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[material_restatement_share] ) )
+		formatString: 0.0
+		displayFolder: 4 Restatements (group)
+		lineageTag: aac499c8-9e88-5844-9223-1ad80103212a
+
+	/// values. How many figures are more than 100 times apart from the next year's report: unit slips, not restatements. Published value from rpt_public_group_metrics.suspected_scale_errors; shown only when one group, one group type and one year are selected.
+	measure 'Suspected scale errors' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[suspected_scale_errors] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 33251c39-4482-50bf-8bd1-780473e9ed58
+
+	/// companies. How many companies of the group have at least one figure that could be compared with the next year's report. Published value from rpt_public_group_metrics.companies_with_compared_restatements; shown only when one group, one group type and one year are selected.
+	measure 'Companies with compared figures' =
+			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[companies_with_compared_restatements] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 4a7c7c4d-7e62-5416-a014-678d51e9c041
+
+	/// The selected company's ghg_intensity_tco2e_per_cr in the selected year (computed by ESG Lens India; public).
+	measure 'Company: GHG intensity' =
+			SELECTEDVALUE ( rpt_public_company_year[ghg_intensity_tco2e_per_cr] )
+		formatString: #,##0.00
+		displayFolder: 7 Company card
+		lineageTag: e87948fa-8d2f-51bd-b566-9b072f46361a
+
+	/// The selected company's energy_intensity_gj_per_cr in the selected year (computed by ESG Lens India; public).
+	measure 'Company: energy intensity' =
+			SELECTEDVALUE ( rpt_public_company_year[energy_intensity_gj_per_cr] )
+		formatString: #,##0.0
+		displayFolder: 7 Company card
+		lineageTag: 80cf5e08-03c7-5b3d-a5e1-c7eac44ee37c
+
+	/// The selected company's water_intensity_kl_per_cr in the selected year (computed by ESG Lens India; public).
+	measure 'Company: water intensity' =
+			SELECTEDVALUE ( rpt_public_company_year[water_intensity_kl_per_cr] )
+		formatString: #,##0.0
+		displayFolder: 7 Company card
+		lineageTag: 98592da2-45a9-5e26-804e-628ab624d0a8
+
+	/// The selected company's waste_intensity_t_per_cr in the selected year (computed by ESG Lens India; public).
+	measure 'Company: waste intensity' =
+			SELECTEDVALUE ( rpt_public_company_year[waste_intensity_t_per_cr] )
+		formatString: #,##0.00
+		displayFolder: 7 Company card
+		lineageTag: fc696294-e0e2-51cf-833e-5a19e56e82f7
+
+	/// The selected company's renewable_share_pct in the selected year (computed by ESG Lens India; public).
+	measure 'Company: renewable share (%)' =
+			SELECTEDVALUE ( rpt_public_company_year[renewable_share_pct] )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: 8e663219-b3eb-56e1-ad62-9d27af31a155
+
+	/// The selected company's female_workforce_pct in the selected year (computed by ESG Lens India; public).
+	measure 'Company: women in workforce (%)' =
+			SELECTEDVALUE ( rpt_public_company_year[female_workforce_pct] )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: fefee67a-d4a0-5df5-a02b-d71f6e9966ab
+
+	/// The selected company's pay_equity_gap_pp in the selected year (computed by ESG Lens India; public).
+	measure 'Company: pay-equity gap (pp)' =
+			SELECTEDVALUE ( rpt_public_company_year[pay_equity_gap_pp] )
+		formatString: +0.0;-0.0;0.0
+		displayFolder: 7 Company card
+		lineageTag: ffae1a1f-1de4-5972-a9c8-69f066f7339e
+
+	/// The selected company's dqs_total in the selected year.
+	measure 'Company: DQS' =
+			SELECTEDVALUE ( rpt_public_disclosure_quality[dqs_total] )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: c30415c3-d37c-522c-b08a-991b40359361
+
+	/// The selected company's dqs_grade in the selected year.
+	measure 'Company: DQS grade' =
+			SELECTEDVALUE ( rpt_public_disclosure_quality[dqs_grade] )
+		displayFolder: 7 Company card
+		lineageTag: ecfa9bc2-0392-5b0f-a412-6a8aa2fea8a4
+
+	/// The selected company's dqs_rank_in_group in the selected year.
+	measure 'Company: DQS rank in group' =
+			SELECTEDVALUE ( rpt_public_disclosure_quality[dqs_rank_in_group] )
+		formatString: 0
+		displayFolder: 7 Company card
+		lineageTag: a781cbfe-7649-5901-b072-5d1bca251057
+
+	/// The selected company's dqs_percentile_in_group in the selected year.
+	measure 'Company: DQS percentile in group' =
+			SELECTEDVALUE ( rpt_public_disclosure_quality[dqs_percentile_in_group] )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: 99b5eec3-14f8-57e5-beac-ae2a1cb6e44a
+
+	/// Provisional = the latest year: no later report has confirmed the figures yet.
+	measure 'Company: data status' =
+			IF ( SELECTEDVALUE ( rpt_public_disclosure_quality[is_provisional] ), "Provisional", "Final" )
+		displayFolder: 7 Company card
+		lineageTag: e26c0cfa-ffe0-5b51-86c0-79baa6815813
+
+	/// The published ghg_intensity_median of the selected company's ranking group and year (blank when withheld, n<5). MAX picks the one matching row.
+	measure 'Peer median: GHG intensity' =
+			VAR ranking_group = SELECTEDVALUE ( rpt_public_company_year[ranking_group] )
+			VAR fiscal_year = SELECTEDVALUE ( rpt_public_company_year[fiscal_year_label] )
+			RETURN
+			    CALCULATE (
+			        MAX ( rpt_public_group_metrics[ghg_intensity_median] ),
+			        REMOVEFILTERS ( rpt_public_group_metrics ),
+			        rpt_public_group_metrics[group_type] = "ranking_group",
+			        rpt_public_group_metrics[group_value] = ranking_group,
+			        rpt_public_group_metrics[fiscal_year_label] = fiscal_year
+			    )
+		formatString: #,##0.00
+		displayFolder: 7 Company card
+		lineageTag: 594f89ca-f80a-509f-8a94-347b097399be
+
+	/// The published dqs_median of the selected company's ranking group and year (blank when withheld, n<5). MAX picks the one matching row.
+	measure 'Peer median: DQS' =
+			VAR ranking_group = SELECTEDVALUE ( rpt_public_company_year[ranking_group] )
+			VAR fiscal_year = SELECTEDVALUE ( rpt_public_company_year[fiscal_year_label] )
+			RETURN
+			    CALCULATE (
+			        MAX ( rpt_public_group_metrics[dqs_median] ),
+			        REMOVEFILTERS ( rpt_public_group_metrics ),
+			        rpt_public_group_metrics[group_type] = "ranking_group",
+			        rpt_public_group_metrics[group_value] = ranking_group,
+			        rpt_public_group_metrics[fiscal_year_label] = fiscal_year
+			    )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: f4949da2-9881-556e-95bc-94af915ea2ee
+
+	/// Keeps the measure table loadable.
+	column Placeholder
+		dataType: string
+		isHidden
+		lineageTag: 933b0dce-ca3b-57de-81ef-b28c7576245d
+		summarizeBy: none
+		sourceColumn: Placeholder
+
+	partition _Measures = m
+		mode: import
+		source =
+				let
+				    Source = #table ( type table [Placeholder = text], {} )
+				in
+				    Source

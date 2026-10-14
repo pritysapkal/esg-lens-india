@@ -1,0 +1,432 @@
+/// All measures, in display folders. Group figures mirror the semantic layer.
+table _Measures
+	lineageTag: 28d3f736-db23-5871-a4fe-a4f667adfc90
+
+	/// Companies with a report in the current selection (semantic layer: companies_reporting).
+	measure 'Companies in selection' =
+			DISTINCTCOUNT ( fct_company_year[isin] )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 85fd57ef-61dd-5c6d-95b9-05f6bbe4e07a
+
+	/// Companies with a value for ghg_intensity_tco2e_per_cr: the count that decides whether a group figure built on it may be shown publicly (5 or more).
+	measure 'Companies with GHG intensity' =
+			CALCULATE ( DISTINCTCOUNT ( fct_company_year[isin] ), NOT ISBLANK ( fct_company_year[ghg_intensity_tco2e_per_cr] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 168e25d5-81ed-50da-b5a3-eb892e747ac4
+
+	/// Companies with a value for energy_intensity_gj_per_cr: the count that decides whether a group figure built on it may be shown publicly (5 or more).
+	measure 'Companies with energy intensity' =
+			CALCULATE ( DISTINCTCOUNT ( fct_company_year[isin] ), NOT ISBLANK ( fct_company_year[energy_intensity_gj_per_cr] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: b4ea2b18-b4f2-5ade-b2fe-20beb610a762
+
+	/// Companies with a value for water_intensity_kl_per_cr: the count that decides whether a group figure built on it may be shown publicly (5 or more).
+	measure 'Companies with water intensity' =
+			CALCULATE ( DISTINCTCOUNT ( fct_company_year[isin] ), NOT ISBLANK ( fct_company_year[water_intensity_kl_per_cr] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 2f3c97f6-0a14-51a0-be44-d37bf1791a58
+
+	/// Companies with a value for waste_intensity_t_per_cr: the count that decides whether a group figure built on it may be shown publicly (5 or more).
+	measure 'Companies with waste intensity' =
+			CALCULATE ( DISTINCTCOUNT ( fct_company_year[isin] ), NOT ISBLANK ( fct_company_year[waste_intensity_t_per_cr] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 18e0aa15-40c7-519f-a9d6-76c39cf0ae0e
+
+	/// Companies with a value for renewable_share_pct: the count that decides whether a group figure built on it may be shown publicly (5 or more).
+	measure 'Companies with renewable share' =
+			CALCULATE ( DISTINCTCOUNT ( fct_company_year[isin] ), NOT ISBLANK ( fct_company_year[renewable_share_pct] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 91c43308-32bf-5421-9954-a28abf333e63
+
+	/// Companies with a value for female_workforce_pct: the count that decides whether a group figure built on it may be shown publicly (5 or more).
+	measure 'Companies with women in workforce' =
+			CALCULATE ( DISTINCTCOUNT ( fct_company_year[isin] ), NOT ISBLANK ( fct_company_year[female_workforce_pct] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: a0904349-2c71-515d-9c48-3b5b6bfac6af
+
+	/// tCO2e per Rs crore. Whole group: sum of ghg_s12_tco2e over sum of turnover_cr, over the companies that have both (semantic layer: ghg_intensity_agg). Large companies weigh more. Never an average of company ratios. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'GHG intensity (whole group)' =
+			VAR rows_with_both =
+			    FILTER (
+			        fct_company_year,
+			        NOT ISBLANK ( fct_company_year[ghg_s12_tco2e] )
+			            && fct_company_year[turnover_cr] <> 0
+			    )
+			RETURN
+			    DIVIDE (
+			        SUMX ( rows_with_both, fct_company_year[ghg_s12_tco2e] ),
+			        SUMX ( rows_with_both, fct_company_year[turnover_cr] )
+			    )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 1de36b53-f1c2-5d0d-8f18-67357d7f01cc
+
+	/// GJ per Rs crore. Whole group: sum of energy_total_gj over sum of turnover_cr, over the companies that have both (semantic layer: energy_intensity_agg). Large companies weigh more. Never an average of company ratios. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Energy intensity (whole group)' =
+			VAR rows_with_both =
+			    FILTER (
+			        fct_company_year,
+			        NOT ISBLANK ( fct_company_year[energy_total_gj] )
+			            && fct_company_year[turnover_cr] <> 0
+			    )
+			RETURN
+			    DIVIDE (
+			        SUMX ( rows_with_both, fct_company_year[energy_total_gj] ),
+			        SUMX ( rows_with_both, fct_company_year[turnover_cr] )
+			    )
+		formatString: #,##0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 7c45635a-94f8-5bb2-a524-b386792f93e5
+
+	/// kl per Rs crore. Whole group: sum of water_consumption_kl over sum of turnover_cr, over the companies that have both (semantic layer: water_intensity_agg). Large companies weigh more. Never an average of company ratios. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Water intensity (whole group)' =
+			VAR rows_with_both =
+			    FILTER (
+			        fct_company_year,
+			        NOT ISBLANK ( fct_company_year[water_consumption_kl] )
+			            && fct_company_year[turnover_cr] <> 0
+			    )
+			RETURN
+			    DIVIDE (
+			        SUMX ( rows_with_both, fct_company_year[water_consumption_kl] ),
+			        SUMX ( rows_with_both, fct_company_year[turnover_cr] )
+			    )
+		formatString: #,##0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 39e4ff03-304d-5508-bf5c-8dd9ddcb9769
+
+	/// t per Rs crore. Whole group: sum of waste_generated_t over sum of turnover_cr, over the companies that have both (semantic layer: waste_intensity_agg). Large companies weigh more. Never an average of company ratios. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Waste intensity (whole group)' =
+			VAR rows_with_both =
+			    FILTER (
+			        fct_company_year,
+			        NOT ISBLANK ( fct_company_year[waste_generated_t] )
+			            && fct_company_year[turnover_cr] <> 0
+			    )
+			RETURN
+			    DIVIDE (
+			        SUMX ( rows_with_both, fct_company_year[waste_generated_t] ),
+			        SUMX ( rows_with_both, fct_company_year[turnover_cr] )
+			    )
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 35cba94d-d614-5c8d-9121-bf97a54547ac
+
+	/// %. Whole group: sum of energy_renewable_gj over sum of energy_total_gj, over the companies that have both (semantic layer: renewable_share_agg). Large companies weigh more. Never an average of company ratios. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Renewable share (whole group, %)' =
+			VAR rows_with_both =
+			    FILTER (
+			        fct_company_year,
+			        NOT ISBLANK ( fct_company_year[energy_renewable_gj] )
+			            && fct_company_year[energy_total_gj] <> 0
+			    )
+			RETURN
+			    100 * DIVIDE (
+			        SUMX ( rows_with_both, fct_company_year[energy_renewable_gj] ),
+			        SUMX ( rows_with_both, fct_company_year[energy_total_gj] )
+			    )
+		formatString: 0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: d52a7082-e53d-511f-b307-eb560e5c1dc7
+
+	/// %. Whole group: sum of headcount_female over sum of headcount_total, over the companies that have both (semantic layer: female_workforce_agg). Large companies weigh more. Never an average of company ratios. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Women in workforce (whole group, %)' =
+			VAR rows_with_both =
+			    FILTER (
+			        fct_company_year,
+			        NOT ISBLANK ( fct_company_year[headcount_female] )
+			            && fct_company_year[headcount_total] <> 0
+			    )
+			RETURN
+			    100 * DIVIDE (
+			        SUMX ( rows_with_both, fct_company_year[headcount_female] ),
+			        SUMX ( rows_with_both, fct_company_year[headcount_total] )
+			    )
+		formatString: 0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: b3c0895e-6e2f-51f5-a8bf-2b4d7ff2cff6
+
+	/// tCO2e per Rs crore. Typical company: the median of ghg_intensity_tco2e_per_cr over the company-years in the selection (semantic layer: ghg_intensity_median). Every company weighs the same; use it within one year. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'GHG intensity (typical company)' =
+			MEDIANX (
+			    FILTER ( fct_company_year, NOT ISBLANK ( fct_company_year[ghg_intensity_tco2e_per_cr] ) ),
+			    fct_company_year[ghg_intensity_tco2e_per_cr]
+			)
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 9f684ce1-30e2-5e32-b0d0-8262d54946c2
+
+	/// GJ per Rs crore. Typical company: the median of energy_intensity_gj_per_cr over the company-years in the selection (semantic layer: energy_intensity_median). Every company weighs the same; use it within one year. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Energy intensity (typical company)' =
+			MEDIANX (
+			    FILTER ( fct_company_year, NOT ISBLANK ( fct_company_year[energy_intensity_gj_per_cr] ) ),
+			    fct_company_year[energy_intensity_gj_per_cr]
+			)
+		formatString: #,##0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: b0ff88b5-5228-5514-a3d9-dbd8d41eabf7
+
+	/// kl per Rs crore. Typical company: the median of water_intensity_kl_per_cr over the company-years in the selection (semantic layer: water_intensity_median). Every company weighs the same; use it within one year. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Water intensity (typical company)' =
+			MEDIANX (
+			    FILTER ( fct_company_year, NOT ISBLANK ( fct_company_year[water_intensity_kl_per_cr] ) ),
+			    fct_company_year[water_intensity_kl_per_cr]
+			)
+		formatString: #,##0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 1281bb87-7088-50c5-a7f1-db112d1761a3
+
+	/// t per Rs crore. Typical company: the median of waste_intensity_t_per_cr over the company-years in the selection (semantic layer: waste_intensity_median). Every company weighs the same; use it within one year. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Waste intensity (typical company)' =
+			MEDIANX (
+			    FILTER ( fct_company_year, NOT ISBLANK ( fct_company_year[waste_intensity_t_per_cr] ) ),
+			    fct_company_year[waste_intensity_t_per_cr]
+			)
+		formatString: #,##0.00
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: a4d8b892-30ae-5428-a431-105712e89de6
+
+	/// Company reports with a Scope 3 figure out of all reports, in % (semantic layer: scope3_disclosed_share). Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Scope 3 disclosed (% of reports)' =
+			100
+			    * DIVIDE (
+			        COUNTROWS ( FILTER ( fct_company_year, fct_company_year[scope3_disclosed] = TRUE () ) ),
+			        COUNTROWS ( fct_company_year )
+			    )
+		formatString: 0.0
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 865fc82d-3dda-5d6d-a9db-56f1253e5b94
+
+	/// Average Disclosure Quality Score (semantic layer: dqs_avg). A score, not an intensity, so an average is allowed. Compare within one financial year only. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'DQS average' =
+			AVERAGE ( fct_disclosure_quality[dqs_total] )
+		formatString: 0.0
+		displayFolder: 3 Disclosure quality (group)
+		lineageTag: 7f67fa4b-e342-5815-b7ab-0ba5cdd22b72
+
+	/// Median Disclosure Quality Score (semantic layer: dqs_median). Compare within one financial year only. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'DQS median' =
+			MEDIANX (
+			    FILTER ( fct_disclosure_quality, NOT ISBLANK ( fct_disclosure_quality[dqs_total] ) ),
+			    fct_disclosure_quality[dqs_total]
+			)
+		formatString: 0.0
+		displayFolder: 3 Disclosure quality (group)
+		lineageTag: 4b18ddfb-e267-57d0-91ca-b5743ac5f42a
+
+	/// Graded company-years with grade A, in % (semantic layer: dqs_grade_a_share). Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Grade A share (%)' =
+			100
+			    * DIVIDE (
+			        COUNTROWS ( FILTER ( fct_disclosure_quality, fct_disclosure_quality[dqs_grade] = "A" ) ),
+			        COUNTROWS (
+			            FILTER ( fct_disclosure_quality, NOT ISBLANK ( fct_disclosure_quality[dqs_grade] ) && fct_disclosure_quality[dqs_grade] <> "insufficient_data" )
+			        )
+			    )
+		formatString: 0.0
+		displayFolder: 3 Disclosure quality (group)
+		lineageTag: c2ed691d-c12f-5c40-b2ac-f7273df9e3ed
+
+	/// Average share (0-1) of Leadership indicators answered (semantic layer: voluntary_depth_avg). Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Voluntary depth average' =
+			AVERAGE ( fct_disclosure_quality[dqs_voluntary_depth] )
+		formatString: 0.00
+		displayFolder: 3 Disclosure quality (group)
+		lineageTag: e993984e-cf5e-5540-b2e9-bb00c2b730d9
+
+	/// Companies with a Disclosure Quality Score (semantic layer: companies_with_dqs).
+	measure 'Companies with DQS' =
+			CALCULATE ( DISTINCTCOUNT ( fct_disclosure_quality[isin] ), NOT ISBLANK ( fct_disclosure_quality[dqs_total] ) )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: f1bbdf2a-f0da-52d2-b3b9-6ae5624532c8
+
+	/// Companies with a grade A to D (semantic layer: companies_with_dqs_grade).
+	measure 'Companies with DQS grade' =
+			CALCULATE ( DISTINCTCOUNT ( fct_disclosure_quality[isin] ), fct_disclosure_quality[dqs_grade] IN { "A", "B", "C", "D" } )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: c5766a76-6b98-5f4a-9d38-42cd144103fa
+
+	/// Figures changed materially in the next year's report (semantic layer: material_restatements). Follows the year of the restated value. A restatement is not wrongdoing.
+	measure 'Material restatements' =
+			COUNTROWS ( FILTER ( fct_restatement, fct_restatement[classification] = "material" ) )
+		formatString: #,##0
+		displayFolder: 4 Restatements (group)
+		lineageTag: 3e2f0be7-85cc-56c6-932d-fdbd403f4499
+
+	/// Compared figures restated materially, in % (semantic layer: material_restatement_share). Empty for the latest year: no later report yet. Shown publicly only for 5 companies or more: check the matching 'Companies with ...' measure.
+	measure 'Material restatement share (%)' =
+			100
+			    * DIVIDE (
+			        [Material restatements],
+			        COUNTROWS ( FILTER ( fct_restatement, fct_restatement[is_compared] = TRUE () ) )
+			    )
+		formatString: 0.0
+		displayFolder: 4 Restatements (group)
+		lineageTag: d8f0cfd7-11d5-5ac5-946e-8bc25d4cda42
+
+	/// Figures more than 100 times apart between two reports: unit slips, not restatements (semantic layer: suspected_scale_errors).
+	measure 'Suspected scale errors' =
+			COUNTROWS ( FILTER ( fct_restatement, fct_restatement[classification] = "suspected_scale_error" ) )
+		formatString: #,##0
+		displayFolder: 4 Restatements (group)
+		lineageTag: 33251c39-4482-50bf-8bd1-780473e9ed58
+
+	/// Companies with at least one figure compared with the next report (semantic layer: companies_with_compared_restatements).
+	measure 'Companies with compared restatements' =
+			CALCULATE ( DISTINCTCOUNT ( fct_restatement[isin] ), fct_restatement[is_compared] = TRUE () )
+		formatString: 0
+		displayFolder: 1 Coverage
+		lineageTag: 18edd437-8c3b-59ea-ba59-1fc2ed02f3ad
+
+	/// Label for titles and tooltips: the latest year is provisional (its figures and scores can still change when the next reports arrive).
+	measure 'Year status' =
+			VAR selected_year = MAX ( dim_fiscal_year[fy_sort] )
+			VAR latest_year = CALCULATE ( MAX ( dim_fiscal_year[fy_sort] ), ALL ( dim_fiscal_year ) )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( selected_year ),
+			        IF ( selected_year = latest_year, "Provisional: no later report yet", "Final" )
+			    )
+		displayFolder: 5 Data status and labels
+		lineageTag: e1c8840c-7d05-5196-89cf-a536b8f45a55
+
+	/// Text for a card or tooltip: a group of fewer than 5 companies gets no published statistic.
+	measure 'Public rule label' =
+			IF ( [Companies in selection] < 5, "n<5: would not be shown publicly", "" )
+		displayFolder: 5 Data status and labels
+		lineageTag: 6e08635c-706f-521a-b4a2-9c45e16b523c
+
+	/// Week 10 confidence label of a year-on-year GHG intensity change: confirmed, provisional, inferred_unit, restated_later, one_year_reversal or not_confirmed. Only confirmed changes are ranked.
+	measure 'Confidence of YoY change' =
+			SELECTEDVALUE ( q03_yoy_changes_with_confidence[confidence] )
+		displayFolder: 5 Data status and labels
+		lineageTag: 0a4cadd1-c16a-5e84-88f1-08506aa348ce
+
+	/// LOCAL ONLY: a total of filed values (tCO2e). Never show it in anything published; publish the shares below instead.
+	measure 'Scope 1+2 emissions (local only)' =
+			SUM ( fct_company_year[ghg_s12_tco2e] )
+		formatString: #,##0
+		displayFolder: 6 Concentration (local only)
+		lineageTag: 9980ad09-acbf-5cfd-959b-9d4dbda7d830
+
+	/// A company's share of the Scope 1+2 emissions of all selected companies, in %.
+	measure 'Share of selected emissions (%)' =
+			100
+			    * DIVIDE (
+			        [Scope 1+2 emissions (local only)],
+			        CALCULATE ( [Scope 1+2 emissions (local only)], ALLSELECTED ( dim_company ) )
+			    )
+		formatString: 0.0
+		displayFolder: 6 Concentration (local only)
+		lineageTag: 22d99be9-3a8e-5267-990f-eca939f4f5a0
+
+	/// Pareto line: share of emissions held by this company and every larger emitter in the selection, in %. Use one year at a time.
+	measure 'Cumulative share of emissions (%)' =
+			VAR current_emissions = [Scope 1+2 emissions (local only)]
+			VAR companies =
+			    ADDCOLUMNS (
+			        ALLSELECTED ( dim_company[display_name] ),
+			        "@emissions", [Scope 1+2 emissions (local only)]
+			    )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( current_emissions ),
+			        100
+			            * DIVIDE (
+			                SUMX ( FILTER ( companies, [@emissions] >= current_emissions ), [@emissions] ),
+			                SUMX ( companies, [@emissions] )
+			            )
+			    )
+		formatString: 0.0
+		displayFolder: 6 Concentration (local only)
+		lineageTag: 363079ba-5f6b-5023-a3af-05c2b2c16b9c
+
+	/// 1 = largest emitter in the selection.
+	measure 'Emitter rank' =
+			IF (
+			    NOT ISBLANK ( [Scope 1+2 emissions (local only)] ),
+			    RANKX ( ALLSELECTED ( dim_company[display_name] ), [Scope 1+2 emissions (local only)], , DESC, DENSE )
+			)
+		formatString: 0
+		displayFolder: 6 Concentration (local only)
+		lineageTag: 24329a79-92ff-5f3f-a19e-aa06659afb17
+
+	/// LOCAL ONLY for filed KPIs: the company's own value of the KPI on the row. Computed intensities are public; filed percentages are not.
+	measure 'Company value (local only)' =
+			SELECTEDVALUE ( fct_company_kpi_percentile[value] )
+		formatString: #,##0.00
+		displayFolder: 7 Company card
+		lineageTag: ae6a145c-33c5-5381-9ae7-2d58153222ca
+
+	/// 0-100, 100 = best in the ranking group and year. Empty when the group has fewer than 5 companies with a value or the KPI is not material there (see 'Not ranked because').
+	measure 'Peer percentile' =
+			SELECTEDVALUE ( fct_company_kpi_percentile[percentile_in_group] )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: bf377b4a-d348-5c7e-9b4d-7915399cc2d3
+
+	/// Why there is no percentile: no_value, not_material, group_n_lt_5, flagged_value, no_direction.
+	measure 'Not ranked because' =
+			SELECTEDVALUE ( fct_company_kpi_percentile[percentile_null_reason] )
+		displayFolder: 7 Company card
+		lineageTag: d8fbea79-1287-5735-9b2a-7964f75520d8
+
+	/// Median of the company's ranking group for the KPI on the row and the selected year (fct_peer_benchmark, only with 5 or more companies). MAX picks the one matching row.
+	measure 'Peer median (ranking group)' =
+			VAR kpi = SELECTEDVALUE ( fct_company_kpi_percentile[kpi_name] )
+			VAR ranking_group = SELECTEDVALUE ( fct_company_kpi_percentile[ranking_group] )
+			RETURN
+			    CALCULATE (
+			        MAX ( fct_peer_benchmark[median_value] ),
+			        fct_peer_benchmark[kpi_name] = kpi,
+			        fct_peer_benchmark[ranking_group] = ranking_group,
+			        fct_peer_benchmark[has_min_n] = TRUE ()
+			    )
+		formatString: #,##0.00
+		displayFolder: 7 Company card
+		lineageTag: 774f3a71-863c-5fa0-b517-4177bd132ed8
+
+	/// The selected company's Disclosure Quality Score in the selected year.
+	measure 'Company DQS' =
+			SELECTEDVALUE ( fct_disclosure_quality[dqs_total] )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: adaab90b-5b8d-5f60-ba29-9017c24c439e
+
+	/// Percentile of the score within the ranking group and year (100 = best).
+	measure 'Company DQS percentile' =
+			SELECTEDVALUE ( fct_disclosure_quality[dqs_percentile_in_group] )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: 517647c6-cf1c-5543-8e2b-3677bf68077c
+
+	/// Provisional = the temporal check could not be run yet: the score can still fall.
+	measure 'Company DQS status' =
+			IF ( SELECTEDVALUE ( fct_disclosure_quality[is_provisional] ), "Provisional", "Final" )
+		displayFolder: 7 Company card
+		lineageTag: cd5b92a5-252c-5199-9054-58fbbbed6142
+
+	/// Keeps the measure table loadable.
+	column Placeholder
+		dataType: string
+		isHidden
+		lineageTag: 933b0dce-ca3b-57de-81ef-b28c7576245d
+		summarizeBy: none
+		sourceColumn: Placeholder
+
+	partition _Measures = m
+		mode: import
+		source =
+				let
+				    Source = #table ( type table [Placeholder = text], {} )
+				in
+				    Source

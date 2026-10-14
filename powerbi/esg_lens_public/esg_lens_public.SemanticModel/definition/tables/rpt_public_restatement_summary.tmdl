@@ -1,0 +1,165 @@
+/// Public model rpt_public_restatement_summary: derived values only (docs/publication_policy.md).
+table rpt_public_restatement_summary
+	lineageTag: 19575193-8644-5d7d-986b-8cdb58752eea
+
+	/// level
+	column level
+		dataType: string
+		lineageTag: bfed96fc-841c-55a6-9b46-ddac5c2dcba4
+		summarizeBy: none
+		sourceColumn: level
+
+	/// group key
+	column group_key
+		dataType: string
+		lineageTag: ed0d0c2f-f687-5140-84fa-8985300ca242
+		summarizeBy: none
+		sourceColumn: group_key
+
+	/// n pairs
+	column n_pairs
+		dataType: int64
+		lineageTag: bb4ceba1-9b6f-5c32-82af-fe3e0965b306
+		summarizeBy: none
+		sourceColumn: n_pairs
+
+	/// n excluded circular
+	column n_excluded_circular
+		dataType: int64
+		lineageTag: 93fb8eca-afd6-52ed-97d2-2582d5440d30
+		summarizeBy: none
+		sourceColumn: n_excluded_circular
+
+	/// n excluded scale error
+	column n_excluded_scale_error
+		dataType: int64
+		lineageTag: 0df808b4-ac3d-58fe-8340-3a6531c1f7ad
+		summarizeBy: none
+		sourceColumn: n_excluded_scale_error
+
+	/// n no change
+	column n_no_change
+		dataType: int64
+		lineageTag: d140ee35-ba84-5ea1-93c2-11b7aa9ec2b5
+		summarizeBy: none
+		sourceColumn: n_no_change
+
+	/// n minor
+	column n_minor
+		dataType: int64
+		lineageTag: d4933363-bf4e-5288-b3fc-a020649edc9e
+		summarizeBy: none
+		sourceColumn: n_minor
+
+	/// n material
+	column n_material
+		dataType: int64
+		lineageTag: 9001390f-5bdf-5bcd-af04-cb74913c3505
+		summarizeBy: none
+		sourceColumn: n_material
+
+	/// n unit inconsistency
+	column n_unit_inconsistency
+		dataType: int64
+		lineageTag: f9defb6a-eea2-5c6f-ad11-cbc7fa27a04e
+		summarizeBy: none
+		sourceColumn: n_unit_inconsistency
+
+	/// n from to zero
+	column n_from_to_zero
+		dataType: int64
+		lineageTag: db4581bb-8d41-5c02-acd0-37bf53df1eef
+		summarizeBy: none
+		sourceColumn: n_from_to_zero
+
+	/// pct no change
+	column pct_no_change
+		dataType: double
+		lineageTag: 4595b294-34ba-531d-be19-bcad59e40a76
+		summarizeBy: none
+		sourceColumn: pct_no_change
+
+	/// pct minor
+	column pct_minor
+		dataType: double
+		lineageTag: d9163500-a5fa-530d-96ad-295e9de9e9af
+		summarizeBy: none
+		sourceColumn: pct_minor
+
+	/// pct material
+	column pct_material
+		dataType: double
+		lineageTag: 4d93a441-0e57-5c59-b885-c96db8e3e308
+		summarizeBy: none
+		sourceColumn: pct_material
+
+	/// n material unexplained
+	column n_material_unexplained
+		dataType: int64
+		lineageTag: cf2fe780-2617-538a-9595-ac496d3a5384
+		summarizeBy: none
+		sourceColumn: n_material_unexplained
+
+	/// pct material unexplained
+	column pct_material_unexplained
+		dataType: double
+		lineageTag: a9038f4b-f3fd-59d1-b6c4-521a31e45fc9
+		summarizeBy: none
+		sourceColumn: pct_material_unexplained
+
+	/// n material flattering
+	column n_material_flattering
+		dataType: int64
+		lineageTag: a1850df9-c035-5db3-8dcf-19ee697684cc
+		summarizeBy: none
+		sourceColumn: n_material_flattering
+
+	/// pct material flattering
+	column pct_material_flattering
+		dataType: double
+		lineageTag: 46644c1f-7f73-5f62-9aed-4c9195e32273
+		summarizeBy: none
+		sourceColumn: pct_material_flattering
+
+	/// n red flags
+	column n_red_flags
+		dataType: int64
+		lineageTag: 1fb21eb7-0864-515e-95d0-129e8c1bb724
+		summarizeBy: none
+		sourceColumn: n_red_flags
+
+	/// n red flags strict
+	column n_red_flags_strict
+		dataType: int64
+		lineageTag: 36549347-3ad7-5ae3-99e2-f2c2b265ea9f
+		summarizeBy: none
+		sourceColumn: n_red_flags_strict
+
+	/// n companies
+	column n_companies
+		dataType: int64
+		lineageTag: 49626a6b-11c1-5bfd-8c1d-7230e6129d7d
+		summarizeBy: none
+		sourceColumn: n_companies
+
+	/// n companies with material
+	column n_companies_with_material
+		dataType: int64
+		lineageTag: f4d49163-0a5b-577d-b536-32661ea99c60
+		summarizeBy: none
+		sourceColumn: n_companies_with_material
+
+	/// pct companies with material
+	column pct_companies_with_material
+		dataType: double
+		lineageTag: 7a9cf695-f215-5b95-896f-60772d47381f
+		summarizeBy: none
+		sourceColumn: pct_companies_with_material
+
+	partition rpt_public_restatement_summary = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\rpt_public_restatement_summary.parquet"))
+				in
+				    Source

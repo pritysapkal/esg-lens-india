@@ -1,0 +1,19 @@
+relationship 5827e59e-2ea2-50ac-9367-a1f274326ad8
+	fromColumn: rpt_public_company_year.isin
+	toColumn: dim_company.isin
+
+relationship f675c6b5-9395-5be0-adcc-0ad2a17cb5ef
+	fromColumn: rpt_public_company_year.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 97721198-5f18-5128-9b2b-f75629108f26
+	fromColumn: rpt_public_disclosure_quality.isin
+	toColumn: dim_company.isin
+
+relationship f7794c84-2811-58c5-a3db-3883cd2803a3
+	fromColumn: rpt_public_disclosure_quality.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 6d2d0f2e-dfbc-54ab-af2c-36a5c8078aa9
+	fromColumn: rpt_public_group_metrics.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label

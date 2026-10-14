@@ -1,0 +1,240 @@
+table dim_company
+	lineageTag: 0c1f0510-7dfd-5263-9a26-91e05d46e602
+
+	/// ISIN of the equity share - the company key everywhere.
+	column isin
+		dataType: string
+		lineageTag: f0c71d21-5df9-5743-a39a-d719d55e0b6d
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// Cleaned name in the latest filing.
+	column current_name
+		dataType: string
+		lineageTag: 9fc7ed40-c3ee-52d9-a8ab-f60ac75d0584
+		summarizeBy: none
+		sourceColumn: current_name
+
+	/// NSE symbol in the latest filing.
+	column current_symbol
+		dataType: string
+		lineageTag: 2da7ea33-03fa-5bd5-b47e-812a4ce7d2c8
+		summarizeBy: none
+		sourceColumn: current_symbol
+
+	/// Corporate Identity Number, empty for statutory bodies and placeholders.
+	column cin
+		dataType: string
+		lineageTag: 32226636-f748-5e44-9461-42db8730bb42
+		summarizeBy: none
+		sourceColumn: cin
+
+	/// Every symbol the company filed under, comma separated.
+	column all_symbols
+		dataType: string
+		lineageTag: 7a3f5e23-8ef2-565a-9697-6cde663bd1de
+		summarizeBy: none
+		sourceColumn: all_symbols
+
+	/// First financial year with a filing.
+	column first_fy
+		dataType: string
+		lineageTag: b6528eda-f0a4-57ed-abf6-4140257e652a
+		summarizeBy: none
+		sourceColumn: first_fy
+
+	/// Last financial year with a filing.
+	column last_fy
+		dataType: string
+		lineageTag: 1632ab2c-8f70-58e2-b652-4c2257e2033e
+		summarizeBy: none
+		sourceColumn: last_fy
+
+	/// Number of filings received for the company.
+	column n_filings
+		dataType: int64
+		lineageTag: 4ef5763c-5d57-5fbd-9572-058946e91557
+		summarizeBy: none
+		sourceColumn: n_filings
+
+	/// true if the company is in the NIFTY 50 constituents file.
+	column in_universe
+		dataType: boolean
+		lineageTag: c7879d8d-4705-5b10-884d-74e55121e3f3
+		summarizeBy: none
+		sourceColumn: in_universe
+
+	/// NSE industry from the NIFTY 50 file; empty for companies outside it.
+	column nse_industry
+		dataType: string
+		lineageTag: d1f3417b-4e4f-54ce-9ac1-530a00b26cbd
+		summarizeBy: none
+		sourceColumn: nse_industry
+
+	/// One of the nine peer groups (seed peer_groups).
+	column peer_group
+		dataType: string
+		lineageTag: 31ceb429-4600-5d3d-9496-8a4d5a3e4bec
+		summarizeBy: none
+		sourceColumn: peer_group
+
+	/// Financials, Asset-light or Asset-heavy (seed peer_groups).
+	column sector_group
+		dataType: string
+		lineageTag: ae41b125-35b7-518c-a6fa-2007460b68d8
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	/// Financials sub-industry (Banks, NBFC, Insurance, Market infrastructure) or the NSE industry.
+	column sub_industry
+		dataType: string
+		lineageTag: 51c75116-2f69-5e8c-be61-2456b2fb011c
+		summarizeBy: none
+		sourceColumn: sub_industry
+
+	/// Sort order of the peer group for Power BI.
+	column peer_group_sort
+		dataType: int64
+		lineageTag: 9efe35ac-8728-562c-8b9c-897812e78328
+		summarizeBy: none
+		sourceColumn: peer_group_sort
+
+	/// Sort order of the sector group for Power BI.
+	column sector_group_sort
+		dataType: int64
+		lineageTag: d0179d38-df32-5edd-83e4-9839b8136b7b
+		summarizeBy: none
+		sourceColumn: sector_group_sort
+
+	/// Short name for charts (company_attributes seed), else the current name.
+	column display_name
+		dataType: string
+		lineageTag: cb2efca4-79c2-5b3d-a92f-20b53eb95d3e
+		summarizeBy: none
+		sourceColumn: display_name
+
+	/// Government, Private Indian or MNC subsidiary (company_attributes seed; unverified).
+	column ownership_type
+		dataType: string
+		lineageTag: 567918b4-facd-5a5b-8131-cd3e2ec6c301
+		summarizeBy: none
+		sourceColumn: ownership_type
+
+	/// Business group or Independent (company_attributes seed; unverified).
+	column business_group
+		dataType: string
+		lineageTag: 03fd6e22-8693-54f1-a53f-bdf804d8f17f
+		summarizeBy: none
+		sourceColumn: business_group
+
+	/// NIC code with the highest turnover share in the latest filing with NIC data.
+	column nic_primary_code
+		dataType: string
+		lineageTag: cd966d0d-7e54-5543-8cdc-370d70cdc4d9
+		summarizeBy: none
+		sourceColumn: nic_primary_code
+
+	/// First two digits of nic_primary_code.
+	column nic_division_2d
+		dataType: string
+		lineageTag: adf0ee27-9126-513e-8b00-a0d426c0b1bd
+		summarizeBy: none
+		sourceColumn: nic_division_2d
+
+	/// NIC-2008 division name (seed nic_sector_map).
+	column nic_division_name
+		dataType: string
+		lineageTag: c09a571c-7dc9-57d3-8b30-86c59c732a39
+		summarizeBy: none
+		sourceColumn: nic_division_name
+
+	/// true if the NIC primary division points to the company's peer group (cross-check only; the peer group itself comes from the NSE industry via the seed).
+	column nic_agrees_with_peer_group
+		dataType: boolean
+		lineageTag: d8d5ae64-05c7-5aab-83dc-fb0afb8e13f5
+		summarizeBy: none
+		sourceColumn: nic_agrees_with_peer_group
+
+	/// Financial year of the filing the NIC data comes from.
+	column nic_fiscal_year_label
+		dataType: string
+		lineageTag: 78aabc18-7ec1-5349-bd70-13e8ac12d557
+		summarizeBy: none
+		sourceColumn: nic_fiscal_year_label
+
+	/// Turnover share of the largest NIC division.
+	column nic_top_division_share
+		dataType: double
+		lineageTag: 396c5b65-a632-51fc-8a9a-4ede89ee4844
+		summarizeBy: none
+		sourceColumn: nic_top_division_share
+
+	/// Number of NIC divisions with at least 15% of turnover each.
+	column nic_n_divisions_ge_15pct
+		dataType: int64
+		lineageTag: d3013d42-71f5-5490-9ec7-5c0224c9a767
+		summarizeBy: none
+		sourceColumn: nic_n_divisions_ge_15pct
+
+	/// The three largest NIC codes with their turnover share.
+	column top_3_nic_codes
+		dataType: string
+		lineageTag: 58975dff-a1b9-5eee-aaac-69fc1f62fa0d
+		summarizeBy: none
+		sourceColumn: top_3_nic_codes
+
+	/// true if top division below 60% of turnover or three or more divisions at 15% or more.
+	column is_conglomerate
+		dataType: boolean
+		lineageTag: 1e20bc1f-f9e2-5adb-b0a7-122e568d6f08
+		summarizeBy: none
+		sourceColumn: is_conglomerate
+
+	/// Number of companies in the peer group.
+	column peer_group_n
+		dataType: int64
+		lineageTag: 921108f7-bb4d-5519-82f8-fa67c74048cd
+		summarizeBy: none
+		sourceColumn: peer_group_n
+
+	/// Group a company is ranked in: its peer group if that has at least 5 companies and is not "Industrials & others", else its sector group.
+	column ranking_group
+		dataType: string
+		lineageTag: 84f6fa05-b393-586b-9d34-0b0a52ae5ab9
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// peer_group or sector_group - which level ranking_group is.
+	column ranking_basis
+		dataType: string
+		lineageTag: 3b17174c-cc1f-532d-bb8d-f721135fc4e3
+		summarizeBy: none
+		sourceColumn: ranking_basis
+
+	/// Warning shown with the ranking, set for the heterogeneous group.
+	column caution_note
+		dataType: string
+		lineageTag: 26d8400f-b914-5161-87ee-f70da38e71d6
+		summarizeBy: none
+		sourceColumn: caution_note
+
+	/// Which companies the data covers and for which years.
+	column universe_basis
+		dataType: string
+		lineageTag: 9be33647-fa91-51ef-adf6-6215573fe5f9
+		summarizeBy: none
+		sourceColumn: universe_basis
+
+	column in_ghg_balanced_panel
+		dataType: boolean
+		lineageTag: bbf0803f-e345-5cb3-958c-d18a1a48d196
+		summarizeBy: none
+		sourceColumn: in_ghg_balanced_panel
+
+	partition dim_company = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\dim_company.parquet"))
+				in
+				    Source
