@@ -1,0 +1,103 @@
+/// Public model rpt_public_concentration: derived values only (docs/publication_policy.md).
+table rpt_public_concentration
+	lineageTag: 5f1acd58-a902-5129-806a-86294050528e
+
+	/// ISIN of the company (key of dim_company).
+	column isin
+		dataType: string
+		isHidden
+		lineageTag: a328f8bd-84a1-5ea3-8898-f1132a3297b2
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// NSE symbol in the filing.
+	column symbol
+		dataType: string
+		lineageTag: 7026ce7b-5975-5c1f-a114-e10fc258189b
+		summarizeBy: none
+		sourceColumn: symbol
+
+	/// Short company name for charts.
+	column display_name
+		dataType: string
+		lineageTag: 072fd477-3c69-5740-802b-d4ef597f4d0b
+		summarizeBy: none
+		sourceColumn: display_name
+
+	/// Financial year, e.g. FY2025-26.
+	column fiscal_year_label
+		dataType: string
+		lineageTag: d78d59e2-52ad-58d2-8504-8a326aa10c95
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	/// Financials, Asset-light or Asset-heavy.
+	column sector_group
+		dataType: string
+		lineageTag: 9972ee8b-fe91-544d-91ab-4c5325d543a7
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	/// Peer group (seed peer_groups).
+	column peer_group
+		dataType: string
+		lineageTag: 25edc241-1bea-579e-aba6-cc2610aa59e2
+		summarizeBy: none
+		sourceColumn: peer_group
+
+	/// Group the company is ranked in.
+	column ranking_group
+		dataType: string
+		lineageTag: e3d28851-6092-57ee-b669-a6831d158203
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// Rank by Scope 1+2 emissions within the year, 1 = largest emitter (ties broken by ISIN).
+	column emitter_rank
+		dataType: int64
+		lineageTag: c054beb9-5b51-5a86-a195-b04c02dbf942
+		summarizeBy: none
+		sourceColumn: emitter_rank
+
+	/// Companies with Scope 1+2 emissions that year (the base of the shares).
+	column n_companies_in_year
+		dataType: int64
+		lineageTag: 88cd8faf-1429-590c-bdda-94213bb92780
+		summarizeBy: none
+		sourceColumn: n_companies_in_year
+
+	/// Share of the Scope 1+2 emissions of all companies covered that year, in % (0-100).
+	column share_of_total_pct
+		dataType: double
+		lineageTag: 615ec038-d49e-53c2-b6c1-57117555ba29
+		summarizeBy: none
+		sourceColumn: share_of_total_pct
+
+	/// Share held by this company and every larger emitter together, in % (0-100).
+	column cumulative_share_pct
+		dataType: double
+		lineageTag: d5a957fc-a2b2-568f-9c4c-12d93ba3281b
+		summarizeBy: none
+		sourceColumn: cumulative_share_pct
+
+	/// true for the five largest emitters of the year.
+	column is_top_5
+		dataType: boolean
+		lineageTag: f4ca4c37-5605-5896-ae5d-09d2418a1c26
+		summarizeBy: none
+		sourceColumn: is_top_5
+
+	/// true for the ten largest emitters of the year.
+	column is_top_10
+		dataType: boolean
+		lineageTag: 05609a0e-7027-5c89-870a-3381379477c6
+		summarizeBy: none
+		sourceColumn: is_top_10
+
+	partition rpt_public_concentration = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\rpt_public_concentration.parquet"))
+				in
+				    Source

@@ -235,7 +235,8 @@ def read_catalogue(seed: Path = SEED) -> list[dict[str, str]]:
 
 
 def metric_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [row for row in rows if row["metric_type"] != COMPANY_VALUE]
+    # public_position rows are columns of two public company-level models, not group metrics
+    return [row for row in rows if row["metric_type"] not in (COMPANY_VALUE, "public_position")]
 
 
 def check_rules(rows: list[dict[str, str]]) -> None:

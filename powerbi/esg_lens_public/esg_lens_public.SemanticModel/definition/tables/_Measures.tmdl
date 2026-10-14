@@ -316,6 +316,184 @@ table _Measures
 		displayFolder: 7 Company card
 		lineageTag: e26c0cfa-ffe0-5b51-86c0-79baa6815813
 
+	/// 1 = largest Scope 1+2 emitter of the year among all companies covered.
+	measure 'Emitter rank' =
+			SELECTEDVALUE ( rpt_public_concentration[emitter_rank] )
+		formatString: 0
+		displayFolder: 6 Concentration (shares)
+		lineageTag: 24329a79-92ff-5f3f-a19e-aa06659afb17
+
+	/// The company's share of the Scope 1+2 emissions of all companies covered that year, in %. Use with dim_company[display_name] on the axis and one year selected.
+	measure 'Share of total emissions (%)' =
+			SELECTEDVALUE ( rpt_public_concentration[share_of_total_pct] )
+		formatString: 0.0
+		displayFolder: 6 Concentration (shares)
+		lineageTag: bd76c578-da2b-5071-8d48-c2953bf75855
+
+	/// Share held by this company and every larger emitter together, in %: the Pareto line.
+	measure 'Cumulative share of emissions (%)' =
+			SELECTEDVALUE ( rpt_public_concentration[cumulative_share_pct] )
+		formatString: 0.0
+		displayFolder: 6 Concentration (shares)
+		lineageTag: 363079ba-5f6b-5023-a3af-05c2b2c16b9c
+
+	/// Share of the year's Scope 1+2 emissions held by the 5 largest emitters, in %. Select one year; company and group slicers are ignored on purpose (the share is of all companies covered).
+	measure 'Top-5 share of emissions (%)' =
+			CALCULATE (
+			    SELECTEDVALUE ( rpt_public_concentration[cumulative_share_pct] ),
+			    rpt_public_concentration[emitter_rank] = 5,
+			    REMOVEFILTERS ( dim_company )
+			)
+		formatString: 0.0
+		displayFolder: 6 Concentration (shares)
+		lineageTag: 5b13e915-9914-5134-b157-7a63ad655307
+
+	/// Share of the year's Scope 1+2 emissions held by the 10 largest emitters, in %. Select one year; company and group slicers are ignored on purpose (the share is of all companies covered).
+	measure 'Top-10 share of emissions (%)' =
+			CALCULATE (
+			    SELECTEDVALUE ( rpt_public_concentration[cumulative_share_pct] ),
+			    rpt_public_concentration[emitter_rank] = 10,
+			    REMOVEFILTERS ( dim_company )
+			)
+		formatString: 0.0
+		displayFolder: 6 Concentration (shares)
+		lineageTag: 3ba0bc40-29c5-5eb6-95c7-ebe967501aac
+
+	/// How many of the largest emitters it takes to reach 80% of the year's Scope 1+2 emissions. Select one year.
+	measure 'Companies for 80% of emissions' =
+			VAR below_80 =
+			    CALCULATE (
+			        COUNTROWS ( rpt_public_concentration ),
+			        rpt_public_concentration[cumulative_share_pct] < 80,
+			        REMOVEFILTERS ( dim_company )
+			    )
+			RETURN
+			    IF ( HASONEVALUE ( dim_fiscal_year[fiscal_year_label] ), below_80 + 1 )
+		formatString: 0
+		displayFolder: 6 Concentration (shares)
+		lineageTag: 2b788862-b09b-5969-b263-2e385d493b96
+
+	/// Percentile in the ranking group for the KPI on the row (100 = best). Put kpi_label on the rows of a table and select one company and year.
+	measure 'Company: peer percentile' =
+			SELECTEDVALUE ( rpt_public_company_percentile[percentile_in_group] )
+		formatString: 0.0
+		displayFolder: 7 Company card
+		lineageTag: be255923-ef32-5ab3-8531-201493b7c4b1
+
+	/// Rank in the ranking group for the KPI on the row (1 = best).
+	measure 'Company: rank in group' =
+			SELECTEDVALUE ( rpt_public_company_percentile[rank_in_group] )
+		formatString: 0
+		displayFolder: 7 Company card
+		lineageTag: 3f7640e4-45c0-5256-a2b3-7085ff0af3cc
+
+	/// Companies of the ranking group with a value of the KPI: the base of the rank. Below 5 there is no rank.
+	measure 'Company: companies in group' =
+			SELECTEDVALUE ( rpt_public_company_percentile[n_in_group] )
+		formatString: 0
+		displayFolder: 7 Company card
+		lineageTag: ed0d6d07-13d2-5d6d-8c00-8ed0a93dce16
+
+	/// The company's value of the KPI on the row, only for KPIs we compute (empty for filed values).
+	measure 'Company: KPI value (public KPIs)' =
+			SELECTEDVALUE ( rpt_public_company_percentile[kpi_value_public] )
+		formatString: #,##0.00
+		displayFolder: 7 Company card
+		lineageTag: 6d7c22f9-be31-5361-9004-3d90af715995
+
+	/// Why the KPI on the row has a rank or not. A KPI that is not material for the ranking group is not ranked, although its group median is still shown as a description.
+	measure 'Company: ranking status' =
+			VAR ranked = SELECTEDVALUE ( rpt_public_company_percentile[is_ranked] )
+			VAR reason = SELECTEDVALUE ( rpt_public_company_percentile[reason_not_ranked] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ranked = TRUE (), "ranked",
+			        reason = "not_material", "not ranked for this group (not material)",
+			        reason = "group_n_lt_5", "not ranked: fewer than 5 companies (n<5)",
+			        reason = "flagged_value", "not ranked: value flagged",
+			        reason = "no_direction", "not ranked: no better or worse direction",
+			        BLANK ()
+			    )
+		displayFolder: 7 Company card
+		lineageTag: d846eba1-bebf-5de6-aa06-1433b03cee19
+
+	/// Label for a ranking group's GHG intensity median: companies are not ranked on it in this group because the KPI is not material there (for example GHG intensity for Financials). The median is still shown, as a description of the group.
+	measure 'Ranking note: GHG intensity' =
+			VAR group_type = SELECTEDVALUE ( rpt_public_group_metrics[group_type] )
+			VAR ranking_group = SELECTEDVALUE ( rpt_public_group_metrics[group_value] )
+			VAR fiscal_year = SELECTEDVALUE ( rpt_public_group_metrics[fiscal_year_label] )
+			VAR not_material =
+			    CALCULATE (
+			        COUNTROWS ( rpt_public_company_percentile ),
+			        REMOVEFILTERS ( rpt_public_company_percentile ),
+			        rpt_public_company_percentile[ranking_group] = ranking_group,
+			        rpt_public_company_percentile[fiscal_year_label] = fiscal_year,
+			        rpt_public_company_percentile[kpi_name] = "ghg_intensity_tco2e_per_cr",
+			        rpt_public_company_percentile[reason_not_ranked] = "not_material"
+			    )
+			RETURN
+			    IF ( group_type = "ranking_group" && not_material > 0, "not ranked for this group (not material)" )
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: f8aa79cd-1ea0-5165-a499-cfe0ebf7d43f
+
+	/// Label for a ranking group's energy intensity median: companies are not ranked on it in this group because the KPI is not material there (for example GHG intensity for Financials). The median is still shown, as a description of the group.
+	measure 'Ranking note: energy intensity' =
+			VAR group_type = SELECTEDVALUE ( rpt_public_group_metrics[group_type] )
+			VAR ranking_group = SELECTEDVALUE ( rpt_public_group_metrics[group_value] )
+			VAR fiscal_year = SELECTEDVALUE ( rpt_public_group_metrics[fiscal_year_label] )
+			VAR not_material =
+			    CALCULATE (
+			        COUNTROWS ( rpt_public_company_percentile ),
+			        REMOVEFILTERS ( rpt_public_company_percentile ),
+			        rpt_public_company_percentile[ranking_group] = ranking_group,
+			        rpt_public_company_percentile[fiscal_year_label] = fiscal_year,
+			        rpt_public_company_percentile[kpi_name] = "energy_intensity_gj_per_cr",
+			        rpt_public_company_percentile[reason_not_ranked] = "not_material"
+			    )
+			RETURN
+			    IF ( group_type = "ranking_group" && not_material > 0, "not ranked for this group (not material)" )
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: 1c4d3b9b-6423-5ab7-93ef-56c796e3c090
+
+	/// Label for a ranking group's water intensity median: companies are not ranked on it in this group because the KPI is not material there (for example GHG intensity for Financials). The median is still shown, as a description of the group.
+	measure 'Ranking note: water intensity' =
+			VAR group_type = SELECTEDVALUE ( rpt_public_group_metrics[group_type] )
+			VAR ranking_group = SELECTEDVALUE ( rpt_public_group_metrics[group_value] )
+			VAR fiscal_year = SELECTEDVALUE ( rpt_public_group_metrics[fiscal_year_label] )
+			VAR not_material =
+			    CALCULATE (
+			        COUNTROWS ( rpt_public_company_percentile ),
+			        REMOVEFILTERS ( rpt_public_company_percentile ),
+			        rpt_public_company_percentile[ranking_group] = ranking_group,
+			        rpt_public_company_percentile[fiscal_year_label] = fiscal_year,
+			        rpt_public_company_percentile[kpi_name] = "water_intensity_kl_per_cr",
+			        rpt_public_company_percentile[reason_not_ranked] = "not_material"
+			    )
+			RETURN
+			    IF ( group_type = "ranking_group" && not_material > 0, "not ranked for this group (not material)" )
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: ec55115d-5cd8-5ca0-bb00-1ab8f785a653
+
+	/// Label for a ranking group's waste intensity median: companies are not ranked on it in this group because the KPI is not material there (for example GHG intensity for Financials). The median is still shown, as a description of the group.
+	measure 'Ranking note: waste intensity' =
+			VAR group_type = SELECTEDVALUE ( rpt_public_group_metrics[group_type] )
+			VAR ranking_group = SELECTEDVALUE ( rpt_public_group_metrics[group_value] )
+			VAR fiscal_year = SELECTEDVALUE ( rpt_public_group_metrics[fiscal_year_label] )
+			VAR not_material =
+			    CALCULATE (
+			        COUNTROWS ( rpt_public_company_percentile ),
+			        REMOVEFILTERS ( rpt_public_company_percentile ),
+			        rpt_public_company_percentile[ranking_group] = ranking_group,
+			        rpt_public_company_percentile[fiscal_year_label] = fiscal_year,
+			        rpt_public_company_percentile[kpi_name] = "waste_intensity_t_per_cr",
+			        rpt_public_company_percentile[reason_not_ranked] = "not_material"
+			    )
+			RETURN
+			    IF ( group_type = "ranking_group" && not_material > 0, "not ranked for this group (not material)" )
+		displayFolder: 2 Intensity and shares (group)
+		lineageTag: b787d4e0-82f1-5062-bc33-3bb61e901d68
+
 	/// The published ghg_intensity_median of the selected company's ranking group and year (blank when withheld, n<5). MAX picks the one matching row.
 	measure 'Peer median: GHG intensity' =
 			VAR ranking_group = SELECTEDVALUE ( rpt_public_company_year[ranking_group] )

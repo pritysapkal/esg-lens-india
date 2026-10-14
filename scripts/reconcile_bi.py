@@ -239,6 +239,57 @@ def checklist(tables: dict[str, pd.DataFrame]) -> list[dict[str, object]]:
     ]  # fmt: skip
 
 
+def public_checklist(folder: Path = PUBLIC) -> list[dict[str, object]]:
+    """Figures to check in the PUBLIC model, read from the public files the model loads (the
+    measures only pick these values; nothing is recomputed)."""
+    groups = pd.read_parquet(folder / "rpt_public_group_metrics.parquet")
+    concentration = pd.read_parquet(folder / "rpt_public_concentration.parquet")
+    percentiles = pd.read_parquet(folder / "rpt_public_company_percentile.parquet")
+    years = sorted(groups["fiscal_year_label"].unique())
+    latest, final = years[-1], years[-2]
+
+    def group(group_type: str, value: str, year: str, column: str):
+        row = groups[
+            (groups["group_type"] == group_type)
+            & (groups["group_value"] == value)
+            & (groups["fiscal_year_label"] == year)
+        ]
+        return row[column].iloc[0]
+
+    in_year = concentration[concentration["fiscal_year_label"] == latest]
+    asian = percentiles[
+        (percentiles["display_name"] == "Asian Paints")
+        & (percentiles["fiscal_year_label"] == final)
+        & (percentiles["kpi_name"] == "ghg_intensity_tco2e_per_cr")
+    ].iloc[0]
+    banks = percentiles[
+        (percentiles["ranking_group"] == "Financials")
+        & (percentiles["fiscal_year_label"] == final)
+        & (percentiles["kpi_name"] == "ghg_intensity_tco2e_per_cr")
+    ]
+    return [
+        {"page": 1, "measure": "Companies reporting", "filters": f"group type all, {latest}",
+         "expected": group("all", "All companies", latest, "companies_reporting"), "format": "0"},
+        {"page": 2, "measure": "GHG intensity, whole group", "filters": f"group type sector_group, Asset-heavy, {latest}",
+         "expected": group("sector_group", "Asset-heavy", latest, "ghg_intensity_agg"), "format": "0.00"},
+        {"page": 2, "measure": "GHG intensity, typical company", "filters": f"group type sector_group, Asset-heavy, {latest}",
+         "expected": group("sector_group", "Asset-heavy", latest, "ghg_intensity_median"), "format": "0.00"},
+        {"page": 3, "measure": "Top-5 share of emissions (%)", "filters": f"{latest}",
+         "expected": in_year.loc[in_year["emitter_rank"] == 5, "cumulative_share_pct"].iloc[0], "format": "0.0"},
+        {"page": 3, "measure": "Companies for 80% of emissions", "filters": f"{latest}",
+         "expected": int((in_year["cumulative_share_pct"] < 80).sum()) + 1, "format": "0"},
+        {"page": 4, "measure": "Disclosure Quality Score, typical company", "filters": f"group type all, {final}",
+         "expected": group("all", "All companies", final, "dqs_median"), "format": "0.00"},
+        {"page": 5, "measure": "Company: peer percentile", "filters": f"Asian Paints, {final}, GHG intensity row",
+         "expected": asian["percentile_in_group"], "format": "0.0"},
+        {"page": 5, "measure": "Company: rank in group", "filters": f"Asian Paints, {final}, GHG intensity row",
+         "expected": asian["rank_in_group"], "format": "0"},
+        {"page": 5, "measure": "Ranking note: GHG intensity", "filters": f"group type ranking_group, Financials, {final}",
+         "expected": "not ranked for this group (not material)" if (banks["reason_not_ranked"] == "not_material").any() else "",
+         "format": "text"},
+    ]  # fmt: skip
+
+
 def main() -> int:
     tables = load_local()
     ours = dax_equivalent(tables)

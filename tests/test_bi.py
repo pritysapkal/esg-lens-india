@@ -212,6 +212,8 @@ def test_public_measures_never_recompute_a_gated_statistic():
             "rpt_public_group_metrics",
             "rpt_public_company_year",
             "rpt_public_disclosure_quality",
+            "rpt_public_concentration",
+            "rpt_public_company_percentile",
             "dim_fiscal_year",
             "dim_company",
         }, name
@@ -281,7 +283,9 @@ def test_workbook_structure_and_formulas(tmp_path):
     assert len(peer.data_validations.dataValidation) == 3
     for cell in ("B9", "B10", "B12", "B13", "B14", "B15", "B16", "B17", "B18"):
         assert str(peer[cell].value).startswith("="), f"{cell} must be a formula"
-    assert "_xlfn.XLOOKUP(" in peer["B10"].value and "COUNTIFS(" in peer["B14"].value
+    assert "_xlfn.XLOOKUP(" in peer["B10"].value and "tblPercentile" in peer["B15"].value
+    assert "COUNTIFS(" in peer["F15"].value and "F15" in peer["B19"].value
+    assert "tblPercentile" in workbook["Percentile Data"].tables
     summary = workbook["Sector Summary"]
     values = [
         c.value
@@ -335,7 +339,8 @@ def test_workbook_calculates_in_excel_and_agrees_with_the_warehouse(tmp_path):
         expected = con.sql(
             """
             select company.display_name, percentile.kpi_name, percentile.fiscal_year_label,
-                   percentile.percentile_in_group, percentile.ranking_group
+                   percentile.percentile_in_group, percentile.ranking_group,
+                   percentile.percentile_null_reason as reason_not_ranked
             from fct_company_kpi_percentile as percentile
             inner join dim_company as company on percentile.isin = company.isin
             where percentile.kpi_name in ('ghg_intensity_tco2e_per_cr', 'water_intensity_kl_per_cr')
@@ -361,16 +366,21 @@ def test_workbook_calculates_in_excel_and_agrees_with_the_warehouse(tmp_path):
         ["group_value", "fiscal_year_label"]
     )
     by_case = {(c["company"], c["kpi"], c["year"]): c for c in result["peer_cases"]}
-    ranked = 0
+    ranked = not_material = 0
     for row in expected.itertuples():
         case = by_case[(row.display_name, labels[row.kpi_name], row.fiscal_year_label)]
         assert case["ranking_group"] == row.ranking_group
         if pd.isna(row.percentile_in_group):
-            assert case["ranked"] != "yes", case
+            assert case["ranked"] != "yes" and case["check"] == "-", case
         else:
             assert case["ranked"] == "yes", case
             assert case["percentile"] == pytest.approx(row.percentile_in_group, abs=1e-9), case
+            # the hidden COUNTIFS formulas give the same rank and percentile
+            assert case["check"].startswith("OK"), case
             ranked += 1
+        if row.reason_not_ranked == "not_material":
+            assert case["ranked"] == "not ranked for this group (not material)", case
+            not_material += 1
         median = medians.loc[
             (row.ranking_group, row.fiscal_year_label),
             row.kpi_name.replace("_tco2e_per_cr", "_median").replace("_kl_per_cr", "_median"),
@@ -379,7 +389,7 @@ def test_workbook_calculates_in_excel_and_agrees_with_the_warehouse(tmp_path):
             assert case["median"] == "n<5", case
         else:
             assert case["median"] == pytest.approx(median, rel=1e-12), case
-    assert ranked > 40
+    assert ranked > 40 and not_material > 0
 
     columns = {header: column for header, column, *_ in EXCEL.SUMMARY_COLUMNS}
     table = groups.set_index(["group_type", "group_value", "fiscal_year_label"])
@@ -462,3 +472,54 @@ def test_reconciliation_values_are_derived():
     """The checklist is public: intensities, shares, medians and counts only."""
     text = RECONCILIATION_DOC.read_text(encoding="utf-8")
     assert not re.search(r"\d[\d,.]*\s*(tCO2e|GJ|kl)\b(?!\s*per)", text)
+
+
+@needs_warehouse
+def test_public_concentration_matches_week_10_q2():
+    """rpt_public_concentration gives the Q2 shares: top 1, top 5, top 10 and companies for 80%."""
+    sys.path.insert(0, str(ROOT / "tests"))
+    from test_analysis import QUERIES, RUNNER
+
+    con = duckdb.connect(str(WAREHOUSE), read_only=True)
+    try:
+        q2 = RUNNER.run_queries(
+            con,
+            [
+                q
+                for q in QUERIES
+                if q.result_id == "q02_emission_concentration__concentration_by_year"
+            ],
+        )
+        concentration = con.sql("select * from rpt_public_concentration").df()
+    finally:
+        con.close()
+    q2 = q2["q02_emission_concentration__concentration_by_year"].set_index("fiscal_year_label")
+    assert len(q2) == 4
+    for year, rows in concentration.groupby("fiscal_year_label"):
+        by_rank = rows.set_index("emitter_rank")["cumulative_share_pct"]
+        assert round(by_rank[1], 1) == q2.loc[year, "top_1_share_pct"]
+        assert round(by_rank[5], 1) == q2.loc[year, "top_5_share_pct"]
+        assert round(by_rank[10], 1) == q2.loc[year, "top_10_share_pct"]
+        assert (
+            int((rows["cumulative_share_pct"] < 80).sum()) + 1
+            == q2.loc[year, "companies_for_80_pct"]
+        )
+        assert len(rows) == q2.loc[year, "n_companies"]
+    assert q2["top_5_share_pct"].between(85.5, 86.2).all()
+    assert not {c for c in concentration.columns if c.endswith(("_tco2e", "total"))}
+
+
+@pytest.mark.skipif(
+    not (EXPORTS / "public" / "rpt_public_concentration.parquet").exists(),
+    reason="run dev.ps1 bi-export",
+)
+def test_public_checklist_in_the_guide_holds_the_current_values():
+    text = GUIDE.read_text(encoding="utf-8")
+    for item in RECONCILE.public_checklist():
+        if item["format"] == "text":
+            expected = str(item["expected"])
+        else:
+            digits = {"0": ".0f", "0.0": ".1f", "0.00": ".2f"}[item["format"]]
+            expected = f"{float(item['expected']):{digits}}"
+        assert f"| {item['measure']} |" in text, item["measure"]
+        assert f"**{expected}**" in text, f"{item['measure']}: expected {expected} in the guide"

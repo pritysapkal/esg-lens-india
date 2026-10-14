@@ -17,3 +17,19 @@ relationship f7794c84-2811-58c5-a3db-3883cd2803a3
 relationship 6d2d0f2e-dfbc-54ab-af2c-36a5c8078aa9
 	fromColumn: rpt_public_group_metrics.fiscal_year_label
 	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 876b3469-1710-5041-b18e-4d42b3648283
+	fromColumn: rpt_public_concentration.isin
+	toColumn: dim_company.isin
+
+relationship 5a6e4cc9-5054-5b87-8ac1-d2ca71a61a54
+	fromColumn: rpt_public_concentration.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 699ecbb7-314c-55fd-ba8f-8ac68c11c37a
+	fromColumn: rpt_public_company_percentile.isin
+	toColumn: dim_company.isin
+
+relationship b6a5d778-c96b-55bb-a164-1c62a1ca7882
+	fromColumn: rpt_public_company_percentile.fiscal_year_label
+	toColumn: dim_fiscal_year.fiscal_year_label

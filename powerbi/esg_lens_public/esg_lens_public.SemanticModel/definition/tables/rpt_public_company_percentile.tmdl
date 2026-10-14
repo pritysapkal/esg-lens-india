@@ -1,0 +1,124 @@
+/// Public model rpt_public_company_percentile: derived values only (docs/publication_policy.md).
+table rpt_public_company_percentile
+	lineageTag: 4027106a-bed1-5dc0-bb3a-b304b59d95c4
+
+	/// ISIN of the company (key of dim_company).
+	column isin
+		dataType: string
+		isHidden
+		lineageTag: 5dd5c549-e60c-542d-8bac-24b12a34fb7f
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// Short company name for charts.
+	column display_name
+		dataType: string
+		lineageTag: 4bdaa0f9-109b-52a3-9780-eda4f2958097
+		summarizeBy: none
+		sourceColumn: display_name
+
+	/// Financial year, e.g. FY2025-26.
+	column fiscal_year_label
+		dataType: string
+		lineageTag: 3d3a40bd-97af-50bd-be9d-e8cf5ebe6b11
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+	/// KPI column of fct_company_year (kpi_catalogue.kpi_name).
+	column kpi_name
+		dataType: string
+		lineageTag: 8c9fd1be-c915-52b2-a87a-a9492f20b8ce
+		summarizeBy: none
+		sourceColumn: kpi_name
+
+	/// Plain label of the KPI (kpi_catalogue).
+	column kpi_label
+		dataType: string
+		lineageTag: 0051e854-6624-5c6b-b46e-451bcab22418
+		summarizeBy: none
+		sourceColumn: kpi_label
+
+	/// Unit of the KPI (kpi_catalogue).
+	column kpi_unit
+		dataType: string
+		lineageTag: 0fb04636-5c0e-5f97-9b05-351cfaae5ee0
+		summarizeBy: none
+		sourceColumn: kpi_unit
+
+	/// lower_better or higher_better (what "best" means for the rank).
+	column direction
+		dataType: string
+		lineageTag: 1556146a-1046-5093-9fba-c6b13d74945b
+		summarizeBy: none
+		sourceColumn: direction
+
+	/// Peer group (seed peer_groups).
+	column peer_group
+		dataType: string
+		lineageTag: eabf7a75-f9e0-51c5-96a7-76fba00be71c
+		summarizeBy: none
+		sourceColumn: peer_group
+
+	/// Financials, Asset-light or Asset-heavy.
+	column sector_group
+		dataType: string
+		lineageTag: 35cca361-0181-5c56-8dff-0bd92619670a
+		summarizeBy: none
+		sourceColumn: sector_group
+
+	/// Group the company is ranked in (its peer group, or its sector group when the peer group is small).
+	column ranking_group
+		dataType: string
+		lineageTag: a1779d2d-9b6c-5b49-b255-9f30dc81a495
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// 0-100, 100 = best in the ranking group and year; empty when not ranked.
+	column percentile_in_group
+		dataType: double
+		lineageTag: a11c1e27-1bd7-517c-a3bb-3fbd04b52f0a
+		summarizeBy: none
+		sourceColumn: percentile_in_group
+
+	/// 1 = best in the ranking group and year; ties share the better rank; empty when not ranked.
+	column rank_in_group
+		dataType: int64
+		lineageTag: 3afc9a6d-3290-5774-919d-98c7f200177c
+		summarizeBy: none
+		sourceColumn: rank_in_group
+
+	/// Companies of the ranking group with a rankable value of the KPI that year.
+	column n_in_group
+		dataType: int64
+		lineageTag: aec3ef9c-0b65-52cc-ad2d-558d2685ac27
+		summarizeBy: none
+		sourceColumn: n_in_group
+
+	/// true when a percentile is given (5 or more companies with a value, KPI material for the group).
+	column is_ranked
+		dataType: boolean
+		lineageTag: 527e91b1-e0aa-55c6-b293-086168e7b308
+		summarizeBy: none
+		sourceColumn: is_ranked
+
+	/// Why there is no percentile: not_material, group_n_lt_5, flagged_value, no_direction or no_group. Empty when ranked.
+	column reason_not_ranked
+		dataType: string
+		lineageTag: 64e53b2b-1005-5321-b549-1d3f98c1e70f
+		summarizeBy: none
+		sourceColumn: reason_not_ranked
+
+	/// The KPI value, only when kpi_catalogue marks the KPI public_safe (a value we compute); empty for filed values.
+	column kpi_value_public
+		dataType: double
+		lineageTag: eb874420-2095-50a7-89fc-030b5570826c
+		summarizeBy: none
+		sourceColumn: kpi_value_public
+
+	partition rpt_public_company_percentile = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\rpt_public_company_percentile.parquet"))
+				in
+				    Source

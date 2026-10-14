@@ -12,13 +12,12 @@ formulas (XLOOKUP, COUNTIFS), so it recalculates when a selection changes. Sheet
 
 Statistics are never recomputed from company rows: medians and group figures come from
 rpt_public_group_metrics, where the 5-company rule is already applied. Rank and percentile are
-positions within the ranking group, computed with the warehouse's own method (percent rank,
-ties share the better place, only for 5 or more companies and a material KPI).
+read from rpt_public_company_percentile; the same positions are also computed with COUNTIFS
+formulas in hidden cells, and a visible check says whether the two agree.
 """
 
 from __future__ import annotations
 
-import csv
 from datetime import date
 from pathlib import Path
 
@@ -32,7 +31,6 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
 ROOT = Path(__file__).resolve().parent.parent
-SEEDS = ROOT / "dbt" / "seeds"
 
 FONT = "Arial"
 BOLD = Font(name=FONT, bold=True)
@@ -177,34 +175,6 @@ def _label(ws, cell: str, text: str, font=NORMAL) -> None:
     ws[cell].font = font
 
 
-def ranking_rules(company_year: pd.DataFrame) -> pd.DataFrame:
-    """Is each benchmark KPI ranked in each ranking group? Material for every peer group of the
-    ranking group (dbt/seeds/metric_materiality.csv, through kpi_catalogue.materiality_metric_id),
-    the rule of fct_company_kpi_percentile. These are rules, not data."""
-    with (SEEDS / "kpi_catalogue.csv").open(encoding="utf-8") as fh:
-        catalogue = {row["kpi_name"]: row["materiality_metric_id"] for row in csv.DictReader(fh)}
-    with (SEEDS / "metric_materiality.csv").open(encoding="utf-8") as fh:
-        material = {
-            (row["peer_group"], row["metric_id"]): row["is_material"].strip().lower() == "true"
-            for row in csv.DictReader(fh)
-        }
-    groups = company_year[["ranking_group", "peer_group"]].dropna().drop_duplicates()
-    rows = []
-    for ranking_group, peers in groups.groupby("ranking_group"):
-        for _, column, *_ in BENCHMARK_KPIS:
-            metric = catalogue.get(column, "")
-            ranked = all(material.get((peer, metric), False) for peer in peers["peer_group"])
-            rows.append(
-                {
-                    "key": f"{ranking_group}|{column}",
-                    "ranking_group": ranking_group,
-                    "kpi": column,
-                    "material": "yes" if ranked else "no",
-                }
-            )
-    return pd.DataFrame(rows, columns=["key", "ranking_group", "kpi", "material"])
-
-
 # ------------------------------------------------------------------ sheets
 
 
@@ -274,7 +244,7 @@ def _readme(ws, built: str, local: bool) -> None:
             NORMAL,
         ),
         (
-            "Rank and percentile follow the warehouse rule: only when 5 or more companies of the ranking group have a value and the KPI is material for the group (Lists, tblRules).",
+            "Rank and percentile come from rpt_public_company_percentile: only when 5 or more companies of the ranking group have a value and the KPI is material for the group. A hidden COUNTIFS formula recomputes them and Peer Benchmark shows whether the two agree.",
             NORMAL,
         ),
     ]
@@ -292,20 +262,12 @@ def _readme(ws, built: str, local: bool) -> None:
         cell.alignment = WRAP
 
 
-def _lists(wb, ws, company_year: pd.DataFrame, rules: pd.DataFrame) -> dict[str, dict[str, str]]:
+def _lists(wb, ws, company_year: pd.DataFrame) -> dict[str, dict[str, str]]:
     kpis = pd.DataFrame(
         BENCHMARK_KPIS,
         columns=["label", "column", "median_column", "count_column", "direction", "unit"],
     )
     _write_table(ws, kpis, "tblKpi", freeze=False)
-    start = len(kpis) + 4
-    ws.cell(
-        row=start - 1,
-        column=1,
-        value="Ranking rules (material for every peer group of the ranking group)",
-    ).font = BOLD
-    _write_table(ws, rules, "tblRules", first_row=start, freeze=False)
-
     companies = sorted(company_year["display_name"].dropna().unique())
     years = sorted(company_year["fiscal_year_label"].dropna().unique())
     for column, header, values in (("H", "Companies", companies), ("I", "Years", years)):
@@ -346,11 +308,18 @@ def _peer_benchmark(ws, default_company: str, latest_year: str) -> None:
         "E8": "=MATCH(XLOOKUP($B$5,tblKpi[label],tblKpi[median_column]),tblGroup[#Headers],0)",
         "E9": "=MATCH(XLOOKUP($B$5,tblKpi[label],tblKpi[count_column]),tblGroup[#Headers],0)",
         "E10": '="ranking_group|"&B9&"|"&$B$6',
-        "E11": '=XLOOKUP(B9&"|"&E5,tblRules[key],tblRules[material],"no")',
+        "E12": '=$B$4&"|"&$B$6&"|"&E5',
+        "E13": "=COUNTIF(tblPercentile[lookup_key],E12)>0",
+        "E14": '=IF(E13,XLOOKUP(E12,tblPercentile[lookup_key],tblPercentile[reason_not_ranked]),"")',
+        # the same positions computed from the company rows with COUNTIFS (the cross-check)
+        "F12": '=IF(B9="no report this year",0,COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),"<>"))',
+        "F14": '=IF(B13<>"yes","-",1+IF(E7="lower_better",COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),"<"&B10),COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),">"&B10)))',
+        "F15": '=IF(B13<>"yes","-",ROUND(100*IF(E7="lower_better",COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),">"&B10),COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),"<"&B10))/(F12-1),1))',
     }
     for cell, formula in helpers.items():
         ws[cell] = formula
     ws.column_dimensions["E"].hidden = True
+    ws.column_dimensions["F"].hidden = True
 
     rows = [
         (
@@ -374,23 +343,23 @@ def _peer_benchmark(ws, default_company: str, latest_year: str) -> None:
             "A12",
             "Companies in the group with a value",
             "B12",
-            '=IF(B9="no report this year",0,COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),"<>"))',
+            "=IF(E13,XLOOKUP(E12,tblPercentile[lookup_key],tblPercentile[n_in_group]),0)",
             "0",
-            "A rank and a percentile need 5 or more.",
+            "A rank and a percentile need 5 or more (rpt_public_company_percentile).",
         ),
         (
             "A13",
             "Ranked in this group?",
             "B13",
-            '=IF(NOT(ISNUMBER(B10)),"no value",IF(E11<>"yes","not ranked: not material for this group",IF(B12<5,"not ranked: n<5","yes")))',
+            '=IF(NOT(E13),"no value",IF(XLOOKUP(E12,tblPercentile[lookup_key],tblPercentile[is_ranked]),"yes",IF(E14="not_material","not ranked for this group (not material)",IF(E14="group_n_lt_5","not ranked: n<5","not ranked: "&E14))))',
             "@",
-            "Material = the KPI matters for every peer group of the ranking group (Lists, tblRules).",
+            "Not material = the KPI does not matter for this group, so nobody is ranked on it; its median is still shown below.",
         ),
         (
             "A14",
             "Rank (1 = best)",
             "B14",
-            '=IF(B13<>"yes","-",1+IF(E7="lower_better",COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),"<"&B10),COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),">"&B10)))',
+            '=IF(B13<>"yes","-",XLOOKUP(E12,tblPercentile[lookup_key],tblPercentile[rank_in_group]))',
             "0",
             "Lower intensity is better. Companies with the same value share the better rank.",
         ),
@@ -398,7 +367,7 @@ def _peer_benchmark(ws, default_company: str, latest_year: str) -> None:
             "A15",
             "Percentile in group (100 = best)",
             "B15",
-            '=IF(B13<>"yes","-",ROUND(100*IF(E7="lower_better",COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),">"&B10),COUNTIFS(tblCompanyYear[ranking_group],B9,tblCompanyYear[fiscal_year_label],$B$6,INDEX(tblCompanyYear[#Data],0,E6),"<"&B10))/(B12-1),1))',
+            '=IF(B13<>"yes","-",XLOOKUP(E12,tblPercentile[lookup_key],tblPercentile[percentile_in_group]))',
             "0.0",
             "Share of the other companies in the group that do worse (percent rank, as in the warehouse).",
         ),
@@ -425,6 +394,14 @@ def _peer_benchmark(ws, default_company: str, latest_year: str) -> None:
             '=IF(AND(ISNUMBER(B10),ISNUMBER(B16)),B10/B16-1,"-")',
             "+0%;-0%;0%",
             "Above 0% = more intensive than the typical company of its group.",
+        ),
+        (
+            "A19",
+            "Check: rank and percentile recomputed",
+            "B19",
+            '=IF(B13<>"yes","-",IF(AND(F14=B14,ABS(F15-B15)<0.000001,F12=B12),"OK: COUNTIFS formula agrees","MISMATCH"))',
+            "@",
+            "The same rank and percentile computed from the Data sheet with COUNTIFS (hidden column F).",
         ),
     ]
     for label_cell, label, value_cell, formula, number_format, note in rows:
@@ -603,6 +580,7 @@ def build(public_folder: Path | None, out: Path, local_folder: Path | None = Non
     dqs_view = wb.create_sheet("DQS view")
     dqs_data = wb.create_sheet("DQS Data")
     group_data = wb.create_sheet("Group Data")
+    percentile_data = wb.create_sheet("Percentile Data")
     lists = wb.create_sheet("Lists")
 
     built = date.today().isoformat()
@@ -630,7 +608,16 @@ def build(public_folder: Path | None, out: Path, local_folder: Path | None = Non
             f'&"|"&{columns["fiscal_year_label"]}{r}'
         )
 
-    lists_info = _lists(wb, lists, company_year, ranking_rules(company_year))
+    percentiles = pd.read_parquet(public_folder / "rpt_public_company_percentile.parquet")
+    percentiles = percentiles.sort_values(["display_name", "fiscal_year_label", "kpi_name"])
+    columns = _write_table(percentile_data, percentiles, "tblPercentile", lambda r: None)
+    for r in range(2, len(percentiles) + 2):
+        percentile_data[f"{columns['lookup_key']}{r}"] = (
+            f'={columns["display_name"]}{r}&"|"&{columns["fiscal_year_label"]}{r}'
+            f'&"|"&{columns["kpi_name"]}{r}'
+        )
+
+    lists_info = _lists(wb, lists, company_year)
     years = lists_info["years"]
     latest_year = years[-1] if years else ""
     final_years = sorted(dqs.loc[~dqs["is_provisional"].astype(bool), "fiscal_year_label"].unique())

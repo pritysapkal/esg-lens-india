@@ -38,6 +38,9 @@ Run it yourself:
 
 ## Checklist for Power BI Desktop (local model)
 
+The pages themselves are built in the public model; its own numbers to check are at the end of
+[powerbi_build_guide.md](powerbi_build_guide.md). The local model is opened only for these six.
+
 Open `powerbi\esg_lens_local\esg_lens_local.pbip`, set the `ExportFolder` parameter (see
 [powerbi_build_guide.md](powerbi_build_guide.md), "Before you start"), refresh, then put each
 measure on a **Card** and set the filters with slicers on `dim_fiscal_year[fiscal_year_label]`

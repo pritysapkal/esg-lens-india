@@ -9,7 +9,7 @@ Two folders, two audiences (docs/publication_policy.md):
   exports/local/   the star schema with every column, including the filed values behind the
                    ratio-of-sums measures, and the Week 10 result tables. Gitignored, never
                    shared: it holds raw filed values.
-  exports/public/  ONLY the four rpt_public_* models, plus the Excel workbook built from them.
+  exports/public/  ONLY the six rpt_public_* models, plus the Excel workbook built from them.
                    Nothing else may land here; the script refuses to finish if it does.
 
 Power BI reads these files through the ExportFolder parameter (powerbi/, see
@@ -80,6 +80,8 @@ PUBLIC_TABLES: dict[str, str] = {
         "rpt_public_disclosure_quality",
         "rpt_public_group_metrics",
         "rpt_public_restatement_summary",
+        "rpt_public_concentration",
+        "rpt_public_company_percentile",
     )
 }
 PUBLIC_FILES = {f"{name}.parquet" for name in PUBLIC_TABLES} | {PUBLIC_WORKBOOK}

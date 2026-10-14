@@ -138,6 +138,19 @@ in [disclosure_quality_score.md](disclosure_quality_score.md).
 | `dqs_rank_in_group` | DQS: rank in ranking group | rank of dqs_total within ranking group and year (1 = best); only if at least 5 companies | rank | Lower | yes |  | The company's place in its ranking group that year, 1 being the best score. Ties share the better place. |
 | `dqs_percentile_in_group` | DQS: percentile in ranking group | percent rank of dqs_total within ranking group and year x 100; only if at least 5 companies | percentile (0-100) | Higher | yes |  | Where the company stands in its ranking group that year: 100 is the best score, 0 the lowest. |
 
+Positions of one company in the public models `rpt_public_concentration` and `rpt_public_company_percentile` (ranks, shares and percentiles; never the filed value behind them):
+
+| Column | Public model | Label | How it is computed | Unit | Plain-English definition |
+|---|---|---|---|---|---|
+| `emitter_rank` | `rpt_public_concentration` | Rank by Scope 1+2 emissions | rank of ghg_s12_tco2e within the year, largest = 1 | rank | Where the company stands among all companies covered that year by the size of its Scope 1+2 emissions: 1 is the largest emitter. |
+| `n_companies_in_year` | `rpt_public_concentration` | Companies with Scope 1+2 emissions that year | count of companies with ghg_s12_tco2e in the year | companies | How many companies the ranking and the shares of that year are built from. |
+| `share_of_total_pct` | `rpt_public_concentration` | Share of the emissions of all companies covered (%) | ghg_s12_tco2e / sum of ghg_s12_tco2e of the year x 100 | % | Out of every 100 tonnes of Scope 1+2 emissions of all companies covered that year, how many come from this company. The tonnes and the total are not published. |
+| `cumulative_share_pct` | `rpt_public_concentration` | Cumulative share of emissions (%) | running sum of share_of_total_pct from the largest emitter down | % | The share held by this company and every larger emitter together: the line of a Pareto chart. |
+| `percentile_in_group` | `rpt_public_company_percentile` | Percentile in the ranking group | percent rank within ranking group, year and KPI x 100 (100 = best) | percentile (0-100) | Share of the other companies of the group that do worse on this KPI. Only with 5 or more companies with a value and a material KPI. |
+| `rank_in_group` | `rpt_public_company_percentile` | Rank in the ranking group | rank within ranking group, year and KPI (1 = best; ties share the better rank) | rank | The company's place in its ranking group on this KPI: 1 is the best. Only where a percentile is given. |
+| `n_in_group` | `rpt_public_company_percentile` | Companies in the group with a value | count of companies of the ranking group with a rankable value of the KPI that year | companies | How many companies the rank and the percentile are built from. Below 5 there is no rank. |
+| `kpi_value_public` | `rpt_public_company_percentile` | KPI value (public KPIs only) | the KPI value when kpi_catalogue marks the KPI public_safe; empty otherwise | unit of the KPI (kpi_unit) | The company's own value of the KPI, shown only for values ESG Lens India computes (such as intensities). Filed values stay empty. |
+
 <!-- KPI_TABLE:END -->
 
 Notes that the table cannot carry:

@@ -72,6 +72,10 @@ models:
         +tags: [restatement]
       rpt_public_restatement_summary:
         +tags: [restatement, public]
+      rpt_public_concentration:
+        +tags: [public]
+      rpt_public_company_percentile:
+        +tags: [benchmark, public]
       fct_peer_benchmark:
         +tags: [benchmark]
       fct_company_kpi_percentile:

@@ -397,7 +397,8 @@ seeds:
     description: >
       Single source of truth for KPIs and metrics. Rows with metric_type = company_value are the
       numeric columns of fct_company_year and fct_disclosure_quality (one value per company-year);
-      the other rows are the group metrics of the semantic layer (MetricFlow). Each row has label,
+      the public_position rows are the numeric columns of rpt_public_concentration and
+      rpt_public_company_percentile; the other rows are the group metrics of the semantic layer (MetricFlow). Each row has label,
       formula, unit, direction, whether the value may be published (public_safe) and a
       plain-English definition. Drives the peer benchmarks, the public models, the KPI table in
       docs/kpi_definitions.md (scripts/build_kpi_docs.py) and the semantic layer
@@ -449,18 +450,23 @@ seeds:
       - name: definition_plain
         tests: [not_null]
       - name: source_model
-        description: Gold table that holds the column.
+        description: Gold table (or, for public_position rows, public model) that holds the column.
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: [fct_company_year, fct_disclosure_quality, fct_restatement]
+                values:
+                  [fct_company_year, fct_disclosure_quality, fct_restatement, rpt_public_concentration,
+                   rpt_public_company_percentile]
       - name: metric_type
         description: >
           company_value = a column with one value per company-year. Otherwise how the semantic
           layer aggregates over a group: ratio_of_sums (sum / sum, named ..._agg), median
           (typical company, named ..._median), average, share (rows counted / rows in scope x
           100), count, count_distinct (companies). An average of company intensities is refused.
+          public_position = a numeric column of rpt_public_concentration or
+          rpt_public_company_percentile (a rank, a share or a percentile of one company); not a
+          metric of the semantic layer.
         tests:
           - not_null
           - accepted_values:
@@ -473,6 +479,7 @@ seeds:
                   - share
                   - count
                   - count_distinct
+                  - public_position
       - name: companies_metric
         description: >
           For a group metric that may be published only for 5 companies or more: the

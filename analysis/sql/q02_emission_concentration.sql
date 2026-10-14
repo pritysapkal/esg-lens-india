@@ -9,8 +9,8 @@
 --                    with an explicit frame; QUALIFY; conditional aggregation.
 -- Caveats            "Total" means the companies in this project (NIFTY 50 plus one), not India.
 --                    Scope 1+2 only: the Scope 3 of a refiner or a bank is not in here. The
---                    Pareto table holds company shares of a filed total and stays local; only
---                    the top-5 and top-10 shares are published.
+--                    company shares are published as shares only, in the public model
+--                    rpt_public_concentration (same ranking); tonnes and totals stay local.
 
 -- result: pareto_top10_by_year
 with ranked as (

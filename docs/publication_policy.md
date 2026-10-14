@@ -19,6 +19,9 @@ Values that are the result of our own work on the filings:
 - gaps we compute (pay-equity gap, attrition gap);
 - percentiles and rankings within a peer group; peer-group medians and quartiles (also for KPIs
   whose underlying value is filed: the position is ours, the value is not shown);
+- a company's rank by Scope 1+2 emissions and its share of the emissions of all companies
+  covered that year (and the cumulative share): shares and ranks only, never the tonnes or the
+  total (decision of 2026-10-14, `rpt_public_concentration`);
 - group figures (whole-group ratios, medians, averages, shares and counts) from
   `rpt_public_group_metrics`; a statistic is shown only for 5 companies or more;
 - the label of the denominator a company used for its filed intensity (`*_filed_basis`);
@@ -56,6 +59,8 @@ Values that are the result of our own work on the filings:
 | `rpt_public_company_year` | The company-year KPIs with **only** public-safe columns. Use this, not `fct_company_year`, for anything published. |
 | `rpt_public_disclosure_quality` | The Disclosure Quality Score with its component scores, grade, rank, percentile and reason codes. The counts behind the components (`int_dqs_components`, `int_dqs_leadership_disclosure`: which metrics are missing, which voluntary indicators were answered, how many checks failed) stay local. |
 | `rpt_public_restatement_summary` | Restatement classes, counts and percentages. No original or restated value. |
+| `rpt_public_concentration` | Per company and year: rank by Scope 1+2 emissions, share of the emissions of all companies covered, cumulative share, top-5 / top-10 flags. No tonnes and no total, so no filed value can be rebuilt. |
+| `rpt_public_company_percentile` | Per company, KPI and year: percentile, rank, companies in the group, ranked or not and why. The KPI value only for KPIs the catalogue marks `public_safe` (values we compute); empty for filed values - `assert_public_models_safe` fails the build otherwise. |
 | `fct_peer_benchmark`, `fct_company_kpi_percentile` | Public: medians, quartiles, counts, percentiles. Not public: `min_value` / `max_value` and the percentile table's `value` column (marked `public_safe: false`). |
 | `rpt_public_group_metrics` | Group figures by group type (all, sector group, peer group, ranking group, size band, ownership type), group and year, generated from the same definitions as the semantic layer and compared with it cell by cell in a test. A statistic (ratio, median, average, share) is empty when fewer than 5 companies stand behind it (`suppressed_reason = fewer_than_5_companies`); counts are always shown; restatement figures of a year with no later filing are empty, never 0 (`not_yet_observable`). No sum of filed values is a column. |
 | Semantic layer (`dbt/models/semantic`, MetricFlow) | **The local analyst interface. Public consumers (Streamlit, AI analyst, public Power BI) never query it**: it returns every row and its views `sem_*` hold raw values. Each metric carries `meta.public_safe` from `kpi_catalogue.csv`; sums of filed values exist only as hidden building blocks of a ratio (`..._num`, `..._den`) and are never public ([semantic_layer.md](semantic_layer.md)). |
@@ -71,12 +76,13 @@ Values that are the result of our own work on the filings:
 - **Full dashboards** (the local Power BI model, Streamlit) that show raw values stay
   **local**. They are not published and their files are not shared.
 - **Exports** (`scripts/export_bi.py`): `exports/local` holds raw filed values and is
-  gitignored; `exports/public` may hold only the four `rpt_public_*` files and the public Excel
+  gitignored; `exports/public` may hold only the six `rpt_public_*` files and the public Excel
   workbook built from them - the script stops if anything else lands there. The workbook shows
   "n<5" where a statistic is withheld and never recomputes one from company rows.
 - The **public showcase** uses screenshots or a demo video of those dashboards **plus derived
   numbers** from the public models (`rpt_public_company_year`, `rpt_public_disclosure_quality`,
-  `rpt_public_group_metrics`, `rpt_public_restatement_summary`). Before publishing a screenshot, check that it shows no raw
+  `rpt_public_group_metrics`, `rpt_public_restatement_summary`, `rpt_public_concentration`,
+  `rpt_public_company_percentile`). Before publishing a screenshot, check that it shows no raw
   filed quantity; crop or switch the visual to an intensity or percentile if it does.
 - Every published number carries its plain-text citation and the note that the Disclosure Quality
   Score is not an ESG rating and nothing here is investment advice.

@@ -72,3 +72,5 @@ exposures:
       - ref('rpt_public_disclosure_quality')
       - ref('rpt_public_group_metrics')
       - ref('rpt_public_restatement_summary')
+      - ref('rpt_public_concentration')
+      - ref('rpt_public_company_percentile')

@@ -57,7 +57,8 @@ try {
             $excel.Calculate()
             $row = [ordered]@{ company = $case.company; kpi = $case.kpi; year = $case.year }
             foreach ($pair in @(@('ranking_group', 'B9'), @('value', 'B10'), @('n', 'B12'), @('ranked', 'B13'),
-                                @('rank', 'B14'), @('percentile', 'B15'), @('median', 'B16'), @('median_n', 'B17'))) {
+                                @('rank', 'B14'), @('percentile', 'B15'), @('median', 'B16'), @('median_n', 'B17'),
+                                @('check', 'B19'))) {
                 $row[$pair[0]] = $peer.Range($pair[1]).Value2
             }
             $result.peer_cases += $row

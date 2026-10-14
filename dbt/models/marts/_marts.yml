@@ -2106,6 +2106,119 @@ models:
     description: Percentile within ranking group and financial year, 100 = best; same conditions as the rank.
   - name: dqs_reason_codes
     description: 'Up to three reasons for lost points, largest first, separated by a pipe: missing_required_metrics, low_voluntary_disclosure, waste_balance_gap, waste_recovery_over_100, implausible_zero, unit_inconsistency, suspected_scale_error, material_restatement, unexplained_yoy_anomaly, assurance_core_only, assessment_not_assurance, limited_assurance, no_assurance.'
+- name: rpt_public_concentration
+  description: 'PUBLIC model (docs/publication_policy.md): concentration of Scope 1+2 emissions, one row
+    per company and financial year with emissions. Rank by emissions, share of the emissions of all companies
+    covered that year, cumulative share and top-5 / top-10 flags (the Pareto table of Week 10 Q2). Shares
+    and ranks only: no tonnes, no total.'
+  tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - isin
+        - fiscal_year_label
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - fiscal_year_label
+        - emitter_rank
+  columns:
+  - name: isin
+    description: ISIN of the company (key of dim_company).
+    tests: [not_null]
+  - name: symbol
+    description: NSE symbol in the filing.
+  - name: display_name
+    description: Short company name for charts.
+  - name: fiscal_year_label
+    description: Financial year, e.g. FY2025-26.
+    tests: [not_null]
+  - name: sector_group
+    description: Financials, Asset-light or Asset-heavy.
+  - name: peer_group
+    description: Peer group (seed peer_groups).
+  - name: ranking_group
+    description: Group the company is ranked in.
+  - name: emitter_rank
+    description: Rank by Scope 1+2 emissions within the year, 1 = largest emitter (ties broken by ISIN).
+    tests: [not_null]
+  - name: n_companies_in_year
+    description: Companies with Scope 1+2 emissions that year (the base of the shares).
+  - name: share_of_total_pct
+    description: Share of the Scope 1+2 emissions of all companies covered that year, in % (0-100).
+    tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 100
+  - name: cumulative_share_pct
+    description: Share held by this company and every larger emitter together, in % (0-100).
+    tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 100.000001
+  - name: is_top_5
+    description: true for the five largest emitters of the year.
+  - name: is_top_10
+    description: true for the ten largest emitters of the year.
+- name: rpt_public_company_percentile
+  description: 'PUBLIC model (docs/publication_policy.md): position of each company in its ranking group,
+    per KPI and financial year, from fct_company_kpi_percentile (rows with a value only). Percentile (100
+    = best), rank (1 = best), companies in the group, ranked or not and why. The KPI value itself only for
+    KPIs that kpi_catalogue marks public_safe (values we compute); filed values stay empty.'
+  tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - isin
+        - fiscal_year_label
+        - kpi_name
+  columns:
+  - name: isin
+    description: ISIN of the company (key of dim_company).
+    tests: [not_null]
+  - name: display_name
+    description: Short company name for charts.
+  - name: fiscal_year_label
+    description: Financial year, e.g. FY2025-26.
+    tests: [not_null]
+  - name: kpi_name
+    description: KPI column of fct_company_year (kpi_catalogue.kpi_name).
+    tests: [not_null]
+  - name: kpi_label
+    description: Plain label of the KPI (kpi_catalogue).
+  - name: kpi_unit
+    description: Unit of the KPI (kpi_catalogue).
+  - name: direction
+    description: lower_better or higher_better (what "best" means for the rank).
+  - name: peer_group
+    description: Peer group (seed peer_groups).
+  - name: sector_group
+    description: Financials, Asset-light or Asset-heavy.
+  - name: ranking_group
+    description: Group the company is ranked in (its peer group, or its sector group when the peer group is small).
+  - name: percentile_in_group
+    description: 0-100, 100 = best in the ranking group and year; empty when not ranked.
+  - name: rank_in_group
+    description: 1 = best in the ranking group and year; ties share the better rank; empty when not ranked.
+  - name: n_in_group
+    description: Companies of the ranking group with a rankable value of the KPI that year.
+  - name: is_ranked
+    description: true when a percentile is given (5 or more companies with a value, KPI material for the group).
+    tests: [not_null]
+  - name: reason_not_ranked
+    description: 'Why there is no percentile: not_material, group_n_lt_5, flagged_value, no_direction or
+      no_group. Empty when ranked.'
+    tests:
+    - accepted_values:
+        arguments:
+          values: [not_material, group_n_lt_5, flagged_value, no_direction, no_group, no_value]
+  - name: kpi_value_public
+    description: The KPI value, only when kpi_catalogue marks the KPI public_safe (a value we compute); empty for filed values.
+
 unit_tests:
 - name: test_dqs_perfect_company
   description: Everything filed, every check passed, whole report assured = 100, grade A, no reason code.

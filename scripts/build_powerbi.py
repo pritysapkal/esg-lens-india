@@ -650,6 +650,142 @@ def public_measures(group_columns: list[str]) -> list[Measure]:
             "Provisional = the latest year: no later report has confirmed the figures yet.",
         )
     )
+    # --- concentration (shares and ranks of rpt_public_concentration; never tonnes)
+    cc = "rpt_public_concentration"
+    concentration = FOLDERS["concentration"].replace(" (local only)", " (shares)")
+    for name, column, fmt, text in (
+        (
+            "Emitter rank",
+            "emitter_rank",
+            "0",
+            "1 = largest Scope 1+2 emitter of the year among all companies covered.",
+        ),
+        (
+            "Share of total emissions (%)",
+            "share_of_total_pct",
+            "0.0",
+            "The company's share of the Scope 1+2 emissions of all companies covered that year, in %. Use with dim_company[display_name] on the axis and one year selected.",
+        ),
+        (
+            "Cumulative share of emissions (%)",
+            "cumulative_share_pct",
+            "0.0",
+            "Share held by this company and every larger emitter together, in %: the Pareto line.",
+        ),
+    ):
+        m.append(Measure(name, f"SELECTEDVALUE ( {cc}[{column}] )", concentration, text, fmt))
+    for top in (5, 10):
+        m.append(
+            Measure(
+                f"Top-{top} share of emissions (%)",
+                "CALCULATE (\n"
+                f"    SELECTEDVALUE ( {cc}[cumulative_share_pct] ),\n"
+                f"    {cc}[emitter_rank] = {top},\n"
+                "    REMOVEFILTERS ( dim_company )\n"
+                ")",
+                concentration,
+                f"Share of the year's Scope 1+2 emissions held by the {top} largest emitters, in %. "
+                "Select one year; company and group slicers are ignored on purpose (the share is of "
+                "all companies covered).",
+                "0.0",
+            )
+        )
+    m.append(
+        Measure(
+            "Companies for 80% of emissions",
+            "VAR below_80 =\n"
+            "    CALCULATE (\n"
+            f"        COUNTROWS ( {cc} ),\n"
+            f"        {cc}[cumulative_share_pct] < 80,\n"
+            "        REMOVEFILTERS ( dim_company )\n"
+            "    )\n"
+            "RETURN\n"
+            "    IF ( HASONEVALUE ( dim_fiscal_year[fiscal_year_label] ), below_80 + 1 )",
+            concentration,
+            "How many of the largest emitters it takes to reach 80% of the year's Scope 1+2 "
+            "emissions. Select one year.",
+            "0",
+        )
+    )
+    # --- positions in the ranking group (rpt_public_company_percentile)
+    pc = "rpt_public_company_percentile"
+    for name, column, fmt, text in (
+        (
+            "Company: peer percentile",
+            "percentile_in_group",
+            "0.0",
+            "Percentile in the ranking group for the KPI on the row (100 = best). Put kpi_label on the rows of a table and select one company and year.",
+        ),
+        (
+            "Company: rank in group",
+            "rank_in_group",
+            "0",
+            "Rank in the ranking group for the KPI on the row (1 = best).",
+        ),
+        (
+            "Company: companies in group",
+            "n_in_group",
+            "0",
+            "Companies of the ranking group with a value of the KPI: the base of the rank. Below 5 there is no rank.",
+        ),
+        (
+            "Company: KPI value (public KPIs)",
+            "kpi_value_public",
+            "#,##0.00",
+            "The company's value of the KPI on the row, only for KPIs we compute (empty for filed values).",
+        ),
+    ):
+        m.append(Measure(name, f"SELECTEDVALUE ( {pc}[{column}] )", FOLDERS["company"], text, fmt))
+    m.append(
+        Measure(
+            "Company: ranking status",
+            f"VAR ranked = SELECTEDVALUE ( {pc}[is_ranked] )\n"
+            f"VAR reason = SELECTEDVALUE ( {pc}[reason_not_ranked] )\n"
+            "RETURN\n"
+            "    SWITCH (\n"
+            "        TRUE (),\n"
+            '        ranked = TRUE (), "ranked",\n'
+            '        reason = "not_material", "not ranked for this group (not material)",\n'
+            '        reason = "group_n_lt_5", "not ranked: fewer than 5 companies (n<5)",\n'
+            '        reason = "flagged_value", "not ranked: value flagged",\n'
+            '        reason = "no_direction", "not ranked: no better or worse direction",\n'
+            "        BLANK ()\n"
+            "    )",
+            FOLDERS["company"],
+            "Why the KPI on the row has a rank or not. A KPI that is not material for the ranking "
+            "group is not ranked, although its group median is still shown as a description.",
+        )
+    )
+    # --- item: "not ranked for this group" next to a ranking group's median
+    for label, kpi in (
+        ("GHG intensity", "ghg_intensity_tco2e_per_cr"),
+        ("energy intensity", "energy_intensity_gj_per_cr"),
+        ("water intensity", "water_intensity_kl_per_cr"),
+        ("waste intensity", "waste_intensity_t_per_cr"),
+    ):
+        m.append(
+            Measure(
+                f"Ranking note: {label}",
+                f"VAR group_type = SELECTEDVALUE ( {g}[group_type] )\n"
+                f"VAR ranking_group = SELECTEDVALUE ( {g}[group_value] )\n"
+                f"VAR fiscal_year = SELECTEDVALUE ( {g}[fiscal_year_label] )\n"
+                "VAR not_material =\n"
+                "    CALCULATE (\n"
+                f"        COUNTROWS ( {pc} ),\n"
+                f"        REMOVEFILTERS ( {pc} ),\n"
+                f"        {pc}[ranking_group] = ranking_group,\n"
+                f"        {pc}[fiscal_year_label] = fiscal_year,\n"
+                f'        {pc}[kpi_name] = "{kpi}",\n'
+                f'        {pc}[reason_not_ranked] = "not_material"\n'
+                "    )\n"
+                "RETURN\n"
+                '    IF ( group_type = "ranking_group" && not_material > 0, "not ranked for this group (not material)" )',
+                FOLDERS["intensity"],
+                f"Label for a ranking group's {label} median: companies are not ranked on it in "
+                "this group because the KPI is not material there (for example GHG intensity for "
+                "Financials). The median is still shown, as a description of the group.",
+            )
+        )
     for name, column in (
         ("Peer median: GHG intensity", "ghg_intensity_median"),
         ("Peer median: DQS", "dqs_median"),
@@ -788,7 +924,9 @@ def public_model(con: duckdb.DuckDBPyConnection) -> Model:
             "Financial years of the public tables, sorted by start year.",
         )
     )  # fmt: skip
-    group_columns = [c.name for c in tables[2].columns]
+    group_columns = [
+        c.name for c in next(t for t in tables if t.name == "rpt_public_group_metrics").columns
+    ]
     tables.append(_measures_table(public_measures(group_columns)))
     relationships = [
         ("rpt_public_company_year.isin", "dim_company.isin"),
@@ -796,6 +934,10 @@ def public_model(con: duckdb.DuckDBPyConnection) -> Model:
         ("rpt_public_disclosure_quality.isin", "dim_company.isin"),
         ("rpt_public_disclosure_quality.fiscal_year_label", "dim_fiscal_year.fiscal_year_label"),
         ("rpt_public_group_metrics.fiscal_year_label", "dim_fiscal_year.fiscal_year_label"),
+        ("rpt_public_concentration.isin", "dim_company.isin"),
+        ("rpt_public_concentration.fiscal_year_label", "dim_fiscal_year.fiscal_year_label"),
+        ("rpt_public_company_percentile.isin", "dim_company.isin"),
+        ("rpt_public_company_percentile.fiscal_year_label", "dim_fiscal_year.fiscal_year_label"),
     ]
     return Model("public", tables, relationships)
 

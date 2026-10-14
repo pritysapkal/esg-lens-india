@@ -64,6 +64,29 @@ def build_table(seed: Path = SEED) -> str:
             cell(r["definition_plain"]),
         ]
         lines.append("| " + " | ".join(cells) + " |")
+    with seed.open(encoding="utf-8", newline="") as fh:
+        positions = [row for row in csv.DictReader(fh) if row["metric_type"] == "public_position"]
+    if positions:
+        lines += [
+            "",
+            "Positions of one company in the public models `rpt_public_concentration` and "
+            "`rpt_public_company_percentile` (ranks, shares and percentiles; never the filed "
+            "value behind them):",
+            "",
+            "| Column | Public model | Label | How it is computed | Unit "
+            "| Plain-English definition |",
+            "|---|---|---|---|---|---|",
+        ]
+        for r in positions:
+            cells = [
+                f"`{r['kpi_name']}`",
+                f"`{r['source_model']}`",
+                cell(r["label"]),
+                cell(r["formula_text"]),
+                cell(r["unit"]),
+                cell(r["definition_plain"]),
+            ]
+            lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines)
 
 

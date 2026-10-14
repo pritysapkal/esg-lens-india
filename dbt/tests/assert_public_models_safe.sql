@@ -14,6 +14,11 @@
 --     the hidden sums of filed values, ..._num / ..._den), or a public group metric is missing;
 --  5. a group statistic (ratio, median, average, share) is shown although fewer than 5 companies
 --     stand behind it (its companies_metric of the catalogue).
+-- For rpt_public_concentration and rpt_public_company_percentile (positions of one company):
+--  6. a numeric column is not a public_safe public_position row of the catalogue for that
+--     model, or such a row is missing from the model;
+--  7. rpt_public_company_percentile shows kpi_value_public for a KPI that is not public_safe
+--     (a filed value).
 
 -- The column lists are read from information_schema, so tell dbt what must be built first:
 -- depends_on: {{ ref('fct_company_year') }}
@@ -22,6 +27,8 @@
 -- depends_on: {{ ref('rpt_public_disclosure_quality') }}
 -- depends_on: {{ ref('rpt_public_restatement_summary') }}
 -- depends_on: {{ ref('rpt_public_group_metrics') }}
+-- depends_on: {{ ref('rpt_public_concentration') }}
+-- depends_on: {{ ref('rpt_public_company_percentile') }}
 
 with model_pairs as (
     select
@@ -43,7 +50,8 @@ public_columns as (
     where
         table_name in (
             'rpt_public_company_year', 'rpt_public_disclosure_quality',
-            'rpt_public_restatement_summary', 'rpt_public_group_metrics'
+            'rpt_public_restatement_summary', 'rpt_public_group_metrics',
+            'rpt_public_concentration', 'rpt_public_company_percentile'
         )
 ),
 
@@ -75,7 +83,26 @@ group_catalogue as (
         metric_type,
         companies_metric
     from {{ ref('kpi_catalogue') }}
-    where metric_type != 'company_value'
+    where metric_type not in ('company_value', 'public_position')
+),
+
+position_catalogue as (
+    select
+        kpi_name,
+        public_safe,
+        source_model
+    from {{ ref('kpi_catalogue') }}
+    where metric_type = 'public_position'
+),
+
+position_columns as (
+    select
+        table_name,
+        column_name
+    from public_columns
+    where
+        table_name in ('rpt_public_concentration', 'rpt_public_company_percentile')
+        and is_numeric
 ),
 
 group_columns as (
@@ -205,3 +232,39 @@ left join group_cells as companies
 where
     group_catalogue.metric_type in ('ratio_of_sums', 'median', 'average', 'share')
     and coalesce(companies.metric_value, 0) < 5
+
+union all
+
+select
+    'not a public_safe public_position of the catalogue: ' || position_columns.table_name || '.'
+    || position_columns.column_name as problem
+from position_columns
+left join position_catalogue
+    on
+        position_columns.column_name = position_catalogue.kpi_name
+        and position_columns.table_name = position_catalogue.source_model
+where not coalesce(position_catalogue.public_safe, false)
+
+union all
+
+select
+    'public_position missing from ' || position_catalogue.source_model || ': '
+    || position_catalogue.kpi_name as problem
+from position_catalogue
+left join position_columns
+    on
+        position_catalogue.kpi_name = position_columns.column_name
+        and position_catalogue.source_model = position_columns.table_name
+where position_catalogue.public_safe and position_columns.column_name is null
+
+union all
+
+select distinct
+    'filed value shown in rpt_public_company_percentile: '
+    || percentile.kpi_name as problem
+from {{ ref('rpt_public_company_percentile') }} as percentile
+left join {{ ref('kpi_catalogue') }} as catalogue
+    on
+        percentile.kpi_name = catalogue.kpi_name
+        and catalogue.metric_type = 'company_value'
+where percentile.kpi_value_public is not null and not coalesce(catalogue.public_safe, false)

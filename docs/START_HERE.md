@@ -61,7 +61,9 @@ MetricFlow): the group metrics, defined once.
 | `dim_company_year` | a company in a financial year: period, boundary, size, breaks | "Is this year comparable with the last one, or was there a merger?" |
 
 For anything published use `rpt_public_company_year`, `rpt_public_disclosure_quality`,
-`rpt_public_group_metrics` and `rpt_public_restatement_summary` (derived values only).
+`rpt_public_group_metrics`, `rpt_public_restatement_summary`, `rpt_public_concentration`
+(rank and share of emissions) and `rpt_public_company_percentile` (position in the ranking
+group) - derived values only.
 
 For a figure about a **group** (a sector, a peer group, a year) do not write your own SQL. On
 the laptop, ask the semantic layer for the metric by name, for example `mf query --metrics
