@@ -102,12 +102,15 @@ def test_every_page_runs_and_opens_only_public_files(monkeypatch):
 def test_ai_page_says_disabled_without_a_key(monkeypatch):
     from streamlit.testing.v1 import AppTest
 
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    # a key alone is not enough: the analyst stays off until ESG_AI_ENABLED=true as well
+    monkeypatch.delenv("ESG_AI_ENABLED", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
     app = AppTest.from_file(str(APP / "streamlit_app.py"), default_timeout=60)
     app.run()
     app.switch_page("views/ai_analyst.py").run()
     assert not app.exception
-    assert any("disabled" in info.value for info in app.info)
+    assert any("switched off" in info.value and "ESG_AI_ENABLED" in info.value for info in app.info)
+    assert not app.chat_input  # no way to ask while it is off
 
 
 # ------------------------------------------------------------------ labels
@@ -210,3 +213,23 @@ def test_public_yoy_model_equals_the_week_10_result():
         left, right = merged[f"{column}_q3"], merged[f"{column}_model"]
         assert ((left == right) | (left.isna() & right.isna())).all(), column
     assert pd.api.types.is_bool_dtype(model["is_ranked"])
+
+
+@needs_public
+def test_ai_page_stops_after_the_session_limit(monkeypatch):
+    """With the analyst switched on and 10 questions already asked, the page offers no input (so
+    no request can be sent) and says why. No API call is made in this test."""
+    from streamlit.testing.v1 import AppTest
+
+    from app.ai_analyst import agent
+
+    monkeypatch.setenv("ESG_AI_ENABLED", "true")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    app = AppTest.from_file(str(APP / "streamlit_app.py"), default_timeout=60)
+    app.run()
+    asked = [("q", agent.Answer(text="a"))] * agent.LIMITS.questions_per_session
+    app.session_state["analyst_history"] = asked
+    app.switch_page("views/ai_analyst.py").run()
+    assert not app.exception
+    assert any("used its 10 questions" in info.value for info in app.info)
+    assert not app.chat_input

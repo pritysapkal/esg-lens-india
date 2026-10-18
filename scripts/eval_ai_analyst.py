@@ -38,6 +38,7 @@ CAUSAL = re.compile(
     r"\b(causes|caused|causing|leads? to|led to|because of|drives|driven by|results? in)\b", re.I
 )
 PRICES = {  # USD per million input / output tokens
+    "claude-haiku-4-5": (1.0, 5.0),  # the default model of the analyst
     "claude-opus-5-5": (4.0, 20.0),
     "claude-sonnet-5-5": (2.0, 10.0),
     "claude-haiku-5-5": (0.10, 0.50),
@@ -154,9 +155,10 @@ def write_report(rows: list[dict] | None, offline: dict[str, list[str]], model: 
     lines += ["", "## Live evaluation", ""]
     if rows is None:
         lines += [
-            "**Not run - no `ANTHROPIC_API_KEY` was set** when this report was written. Run "
-            "`.\\scripts\\dev.ps1 eval` with a key to score the model; this section is then replaced "
-            "with the results.",
+            f"**Not run - the AI analyst was switched off ({agent.disabled_reason()})** when this "
+            "report was written. Set `ESG_AI_ENABLED=true` and `ANTHROPIC_API_KEY`, then run "
+            f"`.\\scripts\\dev.ps1 eval` to score `{agent.model_name()}` (about 20 US cents); this "
+            "section is then replaced with the results.",
         ]
     else:
         passed = sum(r["passed"] for r in rows)
@@ -216,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"{q['id']:<40} {'PASS' if result['passed'] else 'FAIL'}  tools={result['called']}"
             )
     elif not args.offline:
-        print("no ANTHROPIC_API_KEY: live evaluation not run")
+        print(f"AI analyst switched off ({agent.disabled_reason()}): live evaluation not run")
     if not args.no_report:
         write_report(rows, offline, agent.model_name())
         print(f"written {REPORT.relative_to(ROOT)}")

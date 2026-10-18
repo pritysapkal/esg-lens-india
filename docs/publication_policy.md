@@ -22,6 +22,9 @@ Values that are the result of our own work on the filings:
 - a company's rank by Scope 1+2 emissions and its share of the emissions of all companies
   covered that year (and the cumulative share): shares and ranks only, never the tonnes or the
   total (decision of 2026-10-14, `rpt_public_concentration`);
+- a company's year-on-year change of the GHG intensity we compute, with its confidence label
+  and, for confirmed changes, its rank (`rpt_public_ghg_yoy`: our intensities and changes only,
+  no filed emissions or turnover);
 - group figures (whole-group ratios, medians, averages, shares and counts) from
   `rpt_public_group_metrics`; a statistic is shown only for 5 companies or more;
 - the label of the denominator a company used for its filed intensity (`*_filed_basis`);
@@ -61,6 +64,7 @@ Values that are the result of our own work on the filings:
 | `rpt_public_restatement_summary` | Restatement classes, counts and percentages. No original or restated value. |
 | `rpt_public_concentration` | Per company and year: rank by Scope 1+2 emissions, share of the emissions of all companies covered, cumulative share, top-5 / top-10 flags. No tonnes and no total, so no filed value can be rebuilt. |
 | `rpt_public_company_percentile` | Per company, KPI and year: percentile, rank, companies in the group, ranked or not and why. The KPI value only for KPIs the catalogue marks `public_safe` (values we compute); empty for filed values - `assert_public_models_safe` fails the build otherwise. |
+| `rpt_public_ghg_yoy` | Per company and pair of consecutive years: the GHG intensity we compute in both years, the change in %, a confidence label (confirmed, provisional, inferred unit, restated later, one-year reversal) and ranks for confirmed changes only. Numeric columns are `public_position` rows of `kpi_catalogue.csv`; `assert_public_models_safe` fails the build on any other numeric column and on raw-quantity names. |
 | `fct_peer_benchmark`, `fct_company_kpi_percentile` | Public: medians, quartiles, counts, percentiles. Not public: `min_value` / `max_value` and the percentile table's `value` column (marked `public_safe: false`). |
 | `rpt_public_group_metrics` | Group figures by group type (all, sector group, peer group, ranking group, size band, ownership type), group and year, generated from the same definitions as the semantic layer and compared with it cell by cell in a test. A statistic (ratio, median, average, share) is empty when fewer than 5 companies stand behind it (`suppressed_reason = fewer_than_5_companies`); counts are always shown; restatement figures of a year with no later filing are empty, never 0 (`not_yet_observable`). No sum of filed values is a column. |
 | Semantic layer (`dbt/models/semantic`, MetricFlow) | **The local analyst interface. Public consumers (Streamlit, AI analyst, public Power BI) never query it**: it returns every row and its views `sem_*` hold raw values. Each metric carries `meta.public_safe` from `kpi_catalogue.csv`; sums of filed values exist only as hidden building blocks of a ratio (`..._num`, `..._den`) and are never public ([semantic_layer.md](semantic_layer.md)). |
@@ -86,7 +90,7 @@ Values that are the result of our own work on the filings:
 - The **public showcase** uses screenshots or a demo video of those dashboards **plus derived
   numbers** from the public models (`rpt_public_company_year`, `rpt_public_disclosure_quality`,
   `rpt_public_group_metrics`, `rpt_public_restatement_summary`, `rpt_public_concentration`,
-  `rpt_public_company_percentile`). Before publishing a screenshot, check that it shows no raw
+  `rpt_public_company_percentile`, `rpt_public_ghg_yoy`). Before publishing a screenshot, check that it shows no raw
   filed quantity; crop or switch the visual to an intensity or percentile if it does.
 - Every published number carries its plain-text citation and the note that the Disclosure Quality
   Score is not an ESG rating and nothing here is investment advice.

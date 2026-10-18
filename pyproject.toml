@@ -35,6 +35,7 @@ select = [
 "tests/test_app.py" = ["E501"]
 "tests/test_ai_analyst.py" = ["E501"]
 "tests/test_orchestration.py" = ["E501"]
+"tests/test_repo_safety.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ingestion", "analysis"]

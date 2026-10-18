@@ -96,8 +96,8 @@ Weeks 1-13 and the hardening step are done (Week 12 visuals pending); details an
 | What | Command | Needs |
 |---|---|---|
 | Public report card (Streamlit) | `.\scripts\dev.ps1 app` -> http://localhost:8501 | only `exports/public` (committed) |
-| AI analyst in the report card | set `ANTHROPIC_API_KEY`, then `.\scripts\dev.ps1 app` | an Anthropic API key; optional `ESG_AI_MODEL` |
-| AI analyst evaluation | `.\scripts\dev.ps1 eval` | a key for the live part |
+| AI analyst in the report card (local only) | `$env:ESG_AI_ENABLED = 'true'` and `$env:ANTHROPIC_API_KEY = '...'`, then `.\scripts\dev.ps1 app` | an Anthropic API key; default model `claude-haiku-4-5` (about 1 US cent per question), optional `ESG_AI_MODEL`; at most 10 questions per session and 4 tool calls per question ([guardrails](docs/ai_analyst.md)) |
+| AI analyst evaluation | `.\scripts\dev.ps1 eval` | both settings above for the live part (about 20 US cents); without them only the question set is checked |
 | Whole pipeline in Airflow | `.\scripts\dev.ps1 airflow` -> http://localhost:8080, trigger `esg_lens_pipeline` | Docker Desktop |
 | Pipeline once, network off | `.\scripts\dev.ps1 airflow-test` | Docker Desktop |
 | Warehouse, by hand | `.\scripts\dev.ps1 dbt-build`, then `analysis`, `stats`, `bi-export` | the filings in `data/raw` |

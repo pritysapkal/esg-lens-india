@@ -12,4 +12,4 @@ No problems.
 
 ## Live evaluation
 
-**Not run - no `ANTHROPIC_API_KEY` was set** when this report was written. Run `.\scripts\dev.ps1 eval` with a key to score the model; this section is then replaced with the results.
+**Not run - the AI analyst was switched off (ESG_AI_ENABLED is not set to true)** when this report was written. Set `ESG_AI_ENABLED=true` and `ANTHROPIC_API_KEY`, then run `.\scripts\dev.ps1 eval` to score `claude-haiku-4-5` (about 20 US cents); this section is then replaced with the results.
