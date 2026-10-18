@@ -36,6 +36,9 @@ edr_target/
 exports/local/
 exports/public/*
 !exports/public/.gitkeep
+# the public Parquet files ARE committed (derived values only; the Streamlit app on Community
+# Cloud reads them - docs/publication_policy.md). The workbooks stay out.
+!exports/public/rpt_public_*.parquet
 
 # Power BI project caches and personal settings (PBIP)
 powerbi/**/.pbi/localSettings.json

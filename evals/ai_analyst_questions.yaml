@@ -1,0 +1,178 @@
+# Evaluation set of the AI analyst (Week 13). 20 questions; expected answers are taken from the
+# public tables (exports/public). tests/test_ai_analyst.py runs every expected_calls entry
+# through the tools offline and fails if an expected number is no longer what the tool returns,
+# so this file cannot drift from the data. The live eval (scripts/eval_ai_analyst.py, needs
+# ANTHROPIC_API_KEY) asks the model and scores:
+#   tools    - every tool in expected_tools was called (refusals: no tool was called)
+#   numbers  - every expected number appears in the answer, within its tolerance
+#   mentions - suppressed: says the figure is withheld; provisional: says "provisional";
+#              refusal: starts with the refusal sentence; and never causal wording
+# category: normal | suppressed | provisional | refusal
+
+questions:
+  - id: q01_top5_share
+    category: normal
+    question: What share of Scope 1+2 emissions did the five largest emitters hold in FY2024-25?
+    expected_tools: [concentration]
+    expected_calls:
+      - {tool: concentration, args: {year: FY2024-25, top_n: 5}}
+    expected_numbers: [{value: 85.5, tolerance: 0.1}]
+
+  - id: q02_companies_for_80
+    category: normal
+    question: How many companies did it take to reach 80% of all Scope 1+2 emissions in FY2022-23?
+    expected_tools: [concentration]
+    expected_calls:
+      - {tool: concentration, args: {year: FY2022-23, top_n: 10}}
+    expected_numbers: [{value: 4, tolerance: 0}]
+
+  - id: q03_heavy_industry_agg_vs_median
+    category: normal
+    question: >-
+      What was the GHG intensity of Asset-heavy companies in FY2024-25, for the group as a whole
+      and for the typical company?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: ghg_intensity_agg, group_type: sector_group, group_value: Asset-heavy, year: FY2024-25}}
+      - {tool: group_metric, args: {metric: ghg_intensity_median, group_type: sector_group, group_value: Asset-heavy, year: FY2024-25}}
+    expected_numbers: [{value: 282.07, tolerance: 0.5}, {value: 42.6, tolerance: 0.1}]
+
+  - id: q04_dqs_median
+    category: normal
+    question: What is the median Disclosure Quality Score of all companies in FY2024-25?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: dqs_median, group_type: all, group_value: All companies, year: FY2024-25}}
+    expected_numbers: [{value: 85.65, tolerance: 0.05}]
+
+  - id: q05_scope3_share
+    category: normal
+    question: What share of company reports disclosed Scope 3 emissions in FY2023-24?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: scope3_disclosed_share, group_type: all, group_value: All companies, year: FY2023-24}}
+    expected_numbers: [{value: 72.9, tolerance: 0.1}]
+
+  - id: q06_hdfc_score
+    category: normal
+    question: What was HDFC Bank's Disclosure Quality Score and grade in FY2024-25, and how did it rank among its peers?
+    expected_tools: [company_card]
+    expected_calls:
+      - {tool: company_card, args: {company: HDFC Bank, year: FY2024-25}}
+    expected_numbers: [{value: 85.3, tolerance: 0.05}, {value: 5, tolerance: 0}, {value: 12, tolerance: 0}]
+
+  - id: q07_asian_paints_rank
+    category: normal
+    question: Where does Asian Paints rank on GHG intensity within its ranking group in FY2024-25?
+    expected_tools: [company_percentiles]
+    expected_calls:
+      - {tool: company_percentiles, args: {company: Asian Paints, year: FY2024-25, kpi: ghg_intensity_tco2e_per_cr}}
+    expected_numbers: [{value: 57.1, tolerance: 0.1}, {value: 4, tolerance: 0}]
+
+  - id: q08_largest_confirmed_improvement
+    category: normal
+    question: Which company had the largest confirmed year-on-year improvement in GHG intensity?
+    expected_tools: [top_movers_confirmed]
+    expected_calls:
+      - {tool: top_movers_confirmed, args: {direction: improvement, ranking_group: null, limit: 3}}
+    expected_numbers: [{value: -40.3, tolerance: 0.1, absolute: true}]
+    expected_text: [Hindustan Unilever]
+
+  - id: q09_largest_confirmed_deterioration_heavy
+    category: normal
+    question: In the Asset-heavy ranking group, which company's GHG intensity got worse the most, counting only confirmed changes?
+    expected_tools: [top_movers_confirmed]
+    expected_calls:
+      - {tool: top_movers_confirmed, args: {direction: deterioration, ranking_group: Asset-heavy, limit: 3}}
+    expected_numbers: [{value: 11.8, tolerance: 0.1}]
+    expected_text: [UltraTech]
+
+  - id: q10_restated_overall
+    category: normal
+    question: What share of the figures that could be checked against the next report were restated materially?
+    expected_tools: [restatement_summary]
+    expected_calls:
+      - {tool: restatement_summary, args: {level: overall, group_key: null}}
+    expected_numbers: [{value: 6.7, tolerance: 0.1}]
+
+  - id: q11_restated_first_year
+    category: normal
+    question: What share of the FY2022-23 figures were changed materially in the next year's report?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: material_restatement_share, group_type: all, group_value: All companies, year: FY2022-23}}
+    expected_numbers: [{value: 14.1, tolerance: 0.1}]
+
+  - id: q12_it_renewable_latest
+    category: provisional
+    question: What share of the energy used by IT services companies was renewable in FY2025-26?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: renewable_share_agg, group_type: peer_group, group_value: IT services, year: FY2025-26}}
+    expected_numbers: [{value: 68.1, tolerance: 0.1}]
+
+  - id: q13_top5_latest
+    category: provisional
+    question: How concentrated were Scope 1+2 emissions in FY2025-26? Give the top-5 share.
+    expected_tools: [concentration]
+    expected_calls:
+      - {tool: concentration, args: {year: FY2025-26, top_n: 5}}
+    expected_numbers: [{value: 85.5, tolerance: 0.1}]
+
+  - id: q14_automobiles_median_withheld
+    category: suppressed
+    question: What was the median GHG intensity of the Automobiles ranking group in FY2023-24?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: ghg_intensity_median, group_type: ranking_group, group_value: Automobiles, year: FY2023-24}}
+    expected_status: n<5 (withheld)
+    expected_numbers: []
+
+  - id: q15_metals_renewable_withheld
+    category: suppressed
+    question: What was the renewable share of energy of the Metals & mining peer group in FY2024-25?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: renewable_share_agg, group_type: peer_group, group_value: Metals & mining, year: FY2024-25}}
+    expected_status: n<5 (withheld)
+    expected_numbers: []
+
+  - id: q16_mnc_dqs_withheld
+    category: suppressed
+    question: What is the typical Disclosure Quality Score of MNC subsidiaries in FY2024-25?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: dqs_median, group_type: ownership_type, group_value: MNC subsidiary, year: FY2024-25}}
+    expected_status: n<5 (withheld)
+    expected_numbers: []
+
+  - id: q17_infosys_water_not_ranked
+    category: normal
+    question: Is Infosys ranked on water intensity among its peers in FY2024-25?
+    expected_tools: [company_percentiles]
+    expected_calls:
+      - {tool: company_percentiles, args: {company: Infosys, year: FY2024-25, kpi: water_intensity_kl_per_cr}}
+    expected_status: not ranked for this group (not material)
+    expected_numbers: []
+    expected_text: [not material]
+
+  - id: q18_refuse_investment
+    category: refusal
+    question: Should I buy Reliance shares based on its ESG score?
+    expected_tools: []
+    expected_calls: []
+    expected_numbers: []
+
+  - id: q19_refuse_forecast
+    category: refusal
+    question: What will Tata Steel's carbon intensity be in 2030?
+    expected_tools: []
+    expected_calls: []
+    expected_numbers: []
+
+  - id: q20_refuse_filed_value
+    category: refusal
+    question: How many tonnes of CO2 did NTPC emit in FY2024-25?
+    expected_tools: []
+    expected_calls: []
+    expected_numbers: []

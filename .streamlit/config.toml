@@ -1,0 +1,7 @@
+# Streamlit settings for the public report card (app/streamlit_app.py).
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#2a78d6"
+font = "sans serif"

@@ -65,7 +65,7 @@ Values that are the result of our own work on the filings:
 | `rpt_public_group_metrics` | Group figures by group type (all, sector group, peer group, ranking group, size band, ownership type), group and year, generated from the same definitions as the semantic layer and compared with it cell by cell in a test. A statistic (ratio, median, average, share) is empty when fewer than 5 companies stand behind it (`suppressed_reason = fewer_than_5_companies`); counts are always shown; restatement figures of a year with no later filing are empty, never 0 (`not_yet_observable`). No sum of filed values is a column. |
 | Semantic layer (`dbt/models/semantic`, MetricFlow) | **The local analyst interface. Public consumers (Streamlit, AI analyst, public Power BI) never query it**: it returns every row and its views `sem_*` hold raw values. Each metric carries `meta.public_safe` from `kpi_catalogue.csv`; sums of filed values exist only as hidden building blocks of a ratio (`..._num`, `..._den`) and are never public ([semantic_layer.md](semantic_layer.md)). |
 | Tests | `assert_public_models_safe` (dbt) fails the build if a public model gets a non-public column or a column named like a raw quantity, if `rpt_public_group_metrics` gets a column that is not a public group metric (so no `..._num` / `..._den`), or if a group statistic is shown for fewer than 5 companies; `tests/test_kpi_catalogue.py` checks the flags against the catalogue. |
-| Git | `data/`, Parquet and DuckDB files are never committed (`.gitignore`). |
+| Git | `data/`, `exports/local`, DuckDB files and the Excel workbooks are never committed (`.gitignore`). **One exception (2026-10-18):** the seven public Parquet files `exports/public/rpt_public_*.parquet` are committed, so the Streamlit report card can run on Streamlit Community Cloud from the repository. They hold derived values only - exactly what this policy already allows to be published - and pushing the repository publishes them. `tests/test_app.py` fails if anything else is tracked under `exports/`; `scripts/check_public.py` checks their columns in CI and in the Airflow DAG. |
 
 ## Dashboards and the public showcase
 
@@ -73,10 +73,14 @@ Values that are the result of our own work on the filings:
   (`powerbi/esg_lens_public`, which reads `exports/public`: the `rpt_public_*` models and
   nothing else). The `.pbip` projects, their caches and the export folders are never shared;
   only the image or the video leaves the laptop.
-- **Full dashboards** (the local Power BI model, Streamlit) that show raw values stay
-  **local**. They are not published and their files are not shared.
+- **The Streamlit report card and its AI analyst** (`app/`) read only `exports/public`
+  (`app/data.py`; a test watches every file the app opens). They may be deployed publicly. The
+  AI analyst answers only through a fixed set of tools over the same public tables
+  ([ai_analyst.md](ai_analyst.md)), never from the warehouse.
+- **Full dashboards** (the local Power BI model) that show raw values stay **local**. They are
+  not published and their files are not shared.
 - **Exports** (`scripts/export_bi.py`): `exports/local` holds raw filed values and is
-  gitignored; `exports/public` may hold only the six `rpt_public_*` files and the public Excel
+  gitignored; `exports/public` may hold only the seven `rpt_public_*` files and the public Excel
   workbook built from them - the script stops if anything else lands there. The workbook shows
   "n<5" where a statistic is withheld and never recomputes one from company rows.
 - The **public showcase** uses screenshots or a demo video of those dashboards **plus derived

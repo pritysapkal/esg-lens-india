@@ -938,6 +938,7 @@ def public_model(con: duckdb.DuckDBPyConnection) -> Model:
         ("rpt_public_concentration.fiscal_year_label", "dim_fiscal_year.fiscal_year_label"),
         ("rpt_public_company_percentile.isin", "dim_company.isin"),
         ("rpt_public_company_percentile.fiscal_year_label", "dim_fiscal_year.fiscal_year_label"),
+        ("rpt_public_ghg_yoy.isin", "dim_company.isin"),
     ]
     return Model("public", tables, relationships)
 

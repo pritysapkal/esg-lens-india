@@ -76,6 +76,8 @@ models:
         +tags: [public]
       rpt_public_company_percentile:
         +tags: [benchmark, public]
+      rpt_public_ghg_yoy:
+        +tags: [public]
       fct_peer_benchmark:
         +tags: [benchmark]
       fct_company_kpi_percentile:

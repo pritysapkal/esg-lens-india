@@ -74,7 +74,8 @@ LOCAL_TABLES: dict[str, str] = {
 
 # The public folder: the rpt_public_* models and nothing else.
 PUBLIC_TABLES: dict[str, str] = {
-    name: f"select * from {name}"
+    # sorted, so the committed public files change only when the data does
+    name: f"select * from {name} order by all"
     for name in (
         "rpt_public_company_year",
         "rpt_public_disclosure_quality",
@@ -82,6 +83,7 @@ PUBLIC_TABLES: dict[str, str] = {
         "rpt_public_restatement_summary",
         "rpt_public_concentration",
         "rpt_public_company_percentile",
+        "rpt_public_ghg_yoy",
     )
 }
 PUBLIC_FILES = {f"{name}.parquet" for name in PUBLIC_TABLES} | {PUBLIC_WORKBOOK}

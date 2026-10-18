@@ -1,0 +1,7 @@
+# Streamlit Community Cloud installs this file (it sits next to app/streamlit_app.py) instead of
+# the full project requirements: the report card needs only these. Same pins as requirements.txt.
+streamlit==1.65.0
+pandas==3.0.6
+pyarrow==25.0.1
+plotly==7.1.0
+anthropic==1.15.0

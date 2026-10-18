@@ -2219,6 +2219,55 @@ models:
   - name: kpi_value_public
     description: The KPI value, only when kpi_catalogue marks the KPI public_safe (a value we compute); empty for filed values.
 
+- name: rpt_public_ghg_yoy
+  description: 'PUBLIC model (docs/publication_policy.md): year-on-year change of the GHG intensity we compute
+    (Scope 1+2 per Rs crore) for consecutive years of a company in a ranking group where GHG intensity is
+    material, with a confidence label. Only confirmed pairs in a group with 5 or more comparable companies
+    are ranked. The Week 10 Q3 result, built in dbt.'
+  tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - isin
+        - to_year
+  columns:
+  - name: isin
+    description: ISIN of the company (key of dim_company).
+    tests: [not_null]
+  - name: ranking_group
+    description: Group the company is ranked in.
+  - name: display_name
+    description: Short company name for charts.
+  - name: from_year
+    description: Earlier financial year of the pair.
+  - name: to_year
+    description: Later financial year of the pair (the next one).
+  - name: intensity_from
+    description: Computed GHG intensity in from_year, tCO2e per Rs crore (2 decimals).
+  - name: intensity_to
+    description: Computed GHG intensity in to_year, tCO2e per Rs crore (2 decimals).
+  - name: change_pct
+    description: Change from from_year to to_year in % (1 decimal).
+  - name: confidence
+    description: How far the pair can be trusted; only confirmed pairs are ranked.
+    tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values: [confirmed, provisional, inferred_unit, restated_later, one_year_reversal, not_confirmed]
+  - name: n_companies_compared
+    description: Pairs in the ranking group ending in the same year.
+  - name: is_ranked
+    description: true for a confirmed pair in a group with 5 or more comparable companies.
+    tests: [not_null]
+  - name: improvement_rank_in_group
+    description: 1 = largest confirmed improvement in the ranking group; empty when not ranked.
+  - name: deterioration_rank_in_group
+    description: 1 = largest confirmed deterioration in the ranking group; empty when not ranked.
+  - name: improvement_rank_overall
+    description: 1 = largest confirmed improvement of all ranked pairs.
+  - name: deterioration_rank_overall
+    description: 1 = largest confirmed deterioration of all ranked pairs.
 unit_tests:
 - name: test_dqs_perfect_company
   description: Everything filed, every check passed, whole report assured = 100, grade A, no reason code.

@@ -14,7 +14,8 @@
 --     the hidden sums of filed values, ..._num / ..._den), or a public group metric is missing;
 --  5. a group statistic (ratio, median, average, share) is shown although fewer than 5 companies
 --     stand behind it (its companies_metric of the catalogue).
--- For rpt_public_concentration and rpt_public_company_percentile (positions of one company):
+-- For rpt_public_concentration, rpt_public_company_percentile and rpt_public_ghg_yoy (positions
+-- and computed changes of one company):
 --  6. a numeric column is not a public_safe public_position row of the catalogue for that
 --     model, or such a row is missing from the model;
 --  7. rpt_public_company_percentile shows kpi_value_public for a KPI that is not public_safe
@@ -29,6 +30,7 @@
 -- depends_on: {{ ref('rpt_public_group_metrics') }}
 -- depends_on: {{ ref('rpt_public_concentration') }}
 -- depends_on: {{ ref('rpt_public_company_percentile') }}
+-- depends_on: {{ ref('rpt_public_ghg_yoy') }}
 
 with model_pairs as (
     select
@@ -51,7 +53,7 @@ public_columns as (
         table_name in (
             'rpt_public_company_year', 'rpt_public_disclosure_quality',
             'rpt_public_restatement_summary', 'rpt_public_group_metrics',
-            'rpt_public_concentration', 'rpt_public_company_percentile'
+            'rpt_public_concentration', 'rpt_public_company_percentile', 'rpt_public_ghg_yoy'
         )
 ),
 
@@ -101,7 +103,9 @@ position_columns as (
         column_name
     from public_columns
     where
-        table_name in ('rpt_public_concentration', 'rpt_public_company_percentile')
+        table_name in (
+            'rpt_public_concentration', 'rpt_public_company_percentile', 'rpt_public_ghg_yoy'
+        )
         and is_numeric
 ),
 

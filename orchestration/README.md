@@ -1,15 +1,18 @@
-# Orchestration (placeholder - week 13)
+# Orchestration (Week 13)
 
-Planned: **Apache Airflow 3** with **Astronomer Cosmos** (renders the dbt project as an Airflow
-task group, one task per model/test), run locally with the **Astro CLI**.
+Airflow 3.3.2 with Astronomer Cosmos 1.15, in Docker. One DAG, `esg_lens_pipeline`, triggered by
+hand only; it never downloads anything. Full description: [docs/orchestration.md](../docs/orchestration.md).
 
-Prerequisites (not installed yet):
+| File | What it is |
+|---|---|
+| `pipeline.py` | every task, its group, command and order - plain Python, no Airflow import |
+| `dags/esg_lens_pipeline.py` | the DAG, built from `pipeline.py` (Cosmos operators for dbt) |
+| `check_inbox.py` | first task: counts what a person saved into the inbox |
+| `Dockerfile`, `docker-compose.yml` | Airflow standalone + the project's own environment |
+| `prepare_work.sh` | copies the host's `data/raw` (read-only) into the container's work volume |
+| `run_dag_test.sh`, `dag_run_summary.py` | one full run with `airflow dags test` (used with `--network none`) |
 
-- Docker Desktop (WSL 2 backend) - required by the Astro CLI
-- Astro CLI - `winget install -e --id Astronomer.Astro`
-
-Planned DAG: a sensor watches `data/raw/xbrl_inbox/` (files are downloaded by hand, never by
-Airflow - see `docs/adr/0002-manual-intake-nse-terms.md`), then
-`discover -> intake -> todo -> parse_xbrl -> dbt (Cosmos: seed, run, test) -> elementary report`.
-
-Nothing in this folder runs yet.
+```powershell
+.\scripts\dev.ps1 airflow        # UI on http://localhost:8080
+.\scripts\dev.ps1 airflow-test   # tests + one full run, network switched off
+```

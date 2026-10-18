@@ -26,8 +26,9 @@
 | 10 | [analysis_findings.md](analysis_findings.md) | what the data says: twelve business questions, each with answer, insight and caveat |
 | 11 | [stats_findings.md](stats_findings.md) | five questions put to a formal test, with what was fixed beforehand in [stats_hypotheses.md](stats_hypotheses.md) |
 | 12 | [powerbi_build_guide.md](powerbi_build_guide.md), [powerbi_reconciliation.md](powerbi_reconciliation.md) | the Power BI and Excel engine: exports, the two models, the measures, how to build the pages, the numbers to check |
-| 13 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
-| 14 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
+| 13 | [streamlit_app.md](streamlit_app.md), [ai_analyst.md](ai_analyst.md), [orchestration.md](orchestration.md) | the public report card, the AI analyst and its guardrails, the Airflow pipeline |
+| 14 | [publication_policy.md](publication_policy.md) | what may be published and what may not (decision: [ADR 0004](adr/0004-publication-policy.md)) |
+| 15 | [how_to_add_filings.md](how_to_add_filings.md), [data_status.md](data_status.md) | adding a filing; what is loaded |
 
 ## The pipeline in six boxes
 
@@ -83,6 +84,7 @@ companies. Both come from one definition in `kpi_catalogue.csv`
 | Checks that must hold | `dbt/tests/` (data) and `tests/` (Python) |
 | The business questions and their SQL | `analysis/sql/q01_...sql` to `q12_...sql`; findings in [analysis_findings.md](analysis_findings.md) |
 | Power BI and Excel | `scripts/export_bi.py` (exports), `scripts/build_powerbi.py` (generates `powerbi/`), `scripts/build_excel.py`; checks `scripts/reconcile_bi.py`, `check_tmdl.ps1`, `check_excel.ps1` |
+| Report card, AI analyst, Airflow | `app/` (`data.py` is the only door to data, `views/` the pages, `ai_analyst/` the tools and loop), `evals/`, `orchestration/` (`pipeline.py` lists the tasks, `dags/` the DAG) |
 | The statistics studies | `analysis/stats/` (one module per study, `run.py`, `validate.py`); hypotheses in [stats_hypotheses.md](stats_hypotheses.md), findings in [stats_findings.md](stats_findings.md) |
 
 ## How to run (Windows, PowerShell)
@@ -95,6 +97,10 @@ companies. Both come from one definition in `kpi_catalogue.csv`
 .\scripts\dev.ps1 analysis    # run the 12 business questions; results in data/processed/analysis
 .\scripts\dev.ps1 stats       # run the 5 statistics studies; results in data/processed/stats
 .\scripts\dev.ps1 bi-export   # Parquet for Power BI (exports/local, exports/public) and the Excel workbook
+.\scripts\dev.ps1 app         # the public report card (Streamlit) on http://localhost:8501
+.\scripts\dev.ps1 eval        # AI analyst evaluation (live part needs ANTHROPIC_API_KEY)
+.\scripts\dev.ps1 airflow     # Airflow 3 with the pipeline DAG in Docker, http://localhost:8080
+.\scripts\dev.ps1 airflow-test  # the whole DAG once, in Docker, with the network switched off
 ```
 
 New filings: follow [how_to_add_filings.md](how_to_add_filings.md), then `intake`, `parse`,

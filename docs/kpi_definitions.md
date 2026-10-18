@@ -150,6 +150,14 @@ Positions of one company in the public models `rpt_public_concentration` and `rp
 | `rank_in_group` | `rpt_public_company_percentile` | Rank in the ranking group | rank within ranking group, year and KPI (1 = best; ties share the better rank) | rank | The company's place in its ranking group on this KPI: 1 is the best. Only where a percentile is given. |
 | `n_in_group` | `rpt_public_company_percentile` | Companies in the group with a value | count of companies of the ranking group with a rankable value of the KPI that year | companies | How many companies the rank and the percentile are built from. Below 5 there is no rank. |
 | `kpi_value_public` | `rpt_public_company_percentile` | KPI value (public KPIs only) | the KPI value when kpi_catalogue marks the KPI public_safe; empty otherwise | unit of the KPI (kpi_unit) | The company's own value of the KPI, shown only for values ESG Lens India computes (such as intensities). Filed values stay empty. |
+| `intensity_from` | `rpt_public_ghg_yoy` | GHG intensity in the earlier year | ghg_s12_tco2e / turnover_cr of the earlier year, computed by ESG Lens India | tCO2e per Rs crore | The company's Scope 1+2 emissions per Rs crore of turnover in the first year of the pair. |
+| `intensity_to` | `rpt_public_ghg_yoy` | GHG intensity in the later year | ghg_s12_tco2e / turnover_cr of the later year, computed by ESG Lens India | tCO2e per Rs crore | The company's Scope 1+2 emissions per Rs crore of turnover in the second year of the pair. |
+| `change_pct` | `rpt_public_ghg_yoy` | Year-on-year change of GHG intensity (%) | (intensity_to / intensity_from - 1) x 100 | % | How much the intensity moved from one year to the next. Only confirmed changes are ranked. |
+| `n_companies_compared` | `rpt_public_ghg_yoy` | Comparable companies in the group that year | count of pairs in the ranking group ending in the same year | companies | How many companies of the ranking group have a comparable pair ending that year. A ranking needs 5. |
+| `improvement_rank_in_group` | `rpt_public_ghg_yoy` | Improvement rank in the group | rank of change_pct ascending within the ranking group, confirmed pairs only | rank | 1 = the largest confirmed improvement in the ranking group. |
+| `deterioration_rank_in_group` | `rpt_public_ghg_yoy` | Deterioration rank in the group | rank of change_pct descending within the ranking group, confirmed pairs only | rank | 1 = the largest confirmed deterioration in the ranking group. |
+| `improvement_rank_overall` | `rpt_public_ghg_yoy` | Improvement rank overall | row number of change_pct ascending over all confirmed pairs | rank | 1 = the largest confirmed improvement of all ranked pairs. |
+| `deterioration_rank_overall` | `rpt_public_ghg_yoy` | Deterioration rank overall | row number of change_pct descending over all confirmed pairs | rank | 1 = the largest confirmed deterioration of all ranked pairs. |
 
 <!-- KPI_TABLE:END -->
 

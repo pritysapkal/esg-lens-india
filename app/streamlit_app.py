@@ -1,15 +1,27 @@
-"""ESG Lens India - Streamlit report-card app (placeholder)."""
+"""ESG Lens India - public report card (Streamlit).
+
+    .\\scripts\\dev.ps1 app        # or: streamlit run app/streamlit_app.py
+
+Reads only the public tables in exports/public (app/data.py). Pages live in app/views/.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
 
 import streamlit as st
 
-st.set_page_config(page_title="ESG Lens India", page_icon=":seedling:", layout="wide")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `import app...` works
 
-st.title("Hello ESG Lens")
-st.write(
-    "Open BRSR analytics for the NIFTY 50 companies. "
-    "Company report cards will appear here once the dbt marts are built."
-)
-st.info(
-    "The Disclosure Quality Score measures the completeness and consistency of BRSR "
-    "disclosures. It is **not** an ESG rating."
-)
+st.set_page_config(page_title="ESG Lens India", page_icon=":material/eco:", layout="wide")
+
+pages = [
+    st.Page("views/overview.py", title="Overview", icon=":material/dashboard:", default=True),
+    st.Page("views/company.py", title="Company report card", icon=":material/badge:"),
+    st.Page("views/sectors.py", title="Sectors", icon=":material/category:"),
+    st.Page("views/concentration.py", title="Concentration", icon=":material/stacked_bar_chart:"),
+    st.Page("views/ai_analyst.py", title="Ask the data (AI)", icon=":material/chat:"),
+    st.Page("views/methodology.py", title="Methodology", icon=":material/menu_book:"),
+]
+st.navigation(pages).run()

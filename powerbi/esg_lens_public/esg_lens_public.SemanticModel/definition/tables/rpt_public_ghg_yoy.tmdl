@@ -1,0 +1,117 @@
+/// Public model rpt_public_ghg_yoy: derived values only (docs/publication_policy.md).
+table rpt_public_ghg_yoy
+	lineageTag: c9638c2f-c393-5a87-8501-81af5f115442
+
+	/// ISIN of the company (key of dim_company).
+	column isin
+		dataType: string
+		isHidden
+		lineageTag: 822ad271-2576-5c5e-957b-bc41590dd57c
+		summarizeBy: none
+		sourceColumn: isin
+
+	/// Group the company is ranked in.
+	column ranking_group
+		dataType: string
+		lineageTag: 3c4d5629-74ba-5d8c-9c20-ccd842e284f5
+		summarizeBy: none
+		sourceColumn: ranking_group
+
+	/// Short company name for charts.
+	column display_name
+		dataType: string
+		lineageTag: f7f48e19-1553-529b-aa06-6f3d735abdd3
+		summarizeBy: none
+		sourceColumn: display_name
+
+	/// Earlier financial year of the pair.
+	column from_year
+		dataType: string
+		lineageTag: c094f2d3-d70a-5cef-8999-53bf10d9bdf2
+		summarizeBy: none
+		sourceColumn: from_year
+
+	/// Later financial year of the pair (the next one).
+	column to_year
+		dataType: string
+		lineageTag: cdc1c342-48d3-529f-ae78-4a9edb64f1a6
+		summarizeBy: none
+		sourceColumn: to_year
+
+	/// Computed GHG intensity in from_year, tCO2e per Rs crore (2 decimals).
+	column intensity_from
+		dataType: double
+		lineageTag: aea7c496-7087-5677-805c-35503429b7b9
+		summarizeBy: none
+		sourceColumn: intensity_from
+
+	/// Computed GHG intensity in to_year, tCO2e per Rs crore (2 decimals).
+	column intensity_to
+		dataType: double
+		lineageTag: d1d06332-4cc6-5d54-a0b6-5b5082d73e6a
+		summarizeBy: none
+		sourceColumn: intensity_to
+
+	/// Change from from_year to to_year in % (1 decimal).
+	column change_pct
+		dataType: double
+		lineageTag: 126b58d8-3476-58dd-be4f-3f85cf8e2b46
+		summarizeBy: none
+		sourceColumn: change_pct
+
+	/// How far the pair can be trusted; only confirmed pairs are ranked.
+	column confidence
+		dataType: string
+		lineageTag: b3173e11-c07d-522c-9fd7-24f93f4128e5
+		summarizeBy: none
+		sourceColumn: confidence
+
+	/// Pairs in the ranking group ending in the same year.
+	column n_companies_compared
+		dataType: int64
+		lineageTag: 1be815a4-08ad-5c94-a368-78ce873049ea
+		summarizeBy: none
+		sourceColumn: n_companies_compared
+
+	/// true for a confirmed pair in a group with 5 or more comparable companies.
+	column is_ranked
+		dataType: boolean
+		lineageTag: eb5920e8-5507-5ee8-9257-d10f8957fe1c
+		summarizeBy: none
+		sourceColumn: is_ranked
+
+	/// 1 = largest confirmed improvement in the ranking group; empty when not ranked.
+	column improvement_rank_in_group
+		dataType: int64
+		lineageTag: 93492853-1ea0-5182-af55-3b2250d0af79
+		summarizeBy: none
+		sourceColumn: improvement_rank_in_group
+
+	/// 1 = largest confirmed deterioration in the ranking group; empty when not ranked.
+	column deterioration_rank_in_group
+		dataType: int64
+		lineageTag: d9cba6f7-1925-57eb-990c-535af4e02ca0
+		summarizeBy: none
+		sourceColumn: deterioration_rank_in_group
+
+	/// 1 = largest confirmed improvement of all ranked pairs.
+	column improvement_rank_overall
+		dataType: int64
+		lineageTag: bbbb20c4-9cd6-522c-adea-81491b464196
+		summarizeBy: none
+		sourceColumn: improvement_rank_overall
+
+	/// 1 = largest confirmed deterioration of all ranked pairs.
+	column deterioration_rank_overall
+		dataType: int64
+		lineageTag: 7fe12217-3622-57a0-8572-c8b7c6eb2d4d
+		summarizeBy: none
+		sourceColumn: deterioration_rank_overall
+
+	partition rpt_public_ghg_yoy = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "\rpt_public_ghg_yoy.parquet"))
+				in
+				    Source

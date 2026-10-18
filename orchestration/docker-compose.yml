@@ -1,0 +1,36 @@
+# ESG Lens India - Airflow 3 (standalone) with the esg_lens_pipeline DAG.
+#   .\scripts\dev.ps1 airflow        build and start; UI on http://localhost:8080
+# The repository is mounted READ-ONLY; the pipeline writes only to the esg_work volume (its own
+# copy of data/raw, its own warehouse, its own exports). Nothing is downloaded by the DAG.
+name: esg-lens-airflow
+
+services:
+  airflow:
+    build:
+      context: ..
+      dockerfile: orchestration/Dockerfile
+    image: esg-lens-airflow:3.3.2
+    command: ["bash", "-c", "/opt/esg-lens-india/orchestration/prepare_work.sh && airflow standalone"]
+    ports:
+      - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"  # AIRFLOW_PORT=8085 if 8080 is taken
+    environment:
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/esg-lens-india/orchestration/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      ESG_REPO: /opt/esg-lens-india
+      ESG_WORK: /opt/airflow/esg_work
+      PYTHONDONTWRITEBYTECODE: "1"
+      # no usage data leaves the container (the DAG must not touch the network)
+      AIRFLOW__COSMOS__ENABLE_TELEMETRY: "False"
+      AIRFLOW__USAGE_DATA_COLLECTION__ENABLED: "False"
+      SCARF_ANALYTICS: "false"
+      DO_NOT_TRACK: "1"
+    volumes:
+      - ..:/opt/esg-lens-india:ro
+      - ../data/raw:/mnt/host_raw:ro
+      - esg_work:/opt/airflow/esg_work
+      - airflow_home:/opt/airflow
+
+volumes:
+  esg_work:
+  airflow_home:

@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'analysis', 'stats', 'bi-export', 'app')]
+    [ValidateSet('help', 'setup', 'lint', 'test', 'intake', 'todo', 'parse', 'load', 'build', 'dbt-build', 'dbt-docs', 'semantic', 'analysis', 'stats', 'bi-export', 'app', 'airflow', 'airflow-test', 'eval')]
     [string]$Task = 'help'
 )
 
@@ -37,7 +37,7 @@ Push-Location $Root
 try {
     switch ($Task) {
         'help' {
-            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|bi-export|app>'
+            Write-Host 'Usage: .\scripts\dev.ps1 <setup|lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|bi-export|app|airflow|airflow-test|eval>'
         }
         'setup' {
             if (-not (Test-Path $Py)) { Invoke-Step 'py' @('-3.12', '-m', 'venv', $Venv) }
@@ -127,8 +127,38 @@ try {
             Invoke-Step $Py @('scripts/build_powerbi.py', '--check')
         }
         'app' {
+            # The public report card. Reads only exports/public (run bi-export after a dbt build).
             Assert-Venv
             Invoke-Step $Py @('-m', 'streamlit', 'run', 'app/streamlit_app.py')
+        }
+        'airflow' {
+            # Airflow 3 (standalone) with the esg_lens_pipeline DAG in Docker: http://localhost:8080
+            # The repository is mounted read-only; the DAG never downloads (docs/orchestration.md).
+            $Compose = Join-Path $Root 'orchestration\docker-compose.yml'
+            Invoke-Step 'docker' @('compose', '-f', $Compose, 'up', '-d', '--build')
+            $Port = if ($env:AIRFLOW_PORT) { $env:AIRFLOW_PORT } else { '8080' }  # set AIRFLOW_PORT if 8080 is taken
+            Write-Host "Airflow UI: http://localhost:$Port (user admin). Password:" -ForegroundColor Green
+            Write-Host "  docker compose -f $Compose exec airflow cat /opt/airflow/simple_auth_manager_passwords.json.generated"
+            Write-Host 'Trigger esg_lens_pipeline by hand in the UI. Stop: docker compose -f orchestration\docker-compose.yml down'
+        }
+        'airflow-test' {
+            # The orchestration tests and one full `airflow dags test` run, in Docker with the network
+            # switched off (--network none): any task that tried to reach the network would fail.
+            $Compose = Join-Path $Root 'orchestration\docker-compose.yml'
+            Invoke-Step 'docker' @('compose', '-f', $Compose, 'build')
+            Invoke-Step 'docker' @('volume', 'create', 'esg_lens_dagtest_work')
+            Invoke-Step 'docker' @('run', '--rm', '--network', 'none',
+                '-v', "${Root}:/opt/esg-lens-india:ro", '-v', "$(Join-Path $Root 'data\raw'):/mnt/host_raw:ro",
+                '-v', 'esg_lens_dagtest_work:/opt/airflow/esg_work',
+                '-e', 'ESG_REPO=/opt/esg-lens-india', '-e', 'ESG_WORK=/opt/airflow/esg_work',
+                '-e', 'AIRFLOW__CORE__DAGS_FOLDER=/opt/esg-lens-india/orchestration/dags',
+                '--entrypoint', 'bash', 'esg-lens-airflow:3.3.2', '/opt/esg-lens-india/orchestration/run_dag_test.sh')
+        }
+        'eval' {
+            # AI analyst evaluation (evals/ai_analyst_questions.yaml) -> docs/ai_analyst_eval.md.
+            # Needs ANTHROPIC_API_KEY for the live part; without it only the question set is checked.
+            Assert-Venv
+            Invoke-Step $Py @('scripts/eval_ai_analyst.py')
         }
     }
 }

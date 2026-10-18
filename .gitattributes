@@ -9,3 +9,4 @@ tests/fixtures/** -text
 *.zip binary
 *.pbix binary
 *.xlsx binary
+*.sh text eol=lf

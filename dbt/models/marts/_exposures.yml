@@ -54,6 +54,29 @@ exposures:
       - ref('dim_company')
       - ref('dim_metric')
 
+  - name: streamlit_report_card
+    label: ESG Lens India - Streamlit report card and AI analyst
+    type: application
+    maturity: medium
+    owner:
+      name: Prity Sapkal
+      email: sapkalprity01@gmail.com
+    description: >
+      The public report card (app/streamlit_app.py: Overview, Company report card, Sectors,
+      Concentration, Ask the data, Methodology) and its AI analyst (app/ai_analyst, Claude with a
+      fixed set of tools). Both read only the Parquet copies of these public models in
+      exports/public (app/data.py; tests/test_app.py fails if the app opens any other data).
+      Withheld group figures show as n<5, the latest year as provisional. Not an ESG rating, not
+      investment advice. Docs: docs/streamlit_app.md, docs/ai_analyst.md.
+    depends_on:
+      - ref('rpt_public_company_year')
+      - ref('rpt_public_disclosure_quality')
+      - ref('rpt_public_group_metrics')
+      - ref('rpt_public_restatement_summary')
+      - ref('rpt_public_concentration')
+      - ref('rpt_public_company_percentile')
+      - ref('rpt_public_ghg_yoy')
+
   - name: public_showcase
     label: ESG Lens India - public showcase
     type: application
@@ -74,3 +97,4 @@ exposures:
       - ref('rpt_public_restatement_summary')
       - ref('rpt_public_concentration')
       - ref('rpt_public_company_percentile')
+      - ref('rpt_public_ghg_yoy')

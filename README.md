@@ -79,8 +79,9 @@ SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions
 | Week 10 - SQL business analysis | `analysis/sql/`, `scripts/run_analysis.py` | ✅ Done - 12 business questions in SQL on the gold tables (window functions, QUALIFY, PIVOT, GROUPING SETS, balanced panels), each with answer, insight and caveat. Five companies hold 85% of Scope 1+2 emissions; the 15% fall in heavy-industry intensity turns into +3.7% on a like-for-like panel; 6.7% of comparable figures are restated materially and 47.7% of those flatter the trend (a coin toss); at least 9 of 38 companies grew while cutting emissions (10 more need review); every year-on-year intensity move beyond a factor of two is a data issue, and only moves confirmed by a later report are ranked. Q1 and Q8 equal `mf query` (48 figures). Findings use derived values only ([findings](docs/analysis_findings.md)) |
 | Week 11 - Statistics studies | `analysis/stats/` | ✅ Done - five studies fixed in advance ([hypotheses](docs/stats_hypotheses.md), committed before any result): stratified permutation, Wilcoxon signed-rank, exact binomial, Fisher's exact and a stratified Mann-Whitney comparison, with company-level bootstrap and permutation, Benjamini-Hochberg over 8 primary tests and a minimum detectable effect for each. Restatements do not flatter trends (47.7%, interval 41.5% to 54.0%, well powered); the typical company's carbon intensity fell 9% in the one confirmed year (p = 0.015 alone, 0.12 after correction); no association between disclosure quality and carbon intensity, but too few companies to rule one out. Methods checked on made-up data (power 79.5% to 97%, false alarms 2.4% to 6.6%) ([findings](docs/stats_findings.md)) |
 | Week 12 - BI engine | `scripts/export_bi.py`, `powerbi/`, `scripts/build_excel.py` | ✅ Engine done, visuals pending - Parquet exports in two folders (local star schema; public = `rpt_public_*` only, enforced by the script and a test); two Power BI projects (PBIP + TMDL for Power BI Desktop 2.158, generated from the export queries, parsed by Power BI's own TMDL library) with 42 / 46 measures in `_Measures` mirroring the semantic layer - 87 figures equal to `mf query`; an Excel workbook (Peer Benchmark with XLOOKUP and data validation, Sector Summary with "n<5", DQS view) that recalculates in Excel with 0 errors and matches the warehouse. Two more public models, `rpt_public_concentration` (Pareto in shares, equal to Week 10 Q2) and `rpt_public_company_percentile` (peer positions), so that all five pages are built in the public model. Pages: [build guide](docs/powerbi_build_guide.md), [checklist](docs/powerbi_reconciliation.md) |
+| Week 13 - Airflow, report card, AI analyst | `orchestration/`, `app/`, `evals/` | ✅ Done - manual-only Airflow 3.3.2 DAG with Cosmos (17 tasks from inbox check to public safety checks) in Docker, repo mounted read-only, one full run with the network switched off ([orchestration](docs/orchestration.md)); Streamlit report card with 6 pages that reads only `exports/public`, checked by an audit hook ([report card](docs/streamlit_app.md)); AI analyst: Claude with 6 strict, validated tools over the public tables, no free-form SQL, every number shown with its tool call, 20-question evaluation ([AI analyst](docs/ai_analyst.md)) |
 
-Weeks 1-12 (engine) and the hardening step are done; details and commit hashes are in
+Weeks 1-13 and the hardening step are done (Week 12 visuals pending); details and commit hashes are in
 [docs/project_plan.md](docs/project_plan.md).
 
 ### Roadmap
@@ -88,8 +89,21 @@ Weeks 1-12 (engine) and the hardening step are done; details and commit hashes a
 | Week | Goal | Status |
 |---|---|---|
 | 12 | Power BI pages (five, from the build guide) | 🟡 Engine done, visuals by Prity |
-| 13 | Airflow (watches the inbox, never downloads), Streamlit report card (reads `rpt_public_*` only), AI analyst | 🟡 Streamlit placeholder page |
 | 14 | Insight report, README polish, 3-minute demo video | 🔲 |
+
+## Run it
+
+| What | Command | Needs |
+|---|---|---|
+| Public report card (Streamlit) | `.\scripts\dev.ps1 app` -> http://localhost:8501 | only `exports/public` (committed) |
+| AI analyst in the report card | set `ANTHROPIC_API_KEY`, then `.\scripts\dev.ps1 app` | an Anthropic API key; optional `ESG_AI_MODEL` |
+| AI analyst evaluation | `.\scripts\dev.ps1 eval` | a key for the live part |
+| Whole pipeline in Airflow | `.\scripts\dev.ps1 airflow` -> http://localhost:8080, trigger `esg_lens_pipeline` | Docker Desktop |
+| Pipeline once, network off | `.\scripts\dev.ps1 airflow-test` | Docker Desktop |
+| Warehouse, by hand | `.\scripts\dev.ps1 dbt-build`, then `analysis`, `stats`, `bi-export` | the filings in `data/raw` |
+
+The report card can be deployed to Streamlit Community Cloud with main file
+`app/streamlit_app.py` ([docs/streamlit_app.md](docs/streamlit_app.md)).
 
 ## Setup (Windows 11, PowerShell)
 
@@ -114,7 +128,7 @@ dbt seed  --profiles-dir .
 cd ..
 ```
 
-Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|bi-export|app`
+Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|bi-export|app|airflow|airflow-test|eval`
 (Linux/CI: `make <target>`). To add filings, see [docs/how_to_add_filings.md](docs/how_to_add_filings.md).
 
 > dbt always runs from `dbt/` with `--profiles-dir .` - the profile lives in the repo, not in `~/.dbt`.

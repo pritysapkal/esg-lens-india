@@ -457,15 +457,15 @@ seeds:
               arguments:
                 values:
                   [fct_company_year, fct_disclosure_quality, fct_restatement, rpt_public_concentration,
-                   rpt_public_company_percentile]
+                   rpt_public_company_percentile, rpt_public_ghg_yoy]
       - name: metric_type
         description: >
           company_value = a column with one value per company-year. Otherwise how the semantic
           layer aggregates over a group: ratio_of_sums (sum / sum, named ..._agg), median
           (typical company, named ..._median), average, share (rows counted / rows in scope x
           100), count, count_distinct (companies). An average of company intensities is refused.
-          public_position = a numeric column of rpt_public_concentration or
-          rpt_public_company_percentile (a rank, a share or a percentile of one company); not a
+          public_position = a numeric column of rpt_public_concentration,
+          rpt_public_company_percentile or rpt_public_ghg_yoy (a rank, a share or a percentile of one company); not a
           metric of the semantic layer.
         tests:
           - not_null

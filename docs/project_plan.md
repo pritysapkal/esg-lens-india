@@ -1,6 +1,6 @@
 # Project plan (current)
 
-The plan as it stands on 2026-10-14, after twelve weeks of work. It replaces the original blueprint
+The plan as it stands on 2026-10-18, after thirteen weeks of work. It replaces the original blueprint
 wherever the two differ. Plain English on purpose.
 
 ## a) What changed from the original blueprint, and why
@@ -38,6 +38,7 @@ wherever the two differ. Plain English on purpose.
 | Week 10 | SQL business analysis | Twelve business questions in SQL on the gold tables (`analysis/sql/`), each with answer, insight and caveat; balanced panels, ratio of sums and medians, the 5-company rule; confidence labels and plausibility screens before any company is named; Q1 and Q8 equal to `mf query`; findings with derived values only ([findings](analysis_findings.md)) | `3811b25`, "fix: Week 10 confidence screens and wording" |
 | Week 11 | Statistics studies | Five studies, written down before any result was computed ([hypotheses](stats_hypotheses.md)): Spearman with a stratified permutation, Wilcoxon signed-rank, exact binomial, Fisher's exact, a stratified Mann-Whitney comparison; company-level bootstrap and permutation, Benjamini-Hochberg over 8 primary tests, minimum detectable effect for each; methods checked on made-up data. No primary test rejects its null hypothesis; one null is well powered (restatements do not flatter trends), four are likely underpowered ([findings](stats_findings.md)) | "docs: Week 11 pre-registered hypotheses", "feat: Week 11 statistics studies" |
 | Week 12 | BI engine (Power BI and Excel) | Parquet exports (`exports/local`: star schema with the numerators and denominators of the ratio-of-sums measures and the Week 10 results; `exports/public`: the four `rpt_public_*` models only, enforced). Two Power BI projects (PBIP with a TMDL model, generated, parsed with Power BI Desktop's own library): star schema, single-direction relationships, an `ExportFolder` parameter, measures in `_Measures` mirroring the semantic layer (87 figures equal to `mf query`); the public model reads group figures from `rpt_public_group_metrics` only. Excel workbook with XLOOKUP formulas (0 errors in Excel). Then two more public models so that all five pages are built on public data: `rpt_public_concentration` (rank and share of emissions, no tonnes) and `rpt_public_company_percentile` (percentile, rank, reason not ranked; values of computed KPIs only). **Visuals pending: Prity builds the five pages in the public project** ([guide](powerbi_build_guide.md), [checklist](powerbi_reconciliation.md)) | "feat: Week 12 BI engine (exports, Power BI model, Excel)" |
+| Week 13 | Airflow, Streamlit report card, AI analyst | **Airflow 3.3.2 + Cosmos 1.15 in Docker**: one manual-only DAG `esg_lens_pipeline` (17 tasks: inbox check, intake, parse, load, dbt seed / run / test as Cosmos task groups, semantic validation, analysis, statistics, BI export, public safety checks), defined once in `orchestration/pipeline.py`; repo mounted read-only; a full `airflow dags test` run with the network switched off. **Streamlit report card** (6 pages) that reads only `exports/public`, checked by an audit hook. **AI analyst**: Claude with 6 strict, validated tools over the public tables, no free-form SQL; 20-question evaluation set checked against the data (live evaluation needs a key). New public model `rpt_public_ghg_yoy` (Week 10 Q3 in dbt). Public Parquet committed for Streamlit Community Cloud ([report card](streamlit_app.md), [AI analyst](ai_analyst.md), [orchestration](orchestration.md)) | "feat: Week 13 Airflow DAG, Streamlit report card, AI analyst" |
 
 State of the warehouse: 51 companies, 196 company-years, 21,706 metric values, 73 company-level
 KPIs (25 public), 29 group metrics in the semantic layer, 4,115 compared restatement pairs, 196
@@ -49,7 +50,6 @@ full build and test in about 3 minutes with 0 warnings.
 | Week | Goal | Scope notes |
 |---|---|---|
 | 12 (rest) | **Power BI pages** | Prity builds the five pages from [powerbi_build_guide.md](powerbi_build_guide.md) and ticks the six numbers in [powerbi_reconciliation.md](powerbi_reconciliation.md). |
-| 13 | **Airflow, Streamlit report card, AI analyst** | Airflow watches the inbox and never downloads. The report card reads `rpt_public_*` only. The AI analyst answers from the public models with citations. |
 | 14 | **Insight report, README polish, demo video** | A short written report of findings, a tidy README, and a 3-minute demo video of the local dashboards (checked against the publication policy). |
 
 ## d) Known limitations and open decisions
@@ -83,6 +83,11 @@ Known limitations (each documented where it belongs):
   measure formulas reconcile in pandas, but no script runs DAX inside Power BI; the six numbers
   in [powerbi_reconciliation.md](powerbi_reconciliation.md) are checked by hand. KPI
   percentiles are not in a public model yet (the public company card has DQS percentiles only).
+- **The AI analyst has not been evaluated live yet** (no API key on the laptop); the question
+  set, the tools and the loop are tested offline: [ai_analyst_eval.md](ai_analyst_eval.md).
+- **Airflow runs in Docker on its own copy of the data** (repository read-only, its own
+  warehouse), so it shows the pipeline works end to end but does not replace `dev.ps1` for daily
+  use: [orchestration.md](orchestration.md).
 - NIC division names and NIC code corrections are still unverified (`verified_by` empty in the
   seeds).
 

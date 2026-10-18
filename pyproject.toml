@@ -29,6 +29,12 @@ select = [
 "scripts/build_powerbi.py" = ["E501"]
 "scripts/reconcile_bi.py" = ["E501"]
 "tests/test_bi.py" = ["E501"]
+# Streamlit pages, the AI analyst and its eval: long plain-English strings and tool schemas
+"app/**/*.py" = ["E501"]
+"scripts/eval_ai_analyst.py" = ["E501"]
+"tests/test_app.py" = ["E501"]
+"tests/test_ai_analyst.py" = ["E501"]
+"tests/test_orchestration.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ingestion", "analysis"]

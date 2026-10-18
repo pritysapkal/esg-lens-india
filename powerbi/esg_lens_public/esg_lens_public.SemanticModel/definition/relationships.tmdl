@@ -33,3 +33,7 @@ relationship 699ecbb7-314c-55fd-ba8f-8ac68c11c37a
 relationship b6a5d778-c96b-55bb-a164-1c62a1ca7882
 	fromColumn: rpt_public_company_percentile.fiscal_year_label
 	toColumn: dim_fiscal_year.fiscal_year_label
+
+relationship 5fb1e2b5-81a8-590a-b1c3-c174058ad419
+	fromColumn: rpt_public_ghg_yoy.isin
+	toColumn: dim_company.isin
