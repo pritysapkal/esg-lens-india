@@ -110,3 +110,85 @@ def fmt(value, digits: int = 1, suffix: str = "") -> str:
     if is_missing(value):
         return "-"
     return f"{value:,.{digits}f}{suffix}"
+
+
+# The 19 KPIs with a peer position (rpt_public_company_percentile): label and pillar.
+# Environment / Social / Governance, as BRSR groups its principles; tests/test_app.py checks
+# that every KPI of the public table is here.
+KPI_INFO: dict[str, tuple[str, str]] = {
+    "ghg_intensity_tco2e_per_cr": ("GHG intensity (Scope 1+2 per Rs crore)", "Environment"),
+    "energy_intensity_gj_per_cr": ("Energy intensity (GJ per Rs crore)", "Environment"),
+    "renewable_share_pct": ("Renewable share of energy (%)", "Environment"),
+    "water_intensity_kl_per_cr": ("Water intensity (kl per Rs crore)", "Environment"),
+    "waste_intensity_t_per_cr": ("Waste intensity (t per Rs crore)", "Environment"),
+    "waste_recovery_rate_pct": ("Waste recovery rate (%)", "Environment"),
+    "female_workforce_pct": ("Women in workforce (%)", "Social"),
+    "female_wage_share_pct": ("Women share of gross wages (%)", "Social"),
+    "pay_equity_gap_pp": ("Pay equity gap (pp)", "Social"),
+    "attrition_gap_pp": ("Attrition gap (pp)", "Social"),
+    "ltifr_employees": ("LTIFR, employees", "Social"),
+    "ltifr_workers": ("LTIFR, workers", "Social"),
+    "fatalities_per_10k_workforce": ("Fatalities per 10,000 workforce", "Social"),
+    "wellbeing_cost_pct_revenue": ("Well-being spend (% of revenue)", "Social"),
+    "posh_complaints_pct_female": ("POSH complaints (% of female staff)", "Social"),
+    "msme_sourcing_pct": ("Sourcing from MSMEs (%)", "Governance"),
+    "days_payable": ("Days of accounts payable", "Governance"),
+    "rpt_purchases_pct": ("Purchases from related parties (%)", "Governance"),
+    "rpt_sales_pct": ("Sales to related parties (%)", "Governance"),
+}
+PILLARS = ("Environment", "Social", "Governance")
+
+# Every column name that can reach a table on any page -> what the reader sees.
+FRIENDLY_COLUMNS = {
+    "group": "Group",
+    "group_value": "Group",
+    "group_key": "Group",
+    "year": "Financial year",
+    "fiscal_year_label": "Financial year",
+    "value": "Value",
+    "status": "Shown as",
+    "companies_behind_it": "Companies behind it",
+    "kpi": "KPI",
+    "kpi_label": "KPI",
+    "ranking_group": "Ranking group",
+    "sector_group": "Sector group",
+    "percentile_in_group": "Percentile (100 = best)",
+    "rank_in_group": "Rank (1 = best)",
+    "companies_in_group": "Companies in group",
+    "n_in_group": "Companies in group",
+    "ranking_status": "Ranking",
+    "value_if_public": "Value (computed KPIs only)",
+    "kpi_value_public": "Value (computed KPIs only)",
+    "emitter_rank": "Rank",
+    "display_name": "Company",
+    "share_of_total_pct": "Share of emissions (%)",
+    "cumulative_share_pct": "Cumulative share (%)",
+    "from_year": "From",
+    "to_year": "To",
+    "intensity_from": "Intensity before",
+    "intensity_to": "Intensity after",
+    "change_pct": "Change (%)",
+    "level": "Level",
+    "n_pairs": "Figures compared",
+    "n_material": "Restated materially",
+    "pct_material": "Restated materially (%)",
+    "n_material_flattering": "Of those, flattering",
+    "pct_material_flattering": "Flattering (% of restated)",
+    "n_companies": "Companies",
+    "n_companies_with_material": "Companies with a restatement",
+}
+
+
+def friendly(frame: pd.DataFrame) -> pd.DataFrame:
+    """The same table with reader-facing column names (unknown names: underscores to spaces)."""
+
+    def name(column) -> str:
+        column = str(column)
+        if column in FRIENDLY_COLUMNS:
+            return FRIENDLY_COLUMNS[column]
+        if "_" not in column:  # already a heading written for readers
+            return column
+        text = column.replace("_", " ")
+        return text[:1].upper() + text[1:]
+
+    return frame.rename(columns=name)

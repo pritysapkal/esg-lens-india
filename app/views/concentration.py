@@ -50,7 +50,7 @@ figure.add_trace(
 figure.add_hline(y=80, line={"color": ui.NEUTRAL, "dash": "dot", "width": 1}, annotation_text="80%")
 figure.update_layout(height=460, margin={"l": 0, "r": 10, "t": 10, "b": 10}, yaxis={"title": "% of the year's Scope 1+2 emissions", "range": [0, 105]},
                      legend={"orientation": "h", "y": -0.35}, bargap=0.25)  # fmt: skip
-st.plotly_chart(figure, width="stretch")
+st.plotly_chart(ui.readable(figure), width="stretch")
 st.caption(
     "Bar colour = sector group: blue Asset-heavy, orange Asset-light, green Financials. The 15 largest emitters are drawn."
 )

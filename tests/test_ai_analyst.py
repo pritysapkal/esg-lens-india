@@ -200,7 +200,9 @@ def test_loop_runs_the_tools_and_returns_the_answer_with_its_calls():
         _response("tool_use", _text("Looking it up."), _tool_use("t1", "concentration", {"year": "FY2024-25", "top_n": 5})),
         _response("end_turn", _text("The five largest emitters held 85.5% (concentration, rpt_public_concentration).")),
     ])  # fmt: skip
-    answer = agent.ask("How concentrated?", client=client, model="claude-haiku-4-5")
+    answer = agent.ask(
+        "How concentrated?", client=client, model="claude-haiku-4-5", provider="anthropic"
+    )
     assert "85.5%" in answer.text
     assert [c.name for c in answer.calls] == ["concentration"]
     assert answer.calls[0].result["summary"]["top_5_share_pct"] == pytest.approx(85.4607, abs=1e-3)
@@ -223,7 +225,7 @@ def test_bad_tool_arguments_go_back_to_the_model_as_an_error():
         _response("tool_use", _tool_use("t1", "company_card", {"company": "Tesla", "year": "FY2024-25"})),
         _response("end_turn", _text("Tesla is not covered.")),
     ])  # fmt: skip
-    answer = agent.ask("Tesla?", client=client, model="claude-haiku-4-5")
+    answer = agent.ask("Tesla?", client=client, model="claude-haiku-4-5", provider="anthropic")
     assert answer.calls[0].error and answer.calls[0].result is None
     tool_result = client.requests[1]["messages"][-1]["content"][0]
     assert tool_result["is_error"] is True and "not one of the" in tool_result["content"]
@@ -232,7 +234,7 @@ def test_bad_tool_arguments_go_back_to_the_model_as_an_error():
 def test_a_refusal_stays_a_refusal_and_is_shown():
     """No retry on another model: one request, and the refusal goes back to the user as such."""
     client = FakeClient([_response("refusal", stop_details=SimpleNamespace(category="cyber"))])
-    declined = agent.ask("x", client=client, model="claude-haiku-4-5")
+    declined = agent.ask("x", client=client, model="claude-haiku-4-5", provider="anthropic")
     assert len(client.requests) == 1 and not client.responses
     assert declined.model_refused and declined.refused and declined.refusal_category == "cyber"
     assert "declined" in declined.text and not declined.calls
@@ -246,7 +248,7 @@ def test_tool_calls_are_capped_per_question():
         [_response("tool_use", _tool_use(f"t{i}", "concentration", {"year": "FY2024-25", "top_n": 3})) for i in range(limit)]
         + [_response("end_turn", _text("Answer from what I have."))]
     )  # fmt: skip
-    answer = agent.ask("x", client=looping, model="claude-haiku-4-5")
+    answer = agent.ask("x", client=looping, model="claude-haiku-4-5", provider="anthropic")
     assert len(answer.calls) == limit and answer.text == "Answer from what I have."
     assert len(looping.requests) == agent.LIMITS.max_requests_per_question
     assert looping.requests[-1]["tool_choice"] == {"type": "none"}
@@ -260,7 +262,7 @@ def test_extra_tool_calls_in_one_turn_are_not_run():
         for i in range(limit + 3)
     ]
     client = FakeClient([_response("tool_use", *many), _response("end_turn", _text("ok"))])
-    answer = agent.ask("x", client=client, model="claude-haiku-4-5")
+    answer = agent.ask("x", client=client, model="claude-haiku-4-5", provider="anthropic")
     assert len(answer.calls) == limit
     results = client.requests[1]["messages"][-1]["content"]
     assert len(results) == limit + 3 and sum(r["is_error"] for r in results) == 3
@@ -271,7 +273,7 @@ def test_extra_tool_calls_in_one_turn_are_not_run():
 def test_a_model_that_never_stops_is_cut_off():
     client = FakeClient([_response("tool_use", _tool_use(f"t{i}", "concentration", {"year": "FY2024-25", "top_n": 3}))
                          for i in range(agent.LIMITS.max_requests_per_question)])  # fmt: skip
-    answer = agent.ask("x", client=client, model="claude-haiku-4-5")
+    answer = agent.ask("x", client=client, model="claude-haiku-4-5", provider="anthropic")
     assert answer.stop_reason == "max_turns"
     assert len(client.requests) == agent.LIMITS.max_requests_per_question
 
@@ -287,7 +289,9 @@ def test_question_limits_per_session_and_length():
     with pytest.raises(agent.QuestionRejected, match="characters"):
         agent.check_question("x" * (limits.max_question_chars + 1))
     with pytest.raises(agent.QuestionRejected):
-        agent.ask("x" * (limits.max_question_chars + 1), client=FakeClient([]))
+        agent.ask(
+            "x" * (limits.max_question_chars + 1), client=FakeClient([]), provider="anthropic"
+        )
 
 
 def test_client_gets_the_key_timeout_and_retries_explicitly(monkeypatch):
@@ -296,7 +300,7 @@ def test_client_gets_the_key_timeout_and_retries_explicitly(monkeypatch):
     seen = {}
     monkeypatch.setattr(anthropic, "Anthropic", lambda **kwargs: seen.update(kwargs) or object())
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-from-env")
-    agent._client()
+    agent.make_provider("anthropic").client()
     assert seen == {"api_key": "test-key-from-env", "timeout": agent.LIMITS.timeout_seconds,
                     "max_retries": agent.LIMITS.max_retries}  # fmt: skip
 
@@ -305,7 +309,9 @@ def test_out_of_scope_answer_counts_as_refused():
     client = FakeClient(
         [_response("end_turn", _text(agent.REFUSAL_PREFIX + ". I can tell you about intensities."))]
     )
-    answer = agent.ask("Should I buy Reliance?", client=client, model="claude-haiku-4-5")
+    answer = agent.ask(
+        "Should I buy Reliance?", client=client, model="claude-haiku-4-5", provider="anthropic"
+    )
     assert answer.refused and not answer.calls
 
 
@@ -317,12 +323,18 @@ def test_system_prompt_states_the_guardrails():
 
 
 @pytest.mark.parametrize(
-    ("switch", "key", "enabled"),
-    [(None, None, False), ("true", None, False), (None, "k", False), ("false", "k", False),
-     ("yes", "k", False), ("true", "k", True), ("TRUE", "k", True)],
+    ("switch", "provider", "key", "enabled"),
+    [(None, None, None, False), ("false", "ollama", None, False), ("yes", "ollama", None, False),
+     ("true", None, None, True),           # the default provider is the local one: no key needed
+     ("true", "ollama", None, True), ("TRUE", "Ollama", None, True),
+     ("true", "anthropic", None, False),   # the paid provider needs its key
+     ("true", "anthropic", "k", True), (None, "anthropic", "k", False),
+     ("true", "openai", "k", False)],      # an unknown provider stays off
 )  # fmt: skip
-def test_off_unless_the_switch_and_a_key_are_both_set(monkeypatch, switch, key, enabled):
-    values = {"ESG_AI_ENABLED": switch, "ANTHROPIC_API_KEY": key}
+def test_off_unless_switched_on_with_what_the_provider_needs(
+    monkeypatch, switch, provider, key, enabled
+):
+    values = {"ESG_AI_ENABLED": switch, "ESG_AI_PROVIDER": provider, "ANTHROPIC_API_KEY": key}
     monkeypatch.setattr(agent, "setting", values.get)
     assert agent.is_enabled() is enabled
     if not enabled:
@@ -346,11 +358,14 @@ def test_settings_come_only_from_the_environment_or_streamlit_secrets(monkeypatc
         assert forbidden not in source, forbidden
 
 
-def test_default_model_and_override(monkeypatch):
+def test_default_provider_and_models(monkeypatch):
     monkeypatch.setattr(agent, "setting", lambda name: None)
-    assert agent.DEFAULT_MODEL == "claude-haiku-4-5" and agent.model_name() == "claude-haiku-4-5"
-    monkeypatch.setattr(agent, "setting", {"ESG_AI_MODEL": "claude-sonnet-5-5"}.get)
-    assert agent.model_name() == "claude-sonnet-5-5"
+    assert agent.provider_name() == "ollama" and agent.model_name() == "qwen2.5:3b"
+    assert agent.model_name("anthropic") == "claude-haiku-4-5" == agent.DEFAULT_MODEL
+    monkeypatch.setattr(
+        agent, "setting", {"ESG_AI_PROVIDER": "anthropic", "ESG_AI_MODEL": "claude-sonnet-5-5"}.get
+    )
+    assert agent.provider_name() == "anthropic" and agent.model_name() == "claude-sonnet-5-5"
 
 
 def test_no_refusal_fallback_anywhere_in_the_analyst():

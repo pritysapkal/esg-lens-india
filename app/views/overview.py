@@ -27,7 +27,7 @@ ui.provisional_banner(latest)
 cards = st.columns(6)
 cards[0].metric("Companies reporting", labels.fmt(overall["companies_reporting"], 0))
 cards[1].metric(
-    "GHG intensity, all companies",
+    "GHG intensity, whole group (all companies)",
     labels.fmt(labels.group_cell(overall, "ghg_intensity_agg"), 1),
     help="Scope 1+2 tCO2e per Rs crore of turnover, whole group (sum over sum).",
 )

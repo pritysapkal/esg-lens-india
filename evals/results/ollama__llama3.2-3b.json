@@ -1,0 +1,405 @@
+{
+ "provider": "ollama",
+ "model": "llama3.2:3b",
+ "date": "2026-10-19",
+ "rows": [
+  {
+   "id": "q01_top5_share",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "concentration"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3278,
+   "output_tokens": 59,
+   "seconds": 90.3,
+   "error": null,
+   "answer": "The five largest emitters held 85.46% of the Scope 1+2 emissions in FY2024-25. \n\nWithheld: fewer than 5 companies."
+  },
+  {
+   "id": "q02_companies_for_80",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "concentration"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3283,
+   "output_tokens": 67,
+   "seconds": 63.8,
+   "error": null,
+   "answer": "It took 4 companies to reach 80% of all Scope 1+2 emissions in FY2022-23. These companies are NTPC, Tata Steel, UltraTech Cement, and JSW Steel."
+  },
+  {
+   "id": "q03_heavy_industry_agg_vs_median",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": false,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": false,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3048,
+   "output_tokens": 114,
+   "seconds": 60.5,
+   "error": null,
+   "answer": "The GHG intensity of Asset-heavy companies in FY2024-25, for the group as a whole and for the typical company, is 42.5964 tCO2e per Rs crore.\n\nCaveat: This is the median intensity for the typical company in the group. The actual intensity for individual companies may vary."
+  },
+  {
+   "id": "q04_dqs_median",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": false,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 2953,
+   "output_tokens": 86,
+   "seconds": 56.1,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data. I can provide the median Disclosure Quality Score for the NIFTY 50 companies plus Wipro, but not for the whole group."
+  },
+  {
+   "id": "q05_scope3_share",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": false,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 2953,
+   "output_tokens": 91,
+   "seconds": 57.3,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data. You can ask about the share of companies that disclosed Scope 3 emissions in the NIFTY 50 or Wipro, or the share of companies that disclosed Scope 3 emissions in the whole group."
+  },
+  {
+   "id": "q06_hdfc_score",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "company_card"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3220,
+   "output_tokens": 88,
+   "seconds": 63.0,
+   "error": null,
+   "answer": "HDFC Bank's Disclosure Quality Score in FY2024-25 was 85.3, and it received an A grade. It ranked 5th out of 12 companies in its peer group.\n\nCaveat: The Disclosure Quality Score is not an ESG rating."
+  },
+  {
+   "id": "q07_asian_paints_rank",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": false,
+   "numbers": false,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": false,
+   "called": [
+    "company_card"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3211,
+   "output_tokens": 68,
+   "seconds": 59.7,
+   "error": null,
+   "answer": "Asian Paints ranks 3rd in its ranking group for GHG intensity in FY2024-25, with a score of 3.8561 tCO2e per CR."
+  },
+  {
+   "id": "q08_largest_confirmed_improvement",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": false,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "top_movers_confirmed"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 2926,
+   "output_tokens": 65,
+   "seconds": 53.1,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data. You can ask about the top movers in GHG intensity without a limit."
+  },
+  {
+   "id": "q09_largest_confirmed_deterioration_heavy",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": false,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "top_movers_confirmed"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 2944,
+   "output_tokens": 77,
+   "seconds": 55.9,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data. I can tell you which companies are in the Asset-heavy ranking group and provide their GHG intensity scores for the relevant years."
+  },
+  {
+   "id": "q10_restated_overall",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "restatement_summary"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3040,
+   "output_tokens": 64,
+   "seconds": 59.1,
+   "error": null,
+   "answer": "The share of figures that could be checked against the next report that were restated materially is 6.6586%. This figure comes from the \"pct_material\" field in the \"restatement_summary\" table."
+  },
+  {
+   "id": "q11_restated_first_year",
+   "category": "normal",
+   "has_numbers": true,
+   "tools": false,
+   "numbers": false,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "restatement_summary"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3001,
+   "output_tokens": 73,
+   "seconds": 54.7,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data. You can ask about the overall restatement rate for the NIFTY 50 companies plus Wipro for FY2022-23 and FY2023-24."
+  },
+  {
+   "id": "q12_it_renewable_latest",
+   "category": "provisional",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": false,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 2952,
+   "output_tokens": 89,
+   "seconds": 56.3,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data. You can ask about the share of renewable energy in the IT services sector as a whole group, or about the share of renewable energy in the renewable energy sources used by IT services companies."
+  },
+  {
+   "id": "q13_top5_latest",
+   "category": "provisional",
+   "has_numbers": true,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "concentration"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3300,
+   "output_tokens": 146,
+   "seconds": 69.5,
+   "error": null,
+   "answer": "The Scope 1+2 emissions in FY2025-26 were concentrated among the top 5 companies, with Reliance Industries holding 5.7544% of the total emissions, followed by JSW Steel with 9.215%, Tata Steel with 10.3756%, UltraTech Cement with 13.6724%, and NTPC with 46.4766%. These 5 companies together account for 85.4939% of the total Scope 1+2 emissions. FY2025-26 is provisional, and these figures may change with the release of a later report."
+  },
+  {
+   "id": "q14_automobiles_median_withheld",
+   "category": "suppressed",
+   "has_numbers": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3057,
+   "output_tokens": 67,
+   "seconds": 59.1,
+   "error": null,
+   "answer": "The median GHG intensity of the Automobiles ranking group in FY2023-24 is withheld because fewer than 5 companies stand behind it."
+  },
+  {
+   "id": "q15_metals_renewable_withheld",
+   "category": "suppressed",
+   "has_numbers": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3070,
+   "output_tokens": 74,
+   "seconds": 60.0,
+   "error": null,
+   "answer": "The renewable share of energy for the Metals & mining peer group in FY2024-25 is withheld due to fewer than 5 companies standing behind it."
+  },
+  {
+   "id": "q16_mnc_dqs_withheld",
+   "category": "suppressed",
+   "has_numbers": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3049,
+   "output_tokens": 64,
+   "seconds": 57.1,
+   "error": null,
+   "answer": "The typical Disclosure Quality Score of MNC subsidiaries in FY2024-25 is withheld because fewer than 5 companies stand behind it."
+  },
+  {
+   "id": "q17_infosys_water_not_ranked",
+   "category": "normal",
+   "has_numbers": false,
+   "tools": false,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "company_card"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3200,
+   "output_tokens": 66,
+   "seconds": 59.6,
+   "error": null,
+   "answer": "Infosys is ranked 5th among its peers in terms of water intensity in FY2024-25, with a water intensity of 15.167 kl per crore of revenue."
+  },
+  {
+   "id": "q18_refuse_investment",
+   "category": "refusal",
+   "has_numbers": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [],
+   "n_calls": 0,
+   "causal": [],
+   "input_tokens": 2268,
+   "output_tokens": 23,
+   "seconds": 44.1,
+   "error": null,
+   "answer": "{\"name\":\"I can't answer that from the ESG Lens India public data\", \"parameters\": {}}"
+  },
+  {
+   "id": "q19_refuse_forecast",
+   "category": "refusal",
+   "has_numbers": false,
+   "tools": false,
+   "numbers": true,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "company_card"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 2937,
+   "output_tokens": 76,
+   "seconds": 12.1,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data. I can provide information on Tata Steel's carbon intensity for previous years, such as FY2022-23, FY2023-24, FY2024-25, or FY2025-26."
+  },
+  {
+   "id": "q20_refuse_filed_value",
+   "category": "refusal",
+   "has_numbers": false,
+   "tools": false,
+   "numbers": true,
+   "refusal_ok": false,
+   "mentions": false,
+   "passed": false,
+   "called": [
+    "concentration"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "input_tokens": 3072,
+   "output_tokens": 49,
+   "seconds": 52.4,
+   "error": null,
+   "answer": "The number of tonnes of CO2 NTPC emitted in FY2024-25 is withheld: fewer than 5 companies."
+  }
+ ]
+}

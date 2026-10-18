@@ -24,10 +24,10 @@ opens the file itself.
 | Page | What it shows | From |
 |---|---|---|
 | Overview | Six headline figures for the latest year and five insights, each computed from the tables (concentration, whole group vs typical company, confirmed year-on-year moves, restatements, disclosure quality) | group metrics, concentration, year-on-year, restatement summary |
-| Company report card | Pick a company and year: Disclosure Quality Score, grade, rank and percentile in the ranking group, the six component scores, the reasons points were lost, assurance; computed intensities against the group's typical company; percentile of every KPI with its ranking status ("not ranked for this group (not material)", "n<5") | disclosure quality, company year, company percentile, group metrics |
-| Sectors | Any published group figure by sector group, peer group, ranking group, size band or ownership, year by year; withheld cells read **n<5 (withheld)**, restatements of the latest year **not yet observable**; chart of the shown values and the company counts behind them | group metrics |
+| Company report card | Pick a company and year: Disclosure Quality Score, grade, rank and percentile in the ranking group, the six component scores, the reasons points were lost, assurance; computed intensities against the group's typical company; percentile bars grouped **Environment / Social / Governance** and sorted within each group, coloured by better half (blue) or worse half (orange) of the ranking group, with the number on every bar and a marker so that 0 is visible; KPIs that are not ranked listed apart, with the reason ("not ranked for this group (not material)", "n<5") | disclosure quality, company year, company percentile, group metrics |
+| Sectors | Any published group figure by sector group, peer group, ranking group, size band or ownership, year by year; withheld cells read **n<5 (withheld)**, restatements of the latest year **not yet observable**; chart of the shown values (intensities on a log axis labelled 1 / 10 / 100 / 1,000) and the company counts behind them | group metrics |
 | Concentration | Pareto chart of company shares of the year's Scope 1+2 emissions (shares only, no tonnes), top 1 / 5 / 10 and companies needed for 80% | concentration |
-| Ask the data (AI) | The AI analyst ([ai_analyst.md](ai_analyst.md)); off unless `ESG_AI_ENABLED=true` and an API key are set, then at most 10 questions per session | all seven, through fixed tools |
+| Ask the data | **Guided questions** (default, no language model): six question types built from dropdowns, each one call of a validated tool, answered with a sentence, a table and the query used. Below it, the AI analyst for questions in your own words - only where it is switched on locally, never on the public site, where visitors see a short note instead ([ai_analyst.md](ai_analyst.md)) | all seven, through the same fixed tools |
 | Methodology | Sources, the publication rule, how to read the figures, limits, where the details are | - |
 
 Labels that appear wherever they apply:
@@ -59,15 +59,25 @@ last task of the Airflow DAG) checks their columns.
 
 Steps on [share.streamlit.io](https://share.streamlit.io): New app -> this repository -> main
 file `app/streamlit_app.py`. Community Cloud installs `app/requirements.txt` (only Streamlit,
-pandas, PyArrow, Plotly and the Anthropic SDK, same pins as `requirements.txt`).
-`.streamlit/config.toml` switches off Streamlit's usage statistics.
+pandas, PyArrow, Plotly and the Anthropic SDK, same pins as `requirements.txt`; the Ollama
+client is not needed there). `.streamlit/config.toml` switches off Streamlit's usage statistics
+and hides the developer toolbar from visitors.
 
-**The deployment runs with the AI analyst off.** Do not add `ESG_AI_ENABLED` or
-`ANTHROPIC_API_KEY` to the app's *Secrets*: a public page with a key behind it could be used by
-anyone, and the per-session limits reset with every page reload. The "Ask the data" page then
-says the analyst is switched off and that **the AI demo is shown in the project video**;
-everything else works. To demonstrate it, run the app locally with both settings (see
-[ai_analyst.md](ai_analyst.md)) and record the screen.
+**The deployment runs with the AI analyst off, and the guided questions on.** Do not add
+`ESG_AI_ENABLED`, `ESG_AI_PROVIDER` or `ANTHROPIC_API_KEY` to the app's *Secrets*: a public page
+with a key behind it could be used by anyone, the per-session limits reset with every page
+reload, and a local model does not exist on Community Cloud. Visitors get the guided questions
+(the same tools, no model) and a short, plain note that free-text questions are not available
+on the public site and that **a demonstration of the AI analyst is in the project video** - no
+setup details. To record that demonstration, run the app locally with the free local model
+(`$env:ESG_AI_ENABLED = 'true'`, see [ai_analyst.md](ai_analyst.md)).
+
+**Look and readability.** Page title "ESG Lens India - public report card". Every chart uses 14 px
+text (`ui.readable`: Streamlit's chart theme otherwise draws axis labels at 12 px); checked with
+full-page screenshots of every page at 1440 px width and 100% zoom, where the smallest text is
+14 px. No table shows a raw column name (a test walks every page and every guided question).
+Colours: one per sector group, and blue / orange for better / worse half, all checked for
+colour-blind separation; every coloured mark also carries its number or label.
 
 ## Limitations
 

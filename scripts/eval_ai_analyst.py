@@ -1,7 +1,12 @@
 """Evaluate the AI analyst against evals/ai_analyst_questions.yaml and write docs/ai_analyst_eval.md.
 
-    python scripts/eval_ai_analyst.py             # live: asks the model (needs ANTHROPIC_API_KEY)
-    python scripts/eval_ai_analyst.py --offline   # no API call: checks the question set itself
+    python scripts/eval_ai_analyst.py                    # live, with the configured provider
+    python scripts/eval_ai_analyst.py --provider ollama --model qwen2.5:3b
+    python scripts/eval_ai_analyst.py --offline          # no model call: checks the question set
+    python scripts/eval_ai_analyst.py --report-only      # rebuild the report from saved results
+
+The live run needs ESG_AI_ENABLED=true (and ANTHROPIC_API_KEY for the anthropic provider). Each
+live run is saved to evals/results/<provider>__<model>.json; the report shows every saved run.
 
 Live scoring per question:
   tools     every expected tool was called (refusals: no tool call at all)
@@ -16,8 +21,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
+import time
 from datetime import date
 from pathlib import Path
 
@@ -30,6 +37,7 @@ from app.ai_analyst import agent, tools  # noqa: E402
 
 QUESTIONS = ROOT / "evals" / "ai_analyst_questions.yaml"
 REPORT = ROOT / "docs" / "ai_analyst_eval.md"
+RESULTS = ROOT / "evals" / "results"
 NUMBER = re.compile(r"[-+−]?\d[\d,]*(?:\.\d+)?")
 WITHHELD = re.compile(
     r"withheld|fewer than 5|fewer than five|n<5|n < 5|not published|suppressed", re.I
@@ -95,15 +103,23 @@ def check_offline(question: dict) -> list[str]:
     return problems
 
 
-def score(question: dict, answer: agent.Answer) -> dict:
+def score(
+    question: dict, answer: agent.Answer | None, error: str | None = None, seconds: float = 0.0
+) -> dict:
+    """One question. An error (timeout, connection) counts as a failure, not a crash."""
+    if answer is None:
+        answer = agent.Answer(text="")
     called = {call.name for call in answer.calls}
     text = answer.text
-    if question["category"] == "refusal":
+    refusal = question["category"] == "refusal"
+    if refusal:
         tools_ok = not answer.calls
-        mentions_ok = answer.refused
+        refusal_ok = answer.refused and not answer.calls
+        mentions_ok = refusal_ok
     else:
         tools_ok = set(question["expected_tools"]) <= called
-        mentions_ok = all(
+        refusal_ok = not answer.refused  # a question it should answer must not be refused
+        mentions_ok = refusal_ok and all(
             s.casefold() in text.casefold() for s in question.get("expected_text", [])
         )
         if question["category"] == "suppressed":
@@ -114,22 +130,94 @@ def score(question: dict, answer: agent.Answer) -> dict:
     numbers_ok = all(found(e, numbers) for e in question["expected_numbers"])
     causal = CAUSAL.findall(text)
     mentions_ok = mentions_ok and not causal
+    if error:
+        tools_ok = numbers_ok = mentions_ok = refusal_ok = False
     return {
         "id": question["id"],
         "category": question["category"],
+        "has_numbers": bool(question["expected_numbers"]),
         "tools": tools_ok,
         "numbers": numbers_ok,
+        "refusal_ok": refusal_ok,
         "mentions": mentions_ok,
         "passed": tools_ok and numbers_ok and mentions_ok,
         "called": sorted(called),
+        "n_calls": len(answer.calls),
         "causal": causal,
         "input_tokens": answer.input_tokens,
         "output_tokens": answer.output_tokens,
+        "seconds": round(seconds, 1),
+        "error": error,
         "answer": text,
     }
 
 
-def write_report(rows: list[dict] | None, offline: dict[str, list[str]], model: str) -> None:
+def run_live(questions: list[dict], provider: str, model: str) -> dict:
+    rows = []
+    for q in questions:
+        started = time.perf_counter()
+        try:
+            answer, error = agent.ask(q["question"], provider=provider, model=model), None
+        except Exception as exc:  # a timeout or a dead server is a failed question
+            answer, error = None, f"{type(exc).__name__}: {exc}"[:300]
+        result = score(q, answer, error, time.perf_counter() - started)
+        rows.append(result)
+        print(f"{q['id']:<42} {'PASS' if result['passed'] else 'FAIL'}  {result['seconds']:6.1f}s  tools={result['called']}"
+              + (f"  ERROR {error}" if error else ""))  # fmt: skip
+    return {"provider": provider, "model": model, "date": date.today().isoformat(), "rows": rows}
+
+
+def save(run: dict) -> Path:
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    name = f"{run['provider']}__{re.sub(r'[^A-Za-z0-9.]+', '-', run['model'])}.json"
+    path = RESULTS / name
+    path.write_text(
+        json.dumps(run, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
+    )
+    return path
+
+
+def saved_runs() -> list[dict]:
+    if not RESULTS.exists():
+        return []
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(RESULTS.glob("*.json"))]
+
+
+def summary(run: dict) -> dict:
+    rows = run["rows"]
+    with_numbers = [r for r in rows if r["has_numbers"]]
+    refusals = [r for r in rows if r["category"] == "refusal"]
+    answerable = [r for r in rows if r["category"] != "refusal"]
+    timed = [r["seconds"] for r in rows if not r["error"]]
+    tokens_in = sum(r["input_tokens"] for r in rows)
+    tokens_out = sum(r["output_tokens"] for r in rows)
+    price = PRICES.get(run["model"])
+    if run["provider"] == "ollama":
+        cost = "free (local)"
+    elif price:
+        cost = f"about ${(tokens_in * price[0] + tokens_out * price[1]) / 1e6:.2f}"
+    else:
+        cost = "unknown price"
+    return {
+        "passed": sum(r["passed"] for r in rows),
+        "n": len(rows),
+        "tools": sum(r["tools"] for r in rows),
+        "numbers": sum(r["numbers"] for r in with_numbers),
+        "n_numbers": len(with_numbers),
+        "refusals": sum(r["refusal_ok"] for r in refusals),
+        "n_refusals": len(refusals),
+        "false_refusals": sum(not r["refusal_ok"] and not r["error"] for r in answerable),
+        "mentions": sum(r["mentions"] for r in rows),
+        "errors": sum(bool(r["error"]) for r in rows),
+        "avg_seconds": sum(timed) / len(timed) if timed else 0.0,
+        "max_seconds": max(timed) if timed else 0.0,
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+        "cost": cost,
+    }
+
+
+def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
     questions = load()
     by_category: dict[str, int] = {}
     for q in questions:
@@ -140,9 +228,10 @@ def write_report(rows: list[dict] | None, offline: dict[str, list[str]], model: 
         f"Generated by `scripts/eval_ai_analyst.py` on {date.today().isoformat()}. Question set: "
         f"[evals/ai_analyst_questions.yaml](../evals/ai_analyst_questions.yaml), {len(questions)} questions "
         f"({', '.join(f'{n} {c}' for c, n in sorted(by_category.items()))}). How the analyst works: "
-        "[ai_analyst.md](ai_analyst.md).",
+        "[ai_analyst.md](ai_analyst.md). The questions and expected answers were fixed before any model "
+        "was run and were not changed to suit a model.",
         "",
-        "## Question set check (offline, no API call)",
+        "## Question set check (offline, no model call)",
         "",
         "Each question's expected tool calls are run against the public tables; the expected numbers "
         "and statuses must be what the tools return. This runs in pytest and CI.",
@@ -153,46 +242,55 @@ def write_report(rows: list[dict] | None, offline: dict[str, list[str]], model: 
     bad = {k: v for k, v in offline.items() if v}
     lines += [f"- `{k}`: {'; '.join(v)}" for k, v in bad.items()] or ["No problems."]
     lines += ["", "## Live evaluation", ""]
-    if rows is None:
+    if not runs:
         lines += [
-            f"**Not run - the AI analyst was switched off ({agent.disabled_reason()})** when this "
-            "report was written. Set `ESG_AI_ENABLED=true` and `ANTHROPIC_API_KEY`, then run "
-            f"`.\\scripts\\dev.ps1 eval` to score `{agent.model_name()}` (about 20 US cents); this "
-            "section is then replaced with the results.",
+            "**Not run yet.** Switch the analyst on (`ESG_AI_ENABLED=true`; the default provider is a "
+            "free local model through Ollama) and run `.\\scripts\\dev.ps1 eval`.",
         ]
     else:
-        passed = sum(r["passed"] for r in rows)
-        tokens_in = sum(r["input_tokens"] for r in rows)
-        tokens_out = sum(r["output_tokens"] for r in rows)
-        price = PRICES.get(model)
-        cost = (
-            f"about ${(tokens_in * price[0] + tokens_out * price[1]) / 1e6:.2f}"
-            if price
-            else "unknown price"
-        )
         lines += [
-            f"Model `{model}`. **{passed} of {len(rows)} passed.** Tool selection "
-            f"{sum(r['tools'] for r in rows)}/{len(rows)}, numbers {sum(r['numbers'] for r in rows)}/{len(rows)}, "
-            f"mentions {sum(r['mentions'] for r in rows)}/{len(rows)}. Tokens: {tokens_in:,} in, "
-            f"{tokens_out:,} out ({cost} for the whole run).",
+            "How each question is scored: **tool selection** - every expected tool was called (for a "
+            "question that must be refused: no tool at all); **numbers** - every expected number is in "
+            "the answer within its tolerance (questions that have numbers); **refusal right** - the three "
+            "out-of-scope questions are refused, and no answerable question is refused; **mentions** - a "
+            "withheld figure is called withheld, the provisional year is called provisional, expected "
+            "words appear, and there is no causal wording. A question passes when tools, numbers and "
+            "mentions all pass.",
             "",
-            "| Question | Category | Tools | Numbers | Mentions | Tools called |",
-            "|---|---|---|---|---|---|",
+            "| Provider | Model | Passed | Tool selection | Numbers right | Refusals right | Wrongly refused | Mentions | Errors | Avg time per question | Slowest | Cost of the run |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|",
         ]
-        mark = {True: "pass", False: "FAIL"}
-        for r in rows:
+        for run in runs:
+            m = summary(run)
             lines.append(
-                f"| `{r['id']}` | {r['category']} | {mark[r['tools']]} | {mark[r['numbers']]} | "
-                f"{mark[r['mentions']]} | {', '.join(r['called']) or '-'} |"
+                f"| {run['provider']} | `{run['model']}` | **{m['passed']} / {m['n']}** | {m['tools']} / {m['n']} | "
+                f"{m['numbers']} / {m['n_numbers']} | {m['refusals']} / {m['n_refusals']} | {m['false_refusals']} | "
+                f"{m['mentions']} / {m['n']} | {m['errors']} | {m['avg_seconds']:.0f} s | {m['max_seconds']:.0f} s | {m['cost']} |"
             )
-        failed = [r for r in rows if not r["passed"]]
-        if failed:
-            lines += ["", "### Answers that failed", ""]
-            for r in failed:
-                short = r["answer"].replace("\n", " ")[:600]
-                lines += [
-                    f"- `{r['id']}`{' (causal wording: ' + ', '.join(r['causal']) + ')' if r['causal'] else ''}: {short}"
-                ]
+        mark = {True: "pass", False: "FAIL"}
+        for run in runs:
+            m = summary(run)
+            lines += [
+                "",
+                f"### {run['provider']} `{run['model']}` ({run['date']})",
+                "",
+                f"Tokens: {m['tokens_in']:,} in, {m['tokens_out']:,} out.",
+                "",
+                "| Question | Category | Tools | Numbers | Mentions | Time | Tools called |",
+                "|---|---|---|---|---|---|---|",
+            ]
+            for r in run["rows"]:
+                lines.append(
+                    f"| `{r['id']}` | {r['category']} | {mark[r['tools']]} | {mark[r['numbers']]} | "
+                    f"{mark[r['mentions']]} | {r['seconds']:.0f} s | {', '.join(r['called']) or '-'} |"
+                )
+            failed = [r for r in run["rows"] if not r["passed"]]
+            if failed:
+                lines += ["", "Answers that failed (first 400 characters):", ""]
+                for r in failed:
+                    short = (r["error"] or r["answer"]).replace("\n", " ").replace("|", "/")[:400]
+                    extra = f" (causal wording: {', '.join(r['causal'])})" if r["causal"] else ""
+                    lines.append(f"- `{r['id']}`{extra}: {short or '(empty answer)'}")
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
@@ -200,30 +298,37 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--offline", action="store_true", help="check the question set only")
     parser.add_argument(
+        "--report-only", action="store_true", help="rebuild the report from saved runs"
+    )
+    parser.add_argument(
         "--no-report", action="store_true", help="do not rewrite docs/ai_analyst_eval.md"
     )
+    parser.add_argument(
+        "--provider", choices=["ollama", "anthropic"], help="override ESG_AI_PROVIDER"
+    )
+    parser.add_argument("--model", help="override ESG_AI_MODEL")
     args = parser.parse_args(argv)
+    if args.provider:
+        os.environ["ESG_AI_PROVIDER"] = args.provider
+    if args.model:
+        os.environ["ESG_AI_MODEL"] = args.model
 
     questions = load()
     offline = {q["id"]: check_offline(q) for q in questions}
     for qid, problems in offline.items():
-        print(f"{qid:<40} {'ok' if not problems else '; '.join(problems)}")
-    rows = None
-    if not args.offline and agent.is_enabled():
-        rows = []
-        for q in questions:
-            result = score(q, agent.ask(q["question"]))
-            rows.append(result)
-            print(
-                f"{q['id']:<40} {'PASS' if result['passed'] else 'FAIL'}  tools={result['called']}"
-            )
-    elif not args.offline:
-        print(f"AI analyst switched off ({agent.disabled_reason()}): live evaluation not run")
+        print(f"{qid:<42} {'ok' if not problems else '; '.join(problems)}")
+    run = None
+    if not (args.offline or args.report_only):
+        if agent.is_enabled():
+            run = run_live(questions, agent.provider_name(), agent.model_name())
+            print(f"saved {save(run).relative_to(ROOT)}")
+        else:
+            print(f"AI analyst switched off ({agent.disabled_reason()}): live evaluation not run")
     if not args.no_report:
-        write_report(rows, offline, agent.model_name())
+        write_report(saved_runs(), offline)
         print(f"written {REPORT.relative_to(ROOT)}")
     consistent = not any(offline.values())
-    return 0 if consistent and (rows is None or all(r["passed"] for r in rows)) else 1
+    return 0 if consistent and (run is None or all(r["passed"] for r in run["rows"])) else 1
 
 
 if __name__ == "__main__":

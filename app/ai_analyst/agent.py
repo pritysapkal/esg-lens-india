@@ -1,28 +1,34 @@
-"""The AI analyst: Claude answers questions about the public data by calling the fixed tools in
-app/ai_analyst/tools.py, and nothing else. A manual tool-use loop, so every call and every
-number it saw is recorded and shown next to the answer.
+"""The AI analyst: a language model answers questions about the public data by calling the fixed
+tools in app/ai_analyst/tools.py, and nothing else. A manual tool-use loop, so every call and
+every number it saw is recorded and shown next to the answer. The same loop, tools, guardrails,
+limits and refusal handling serve both providers (app/ai_analyst/providers.py).
 
-OFF unless BOTH are set (environment variable or Streamlit secret, nowhere else):
-    ESG_AI_ENABLED      "true"
-    ANTHROPIC_API_KEY   the key
+OFF unless switched on (environment variable or Streamlit secret, nowhere else):
+    ESG_AI_ENABLED      "true" - required for either provider
+    ESG_AI_PROVIDER     ollama (default: a free local model, no key) | anthropic
+    ANTHROPIC_API_KEY   required for the anthropic provider only
 Optional:
-    ESG_AI_MODEL        model id, default claude-haiku-4-5
-    ESG_AI_EFFORT       low | medium | high; sent only when set (claude-haiku-4-5 rejects it)
+    ESG_AI_MODEL        default qwen2.5:3b (ollama) or claude-haiku-4-5 (anthropic)
+    OLLAMA_HOST         default http://127.0.0.1:11434
+    ESG_AI_EFFORT       anthropic only; sent only when set (claude-haiku-4-5 rejects it)
 
 Hard limits (LIMITS below; docs/ai_analyst.md): questions per session, tool calls per question,
 output tokens per response, question length, request timeout. A refusal by the model stays a
-refusal: there is no retry on another model.
+refusal: there is no retry on another model. The public deployment never switches it on.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass, field
 
+from app.ai_analyst import providers
 from app.ai_analyst import tools as analyst_tools
 
-DEFAULT_MODEL = "claude-haiku-4-5"
+DEFAULT_PROVIDER = providers.OLLAMA
+DEFAULT_MODEL = providers.DEFAULT_MODELS[providers.ANTHROPIC]  # the default of the paid provider
 REFUSAL_PREFIX = "I can't answer that from the ESG Lens India public data"
 
 
@@ -32,7 +38,11 @@ class Limits:
     tool_calls_per_question: int = 4
     max_output_tokens: int = 1500  # per response; answers are short by instruction
     max_question_chars: int = 500
-    timeout_seconds: float = 30.0  # per request
+    timeout_seconds: float = 30.0  # per request to the Anthropic API
+    local_timeout_seconds: float = (
+        180.0  # per request to Ollama: a small model on a laptop CPU is slow
+    )
+    local_context_tokens: int = 8192  # Ollama context window (its default would cut the prompt)
     max_retries: int = 1  # the SDK retries only connection errors, 408, 409, 429 and 5xx
 
     @property
@@ -102,6 +112,8 @@ class Answer:
     input_tokens: int = 0
     output_tokens: int = 0
     refusal_category: str | None = None
+    provider: str = ""
+    seconds: float = 0.0  # wall-clock time of the whole question
 
     @property
     def model_refused(self) -> bool:
@@ -136,32 +148,58 @@ def setting(name: str) -> str | None:
     return str(value) if value else None
 
 
+def provider_name() -> str:
+    name = (setting("ESG_AI_PROVIDER") or DEFAULT_PROVIDER).strip().lower()
+    return name if name in providers.PROVIDERS else f"unknown:{name}"
+
+
+def _switched_on() -> bool:
+    return (setting("ESG_AI_ENABLED") or "").strip().lower() == "true"
+
+
 def is_enabled() -> bool:
-    """On only when ESG_AI_ENABLED is "true" AND an API key is set."""
-    switch = (setting("ESG_AI_ENABLED") or "").strip().lower() == "true"
-    return switch and bool(setting("ANTHROPIC_API_KEY"))
+    """On only when ESG_AI_ENABLED is "true", the provider is known and - for the anthropic
+    provider - an API key is set. The local provider needs no key."""
+    if not _switched_on():
+        return False
+    name = provider_name()
+    if name == providers.ANTHROPIC:
+        return bool(setting("ANTHROPIC_API_KEY"))
+    return name == providers.OLLAMA
 
 
 def disabled_reason() -> str:
-    switch = (setting("ESG_AI_ENABLED") or "").strip().lower() == "true"
-    if not switch:
+    if not _switched_on():
         return "ESG_AI_ENABLED is not set to true"
+    name = provider_name()
+    if name not in providers.PROVIDERS:
+        return f"ESG_AI_PROVIDER must be one of {', '.join(providers.PROVIDERS)}"
     return "no ANTHROPIC_API_KEY is set"
 
 
-def model_name() -> str:
-    return setting("ESG_AI_MODEL") or DEFAULT_MODEL
+def model_name(provider: str | None = None) -> str:
+    provider = provider or provider_name()
+    return setting("ESG_AI_MODEL") or providers.DEFAULT_MODELS.get(provider, DEFAULT_MODEL)
 
 
-def _client():
-    import anthropic
-
-    # the key is passed explicitly, so the SDK never falls back to another credential source
-    return anthropic.Anthropic(
-        api_key=setting("ANTHROPIC_API_KEY"),
-        timeout=LIMITS.timeout_seconds,
-        max_retries=LIMITS.max_retries,
-    )
+def make_provider(name: str | None = None, client=None):
+    """The provider object, with the limits applied (timeouts, retries, context window)."""
+    name = name or provider_name()
+    if name == providers.ANTHROPIC:
+        return providers.AnthropicProvider(
+            client=client,
+            api_key=setting("ANTHROPIC_API_KEY"),
+            timeout=LIMITS.timeout_seconds,
+            max_retries=LIMITS.max_retries,
+        )
+    if name == providers.OLLAMA:
+        return providers.OllamaProvider(
+            client=client,
+            host=setting("OLLAMA_HOST"),
+            timeout=LIMITS.local_timeout_seconds,
+            num_ctx=LIMITS.local_context_tokens,
+        )
+    raise ValueError(f"unknown provider {name!r}")
 
 
 def check_question(question: str, asked_so_far: int = 0) -> str:
@@ -181,80 +219,70 @@ def check_question(question: str, asked_so_far: int = 0) -> str:
     return question
 
 
-def _request(model: str, messages: list, tool_schemas: list[dict], allow_tools: bool) -> dict:
-    request = {
-        "model": model,
-        "max_tokens": LIMITS.max_output_tokens,
-        "system": SYSTEM_PROMPT,
-        "tools": tool_schemas,
-        "messages": messages,
-    }
-    if not allow_tools:
-        request["tool_choice"] = {"type": "none"}
-    effort = setting("ESG_AI_EFFORT")
-    if effort:
-        request["output_config"] = {"effort": effort}
-    return request
-
-
 def ask(
-    question: str, client=None, model: str | None = None, history: list | None = None
+    question: str,
+    client=None,
+    model: str | None = None,
+    history: list | None = None,
+    provider: str | None = None,
 ) -> Answer:
-    """Answer one question within the limits. `history` holds earlier turns to continue a chat."""
+    """Answer one question within the limits. `client` replaces the provider's client (tests);
+    `history` holds earlier turns in the provider's message format."""
     question = check_question(question)
-    client = client or _client()
-    model = model or model_name()
-    tool_schemas = [tool.schema() for tool in analyst_tools.tools()]
-    messages = list(history or []) + [{"role": "user", "content": question}]
-    answer = Answer(text="", model=model)
+    name = provider or provider_name()
+    backend = make_provider(name, client=client)
+    model = model or model_name(name)
+    session = backend.session(
+        model, SYSTEM_PROMPT, analyst_tools.tools(), question, history,
+        LIMITS.max_output_tokens, setting("ESG_AI_EFFORT") if name == providers.ANTHROPIC else None,
+    )  # fmt: skip
+    answer = Answer(text="", model=model, provider=name)
+    started = time.perf_counter()
+
+    def done(text: str, stop_reason: str | None = None) -> Answer:
+        answer.text = text
+        if stop_reason:
+            answer.stop_reason = stop_reason
+        answer.seconds = time.perf_counter() - started
+        return answer
 
     for _ in range(LIMITS.max_requests_per_question):
         allow_tools = len(answer.calls) < LIMITS.tool_calls_per_question
-        response = client.messages.create(**_request(model, messages, tool_schemas, allow_tools))
-        usage = getattr(response, "usage", None)
-        answer.input_tokens += getattr(usage, "input_tokens", 0) or 0
-        answer.output_tokens += getattr(usage, "output_tokens", 0) or 0
-        answer.stop_reason = response.stop_reason
-        answer.model = getattr(response, "model", model) or model
-        if response.stop_reason == "refusal":
+        turn = session.respond(allow_tools)
+        answer.input_tokens += turn.input_tokens
+        answer.output_tokens += turn.output_tokens
+        answer.stop_reason = turn.stop_reason
+        answer.model = turn.model or model
+        if turn.stop_reason == "refusal":
             # a refusal stays a refusal: shown to the user, never retried on another model
-            details = getattr(response, "stop_details", None)
-            answer.refusal_category = getattr(details, "category", None)
-            answer.text = (
+            answer.refusal_category = turn.refusal_category
+            return done(
                 "The model declined to answer this question (a safety refusal by the model, "
                 "not by ESG Lens India). Try asking about the published figures instead."
             )
-            return answer
-        messages.append({"role": "assistant", "content": response.content})
-        uses = [block for block in response.content if getattr(block, "type", "") == "tool_use"]
-        if response.stop_reason != "tool_use" or not uses:
-            answer.text = "\n".join(
-                block.text for block in response.content if getattr(block, "type", "") == "text"
-            ).strip()
-            if response.stop_reason == "max_tokens":
-                answer.text += "\n\n(The answer was cut off at the output limit.)"
-            return answer
+        if not turn.tool_uses:
+            text = turn.text
+            if turn.stop_reason == "max_tokens":
+                text += "\n\n(The answer was cut off at the output limit.)"
+            return done(text)
         results = []
-        for block in uses:
+        for use in turn.tool_uses:
             if len(answer.calls) >= LIMITS.tool_calls_per_question:
                 # over the limit: the call is not run, the model is told to answer now
-                results.append({"type": "tool_result", "tool_use_id": block.id,
-                                "content": json.dumps({"error": LIMIT_REACHED}), "is_error": True})  # fmt: skip
+                results.append((use, json.dumps({"error": LIMIT_REACHED}), True))
                 continue
-            call = ToolCall(block.name, dict(block.input or {}))
+            call = ToolCall(use.name, dict(use.arguments))
             try:
-                call.result = analyst_tools.call(block.name, call.arguments)
-                content, is_error = json.dumps(call.result, default=str), False
+                call.result = analyst_tools.call(use.name, call.arguments)
+                results.append((use, json.dumps(call.result, default=str), False))
             except analyst_tools.ToolArgumentError as error:
                 call.error = str(error)
-                content, is_error = json.dumps({"error": call.error}), True
+                results.append((use, json.dumps({"error": call.error}), True))
             answer.calls.append(call)
-            results.append({"type": "tool_result", "tool_use_id": block.id, "content": content, "is_error": is_error})  # fmt: skip
-        messages.append({"role": "user", "content": results})
+        session.add_tool_results(results)
 
-    answer.text = (
+    return done(
         "I stopped at the limit of requests for one question without a final answer. "
-        "Please ask a narrower question."
+        "Please ask a narrower question.",
+        "max_turns",
     )
-    answer.stop_reason = "max_turns"
-    return answer

@@ -226,7 +226,7 @@ def company_percentiles(company: str, year: str, kpi: str | None = None) -> dict
         for _, r in rows.sort_values("kpi_name").iterrows()
     ]
     notes = _year_notes([year]) + [
-        "Percentile 100 = best in the ranking group; rank 1 = best. A filed value is never shown (value_if_public is empty)."
+        "Percentile 100 = best in the ranking group; rank 1 = best. A filed value is never shown (its value stays empty)."
     ]
     return {
         "company": row["display_name"],

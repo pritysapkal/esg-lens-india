@@ -123,36 +123,78 @@ st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
 positions = percentiles[
     (percentiles["isin"] == company["isin"]) & (percentiles["fiscal_year_label"] == year)
 ].copy()
+positions["Pillar"] = positions["kpi_name"].map(lambda k: labels.KPI_INFO.get(k, ("", "Other"))[1])
 positions["Ranking"] = [
     labels.ranking_status(r, why)
     for r, why in zip(positions["is_ranked"], positions["reason_not_ranked"], strict=True)
 ]
-ranked = positions[positions["is_ranked"].astype(bool)].sort_values("percentile_in_group")
-if not ranked.empty:
-    st.markdown(f"**Percentile in {company['ranking_group']}** (100 = best in the group)")
-    figure = go.Figure(
-        go.Bar(
-            x=ranked["percentile_in_group"],
-            y=ranked["kpi_label"],
-            orientation="h",
-            marker={"color": ui.ACCENT, "cornerradius": 4},
-            text=ranked["percentile_in_group"].map(lambda v: f"{v:.0f}"),
-            textposition="outside",
-            hovertemplate="%{y}: percentile %{x:.1f}<extra></extra>",
-        )
+ranked = positions[positions["is_ranked"].astype(bool)]
+not_ranked = positions[~positions["is_ranked"].astype(bool)]
+
+st.markdown(
+    f"**Percentile in {company['ranking_group']}, {year}** - 100 = best in the group, 50 = the middle. "
+    f"Blue = better half, orange = worse half."
+)
+for pillar in labels.PILLARS:
+    rows = ranked[ranked["Pillar"] == pillar].sort_values(
+        ["percentile_in_group", "kpi_label"], ascending=[False, True]
     )
+    if rows.empty:
+        continue
+    st.markdown(f"*{pillar}*")
+    better = rows["percentile_in_group"] >= 50
+    colours = [ui.BETTER if b else ui.WORSE for b in better]
+    figure = go.Figure()
+    figure.add_trace(
+        go.Bar(
+            x=rows["percentile_in_group"], y=rows["kpi_label"], orientation="h", showlegend=False,
+            marker={"color": colours, "cornerradius": 4},
+            text=[f"{v:.0f}" for v in rows["percentile_in_group"]], textposition="outside", cliponaxis=False,
+            textfont={"size": ui.CHART_FONT_SIZE},
+            customdata=rows[["rank_in_group", "n_in_group"]],
+            hovertemplate="%{y}<br>percentile %{x:.1f}, rank %{customdata[0]} of %{customdata[1]}<extra></extra>",
+        )
+    )  # fmt: skip
+    # a marker on every value, so that a percentile of 0 is still visible (a bar of length 0 is not)
+    figure.add_trace(
+        go.Scatter(
+            x=rows["percentile_in_group"], y=rows["kpi_label"], mode="markers", showlegend=False, hoverinfo="skip",
+            marker={"color": colours, "size": 10, "symbol": "line-ns", "line": {"width": 3, "color": colours}},
+        )
+    )  # fmt: skip
     figure.add_vline(x=50, line={"color": ui.NEUTRAL, "dash": "dot", "width": 1})
-    figure.update_layout(height=40 + 32 * len(ranked), margin={"l": 0, "r": 30, "t": 10, "b": 30},
-                         xaxis={"range": [0, 108], "title": "percentile (100 = best)"}, yaxis={"title": None})  # fmt: skip
-    st.plotly_chart(figure, width="stretch")
-with st.expander("All KPIs: percentile, rank and why a KPI is not ranked"):
+    figure.update_layout(
+        height=60 + 36 * len(rows), margin={"l": 270, "r": 40, "t": 6, "b": 36}, font={"size": ui.CHART_FONT_SIZE},
+        xaxis={"range": [-3, 108], "tickvals": [0, 25, 50, 75, 100], "title": "percentile (100 = best)"},
+        yaxis={"title": None, "autorange": "reversed", "automargin": False}, bargap=0.35,
+    )  # fmt: skip
+    st.plotly_chart(ui.readable(figure), width="stretch")
+
+if not not_ranked.empty:
+    st.markdown(
+        "**Not ranked** - these KPIs have a value but no place in the group, for the reason given"
+    )
+    table = not_ranked.assign(order=not_ranked["Pillar"].map(labels.PILLARS.index)).sort_values(
+        ["order", "kpi_label"]
+    )
     st.dataframe(
-        positions[["kpi_label", "percentile_in_group", "rank_in_group", "n_in_group", "Ranking", "kpi_value_public"]]
-        .rename(columns={"kpi_label": "KPI", "percentile_in_group": "Percentile", "rank_in_group": "Rank",
+        table[["Pillar", "kpi_label", "Ranking", "n_in_group"]].rename(
+            columns={"kpi_label": "KPI", "Ranking": "Why not ranked", "n_in_group": "Companies in group"}
+        ),
+        hide_index=True, width="stretch",
+    )  # fmt: skip
+
+with st.expander("All KPIs as a table: percentile, rank and value"):
+    table = positions.assign(order=positions["Pillar"].map(labels.PILLARS.index)).sort_values(
+        ["order", "percentile_in_group", "kpi_label"], ascending=[True, False, True]
+    )
+    st.dataframe(
+        table[["Pillar", "kpi_label", "percentile_in_group", "rank_in_group", "n_in_group", "Ranking", "kpi_value_public"]]
+        .rename(columns={"kpi_label": "KPI", "percentile_in_group": "Percentile (100 = best)", "rank_in_group": "Rank (1 = best)",
                          "n_in_group": "Companies in group", "kpi_value_public": "Value (computed KPIs only)"}),
         hide_index=True, width="stretch",
     )  # fmt: skip
     st.caption(
-        "Filed values (for example a filed percentage) are not public, so their value column stays empty; the position is ours and is shown."
+        "Filed values (for example a filed percentage) are not public, so their value stays empty; the position is ours and is shown."
     )
 ui.footer()

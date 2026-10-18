@@ -90,7 +90,11 @@ def test_every_page_runs_and_opens_only_public_files(monkeypatch):
     data_files = [
         p
         for p in opened
-        if p.suffix in (".parquet", ".duckdb", ".csv", ".xlsx", ".json") and ROOT in p.parents
+        if p.suffix in (".parquet", ".duckdb", ".csv", ".xlsx", ".json")
+        and ROOT in p.parents
+        # installed libraries read their own package data (Plotly templates): not project data
+        and (ROOT / ".venv") not in p.parents
+        and "site-packages" not in p.parts
     ]
     assert data_files, "the audit hook saw no data file being opened"
     outside = [p for p in data_files if PUBLIC.resolve() not in p.parents]
@@ -99,18 +103,64 @@ def test_every_page_runs_and_opens_only_public_files(monkeypatch):
 
 
 @needs_public
-def test_ai_page_says_disabled_without_a_key(monkeypatch):
+def test_visitors_get_guided_questions_and_a_friendly_note(monkeypatch):
+    """The public deployment: the analyst is off (a key alone does not switch it on), the guided
+    questions answer, and the note for visitors has no setup details in it."""
     from streamlit.testing.v1 import AppTest
 
-    # a key alone is not enough: the analyst stays off until ESG_AI_ENABLED=true as well
     monkeypatch.delenv("ESG_AI_ENABLED", raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
     app = AppTest.from_file(str(APP / "streamlit_app.py"), default_timeout=60)
     app.run()
     app.switch_page("views/ai_analyst.py").run()
     assert not app.exception
-    assert any("switched off" in info.value and "ESG_AI_ENABLED" in info.value for info in app.info)
-    assert not app.chat_input  # no way to ask while it is off
+    assert app.radio and app.radio[0].value == "group"  # guided questions are the default
+    assert any("Query used:" in c.value for c in app.caption)
+    notes = [info.value for info in app.info]
+    assert any("not available on this public site" in n and "video" in n for n in notes)
+    for technical in (
+        "ESG_AI_ENABLED",
+        "ANTHROPIC_API_KEY",
+        "ESG_AI_PROVIDER",
+        "Ollama",
+        "secrets",
+        "environment",
+    ):
+        assert not any(technical in n for n in notes), technical
+    assert not app.chat_input  # no way to send a free-text question while it is off
+
+
+@needs_public
+def test_no_page_shows_a_raw_column_name(monkeypatch):
+    """Every table on every page - and every guided question type - has reader-facing headers."""
+    from streamlit.testing.v1 import AppTest
+
+    from app import guided
+
+    monkeypatch.delenv("ESG_AI_ENABLED", raising=False)
+    app = AppTest.from_file(str(APP / "streamlit_app.py"), default_timeout=60)
+    app.run()
+    seen = 0
+
+    def check(where: str) -> None:
+        nonlocal seen
+        assert not app.exception, (where, app.exception)
+        for frame in app.dataframe:
+            value = frame.value
+            names = [*map(str, value.columns), *[str(n) for n in value.index.names if n]]
+            raw = [n for n in names if "_" in n]
+            assert not raw, f"{where}: raw column names {raw}"
+            seen += 1
+
+    check("overview")
+    for page in PAGES[1:]:
+        app.switch_page(page).run()
+        check(page)
+    app.switch_page("views/ai_analyst.py").run()
+    for question in guided.QUESTION_TYPES:
+        app.radio[0].set_value(question.key).run()
+        check(f"guided {question.key}")
+    assert seen >= 10
 
 
 # ------------------------------------------------------------------ labels

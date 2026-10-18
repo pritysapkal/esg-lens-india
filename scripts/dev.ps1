@@ -156,7 +156,8 @@ try {
         }
         'eval' {
             # AI analyst evaluation (evals/ai_analyst_questions.yaml) -> docs/ai_analyst_eval.md.
-            # The live part needs ESG_AI_ENABLED=true and ANTHROPIC_API_KEY; without them only the question set is checked.
+            # The live part needs ESG_AI_ENABLED=true (free local model through Ollama by default; with
+            # ESG_AI_PROVIDER=anthropic also ANTHROPIC_API_KEY); without it only the question set is checked.
             Assert-Venv
             Invoke-Step $Py @('scripts/eval_ai_analyst.py')
         }

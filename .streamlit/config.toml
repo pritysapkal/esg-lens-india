@@ -5,3 +5,7 @@ gatherUsageStats = false
 [theme]
 primaryColor = "#2a78d6"
 font = "sans serif"
+
+[client]
+# visitors see no developer menu (Deploy, rerun settings)
+toolbarMode = "viewer"

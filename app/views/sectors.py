@@ -29,6 +29,8 @@ rows["shown"] = [labels.group_cell(row, metric) for _, row in rows.iterrows()]
 wide = rows.pivot(index="group_value", columns="fiscal_year_label", values="shown")
 order = [g for g in sorted(wide.index) if g != "All companies"] + ["All companies"]
 wide = wide.reindex(order)
+wide.index.name = "Group"
+wide.columns.name = None
 digits = 1 if unit in ("%", "points (0-100)") else 2
 st.markdown(f"**{label}** ({unit})")
 st.dataframe(wide.map(lambda v: labels.fmt(v, digits)), width="stretch")
@@ -52,8 +54,10 @@ if not numeric.empty:
     figure.update_layout(height=420, margin={"l": 0, "r": 10, "t": 10, "b": 10}, hovermode="x unified",
                          yaxis={"title": unit}, legend={"orientation": "h", "y": -0.15})  # fmt: skip
     if metric.startswith(("ghg_", "energy_", "water_", "waste_")):
-        figure.update_yaxes(type="log", title=f"{unit} (log scale)")
-    st.plotly_chart(figure, width="stretch")
+        figure.update_yaxes(
+            type="log", title=f"{unit} (log scale)", **ui.log_ticks(numeric["shown"].astype(float))
+        )
+    st.plotly_chart(ui.readable(figure), width="stretch")
     withheld = rows[rows["shown"].map(lambda v: isinstance(v, str) and v.startswith("n<5"))]
     if not withheld.empty:
         st.caption(
@@ -68,6 +72,9 @@ with st.expander("Companies behind each figure"):
     counts = groups[groups["group_type"].isin([group_type, "all"])].pivot(
         index="group_value", columns="fiscal_year_label", values=gate
     )
-    st.dataframe(counts.reindex(order).astype("Int64"), width="stretch")
-st.caption("Source table: rpt_public_group_metrics.")
+    counts = counts.reindex(order).astype("Int64")
+    counts.index.name = "Group"
+    counts.columns.name = None
+    st.dataframe(counts, width="stretch")
+st.caption("Source: the public table of group figures (rpt_public_group_metrics).")
 ui.footer()
