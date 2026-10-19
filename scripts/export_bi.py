@@ -9,8 +9,10 @@ Two folders, two audiences (docs/publication_policy.md):
   exports/local/   the star schema with every column, including the filed values behind the
                    ratio-of-sums measures, and the Week 10 result tables. Gitignored, never
                    shared: it holds raw filed values.
-  exports/public/  ONLY the six rpt_public_* models, plus the Excel workbook built from them.
+  exports/public/  ONLY the seven rpt_public_* models, plus the Excel workbook built from them.
                    Nothing else may land here; the script refuses to finish if it does.
+                   Fractional values are rounded to PUBLIC_DECIMALS (6) decimals, so the
+                   committed files change only when the data does.
 
 Power BI reads these files through the ExportFolder parameter (powerbi/, see
 docs/powerbi_build_guide.md). Rebuild with `.\\scripts\\dev.ps1 bi-export` after every dbt build.
@@ -87,6 +89,10 @@ PUBLIC_TABLES: dict[str, str] = {
     )
 }
 PUBLIC_FILES = {f"{name}.parquet" for name in PUBLIC_TABLES} | {PUBLIC_WORKBOOK}
+# Fractional columns of the public files are rounded to this many decimals, so that a rebuild on
+# the same data writes the same bytes: floating-point noise in the last digits (summation order,
+# DuckDB threads) would otherwise change the committed Parquet files without any real change.
+PUBLIC_DECIMALS = 6
 
 # Week 10 results that the local Power BI model loads (all of them are exported).
 ANALYSIS_IN_MODEL = [
@@ -120,16 +126,25 @@ def describe(con: duckdb.DuckDBPyConnection, sql: str) -> list[tuple[str, str]]:
     return [(name, str(kind)) for name, kind in zip(relation.columns, relation.types, strict=True)]
 
 
-def portable(con: duckdb.DuckDBPyConnection, sql: str) -> str:
+def portable(con: duckdb.DuckDBPyConnection, sql: str, decimals: int | None = None) -> str:
     """The query with DECIMAL and HUGEINT columns cast to DOUBLE and BIGINT, so that Power BI
-    and Excel see plain numbers (Parquet decimals load as fixed decimals in Power BI)."""
+    and Excel see plain numbers (Parquet decimals load as fixed decimals in Power BI). With
+    `decimals`, every fractional column (DOUBLE, FLOAT, DECIMAL) is also rounded to that many
+    decimals; whole-number columns are exact already."""
     columns = describe(con, sql)
-    if not any(kind.startswith(("DECIMAL", "HUGEINT")) for _, kind in columns):
+    fractional = ("DECIMAL", "DOUBLE", "FLOAT", "REAL")
+    if not any(
+        kind.startswith(("DECIMAL", "HUGEINT"))
+        or (decimals is not None and kind.startswith(fractional))
+        for _, kind in columns
+    ):
         return sql
     parts = []
     for name, kind in columns:
         quoted = '"' + name.replace('"', '""') + '"'
-        if kind.startswith("DECIMAL"):
+        if decimals is not None and kind.startswith(fractional):
+            parts.append(f"round(cast({quoted} as double), {decimals}) as {quoted}")
+        elif kind.startswith("DECIMAL"):
             parts.append(f"cast({quoted} as double) as {quoted}")
         elif kind.startswith("HUGEINT"):
             parts.append(f"cast({quoted} as bigint) as {quoted}")
@@ -138,9 +153,15 @@ def portable(con: duckdb.DuckDBPyConnection, sql: str) -> str:
     return f"select {', '.join(parts)} from ({sql}) as exported"
 
 
-def _write(con: duckdb.DuckDBPyConnection, sql: str, path: Path) -> int:
+def _write(
+    con: duckdb.DuckDBPyConnection, sql: str, path: Path, decimals: int | None = None
+) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
-    relation = con.sql(portable(con, sql))
+    query = portable(con, sql, decimals)
+    if decimals is not None:
+        # sort again after rounding: rows that differed only by noise keep a fixed order
+        query = f"select * from ({query}) as rounded order by all"
+    relation = con.sql(query)
     relation.write_parquet(str(path))
     return len(relation)
 
@@ -183,7 +204,8 @@ def export_local(con: duckdb.DuckDBPyConnection, folder: Path) -> dict[str, int]
 def export_public(con: duckdb.DuckDBPyConnection, folder: Path) -> dict[str, int]:
     _clear(folder)
     rows = {
-        name: _write(con, sql, folder / f"{name}.parquet") for name, sql in PUBLIC_TABLES.items()
+        name: _write(con, sql, folder / f"{name}.parquet", PUBLIC_DECIMALS)
+        for name, sql in PUBLIC_TABLES.items()
     }
     assert_public_only(folder)
     return rows

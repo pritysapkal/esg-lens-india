@@ -11,6 +11,12 @@ __pycache__/
 .env.*
 !.env.example
 **/.streamlit/secrets.toml
+# Google credential files. Not used: the Gemini key is only an environment variable (or .env /
+# Streamlit secret); these stop one from being committed by accident.
+client_secret*.json
+*service-account*.json
+*service_account*.json
+application_default_credentials.json
 
 # Data: keep the folder skeleton (.gitkeep), ignore contents
 data/**

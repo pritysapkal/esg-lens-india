@@ -48,4 +48,4 @@ dbt-docs:
 	cd dbt && $(DBT) docs generate $(DBTARGS) && $(DBT) docs serve $(DBTARGS)
 
 app:
-	$(PY) -m streamlit run app/streamlit_app.py
+	$(PY) scripts/run_local.py -m streamlit run app/streamlit_app.py

@@ -1,7 +1,11 @@
-"""Ask the data: guided questions (always on, no language model) and, when switched on locally,
-the AI analyst. Both answer through the same validated tools over the public tables."""
+"""Ask the data: guided questions (always on, no language model) and, when switched on, the AI
+analyst. Both answer through the same validated tools over the public tables. When the analyst's
+provider cannot answer (Gemini quota used up, key missing, API error) the page says so in plain
+words and the guided questions carry on."""
 
 from __future__ import annotations
+
+import logging
 
 import pandas as pd
 import streamlit as st
@@ -95,12 +99,26 @@ with st.container(border=True):
     show_notes(answer.notes)
     st.caption(f"Query used: `{answer.call_text}` on the public table {answer.source}.")
 
-# ------------------------------------------------------------------ the AI analyst (local only)
+# ------------------------------------------------------------------ the AI analyst (when switched on)
+
+GUIDED_STILL_WORKS = "The guided questions above answer the same data and always work."
+UNAVAILABLE = {  # what a reader is told when the provider cannot answer; no setup details
+    "quota": "Free-text questions are paused: the free AI quota is used up for now. "
+    + GUIDED_STILL_WORKS,
+    "auth": "Free-text questions are not available right now. " + GUIDED_STILL_WORKS,
+    "error": "The AI analyst could not answer just now (the AI service did not respond). "
+    "Please try again in a minute. " + GUIDED_STILL_WORKS,
+}
+GOOGLE_NOTICE = (
+    "Questions are sent to Google's Gemini API; on the free tier Google may use them to improve "
+    "its products. Please do not type personal information."
+)
 
 st.subheader("Ask in your own words")
-if not agent.is_enabled():
+if not agent.switched_on():
+    # the default, and the public site unless Gemini is switched on there
     st.info(
-        "Free-text questions with an AI model are not available on this public site. The guided "
+        "Free-text questions with an AI model are not switched on for this site. The guided "
         "questions above cover the same data, and a demonstration of the AI analyst is shown in "
         "the project video.",
         icon=":material/forum:",
@@ -108,12 +126,28 @@ if not agent.is_enabled():
     ui.footer()
     st.stop()
 
+paused = st.session_state.get("analyst_unavailable")
+if paused or not agent.is_enabled():
+    # switched on, but the provider cannot answer: missing key, or quota / key failure earlier in
+    # this session. The reason goes to the terminal / app log, never to the page.
+    if not paused:
+        logging.getLogger(__name__).warning("AI analyst unavailable: %s", agent.disabled_reason())
+    st.info(UNAVAILABLE[paused or "auth"], icon=":material/forum:")
+    ui.footer()
+    st.stop()
+
 limits = agent.LIMITS
 if "analyst_history" not in st.session_state:
     st.session_state.analyst_history = []
 asked = len(st.session_state.analyst_history)
+where = {
+    "gemini": f"Google Gemini ({agent.model_name()})",
+    "anthropic": f"Claude ({agent.model_name()})",
+}.get(agent.provider_name(), f"a model on this computer ({agent.model_name()})")
+if agent.sends_questions_to_google():
+    st.info(GOOGLE_NOTICE, icon=":material/info:")
 st.caption(
-    f"AI analyst on this computer: {agent.model_name()}. Question {min(asked + 1, limits.questions_per_session)} of "
+    f"AI analyst: {where}. Question {min(asked + 1, limits.questions_per_session)} of "
     f"{limits.questions_per_session} this session; at most {limits.tool_calls_per_question} queries per question. "
     "Answers describe associations, not causes, and are not investment advice."
 )
@@ -190,10 +224,18 @@ if question:
     with st.chat_message("assistant"), st.spinner("Looking it up in the public tables ..."):
         try:
             reply = agent.ask(question)
+        except agent.ProviderUnavailable as error:
+            logging.getLogger(__name__).warning("AI analyst unavailable: %s", error)
+            if error.reason in ("quota", "auth"):
+                # retrying cannot help in this session: pause free text, keep the guided questions
+                st.session_state.analyst_unavailable = error.reason
+            st.warning(UNAVAILABLE.get(error.reason, UNAVAILABLE["error"]))
+            ui.footer()
+            st.stop()
         except Exception as error:  # an API, network or local-model error must not break the page
-            st.error(
-                f"The analyst could not answer ({type(error).__name__}). Please try again later."
-            )
+            logging.getLogger(__name__).warning("AI analyst error: %r", error)
+            st.warning(UNAVAILABLE["error"])
+            ui.footer()
             st.stop()
         show_answer(reply)
     st.session_state.analyst_history.append((question, reply))

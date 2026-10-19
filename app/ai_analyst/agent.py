@@ -1,20 +1,24 @@
 """The AI analyst: a language model answers questions about the public data by calling the fixed
 tools in app/ai_analyst/tools.py, and nothing else. A manual tool-use loop, so every call and
 every number it saw is recorded and shown next to the answer. The same loop, tools, guardrails,
-limits and refusal handling serve both providers (app/ai_analyst/providers.py).
+limits and refusal handling serve all three providers (app/ai_analyst/providers.py).
 
 OFF unless switched on (environment variable or Streamlit secret, nowhere else):
-    ESG_AI_ENABLED      "true" - required for either provider
-    ESG_AI_PROVIDER     ollama (default: a free local model, no key) | anthropic
+    ESG_AI_ENABLED      "true" - required for every provider
+    ESG_AI_PROVIDER     ollama (default: a free local model, no key) | gemini | anthropic
+    GEMINI_API_KEY      required for the gemini provider only (Google AI Studio, free tier)
     ANTHROPIC_API_KEY   required for the anthropic provider only
 Optional:
-    ESG_AI_MODEL        default qwen2.5:3b (ollama) or claude-haiku-4-5 (anthropic)
+    ESG_AI_MODEL        default qwen2.5:3b (ollama), gemini-3.5-flash-lite (gemini) or
+                        claude-haiku-4-5 (anthropic)
     OLLAMA_HOST         default http://127.0.0.1:11434
     ESG_AI_EFFORT       anthropic only; sent only when set (claude-haiku-4-5 rejects it)
 
 Hard limits (LIMITS below; docs/ai_analyst.md): questions per session, tool calls per question,
 output tokens per response, question length, request timeout. A refusal by the model stays a
-refusal: there is no retry on another model. The public deployment never switches it on.
+refusal: there is no retry on another model. The public deployment may switch on gemini only
+(free tier, per-session limits, a notice to visitors; docs/streamlit_app.md); when Gemini cannot
+answer (quota, key, API error) the page falls back to the guided questions.
 """
 
 from __future__ import annotations
@@ -30,6 +34,8 @@ from app.ai_analyst import tools as analyst_tools
 DEFAULT_PROVIDER = providers.OLLAMA
 DEFAULT_MODEL = providers.DEFAULT_MODELS[providers.ANTHROPIC]  # the default of the paid provider
 REFUSAL_PREFIX = "I can't answer that from the ESG Lens India public data"
+ProviderUnavailable = providers.ProviderUnavailable
+API_KEYS = {providers.GEMINI: "GEMINI_API_KEY", providers.ANTHROPIC: "ANTHROPIC_API_KEY"}
 
 
 @dataclass(frozen=True)
@@ -38,7 +44,7 @@ class Limits:
     tool_calls_per_question: int = 4
     max_output_tokens: int = 1500  # per response; answers are short by instruction
     max_question_chars: int = 500
-    timeout_seconds: float = 30.0  # per request to the Anthropic API
+    timeout_seconds: float = 30.0  # per request to the Gemini or Anthropic API
     local_timeout_seconds: float = (
         180.0  # per request to Ollama: a small model on a laptop CPU is slow
     )
@@ -158,23 +164,34 @@ def _switched_on() -> bool:
 
 
 def is_enabled() -> bool:
-    """On only when ESG_AI_ENABLED is "true", the provider is known and - for the anthropic
-    provider - an API key is set. The local provider needs no key."""
+    """On only when ESG_AI_ENABLED is "true", the provider is known and - for the gemini and
+    anthropic providers - its API key is set. The local provider needs no key."""
     if not _switched_on():
         return False
     name = provider_name()
-    if name == providers.ANTHROPIC:
-        return bool(setting("ANTHROPIC_API_KEY"))
+    if name in API_KEYS:
+        return bool(setting(API_KEYS[name]))
     return name == providers.OLLAMA
 
 
+def switched_on() -> bool:
+    """ESG_AI_ENABLED is "true", whether or not the provider has what it needs."""
+    return _switched_on()
+
+
 def disabled_reason() -> str:
+    """Why the analyst is off - for the developer (terminal, eval), never shown to visitors."""
     if not _switched_on():
         return "ESG_AI_ENABLED is not set to true"
     name = provider_name()
     if name not in providers.PROVIDERS:
         return f"ESG_AI_PROVIDER must be one of {', '.join(providers.PROVIDERS)}"
-    return "no ANTHROPIC_API_KEY is set"
+    return f"no {API_KEYS.get(name, 'API key')} is set"
+
+
+def sends_questions_to_google() -> bool:
+    """The configured provider is Gemini: visitors must be told before they ask."""
+    return provider_name() == providers.GEMINI
 
 
 def model_name(provider: str | None = None) -> str:
@@ -185,6 +202,13 @@ def model_name(provider: str | None = None) -> str:
 def make_provider(name: str | None = None, client=None):
     """The provider object, with the limits applied (timeouts, retries, context window)."""
     name = name or provider_name()
+    if name == providers.GEMINI:
+        return providers.GeminiProvider(
+            client=client,
+            api_key=setting("GEMINI_API_KEY"),
+            timeout=LIMITS.timeout_seconds,
+            max_retries=LIMITS.max_retries,
+        )
     if name == providers.ANTHROPIC:
         return providers.AnthropicProvider(
             client=client,
@@ -227,7 +251,8 @@ def ask(
     provider: str | None = None,
 ) -> Answer:
     """Answer one question within the limits. `client` replaces the provider's client (tests);
-    `history` holds earlier turns in the provider's message format."""
+    `history` holds earlier turns in the provider's message format. Raises ProviderUnavailable
+    when the provider cannot answer at all (e.g. the Gemini free-tier quota is used up)."""
     question = check_question(question)
     name = provider or provider_name()
     backend = make_provider(name, client=client)
@@ -261,7 +286,7 @@ def ask(
                 "not by ESG Lens India). Try asking about the published figures instead."
             )
         if not turn.tool_uses:
-            text = turn.text
+            text = turn.text or "The model gave no answer. Please rephrase the question."
             if turn.stop_reason == "max_tokens":
                 text += "\n\n(The answer was cut off at the output limit.)"
             return done(text)

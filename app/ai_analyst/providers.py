@@ -1,13 +1,16 @@
-"""The two model back-ends of the AI analyst behind one small interface, so that the loop in
-agent.py - the tools, the guardrails, the limits and the refusal handling - is the same for both.
+"""The three model back-ends of the AI analyst behind one small interface, so that the loop in
+agent.py - the tools, the guardrails, the limits and the refusal handling - is the same for all.
 
-    anthropic   Claude through the Anthropic API (needs an API key, passed in by agent.py; paid per token)
+    gemini      Google Gemini through the Gemini API on Google's free tier (needs an API key,
+                passed in by agent.py; the free tier has per-minute and daily quotas)
     ollama      a small open model on this laptop through Ollama (free, no key, no network
                 beyond localhost; see docs/ai_analyst.md for the model and how to install it)
+    anthropic   Claude through the Anthropic API (needs an API key, passed in by agent.py; paid per token)
 
 A provider opens a Session for one question. The session keeps the conversation in the
 provider's own message format, sends one request per `respond()` and turns the reply into a
-neutral `Turn`; `add_tool_results()` appends the results of the tools the loop ran.
+neutral `Turn`; `add_tool_results()` appends the results of the tools the loop ran. A provider
+that cannot answer at all (quota used up, key rejected, API down) raises ProviderUnavailable.
 """
 
 from __future__ import annotations
@@ -17,13 +20,27 @@ from dataclasses import dataclass, field
 
 ANTHROPIC = "anthropic"
 OLLAMA = "ollama"
-PROVIDERS = (ANTHROPIC, OLLAMA)
+GEMINI = "gemini"
+PROVIDERS = (GEMINI, OLLAMA, ANTHROPIC)
 
 DEFAULT_MODELS = {
     ANTHROPIC: "claude-haiku-4-5",
     # chosen for this laptop (16 GB RAM, no GPU): docs/ai_analyst.md, "Local model"
     OLLAMA: "qwen2.5:3b",
+    # stable, function calling, on the free tier: docs/ai_analyst.md, "Gemini" (checked 2026-10-20)
+    GEMINI: "gemini-3.5-flash-lite",
 }
+
+
+class ProviderUnavailable(RuntimeError):
+    """The provider cannot answer right now. `reason`: "quota" (free-tier quota used up),
+    "auth" (key missing or rejected) or "error" (API error, timeout, network)."""
+
+    def __init__(self, reason: str, detail: str = ""):
+        super().__init__(f"{reason}: {detail}" if detail else reason)
+        self.reason = reason
+
+
 DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
 
 
@@ -283,8 +300,177 @@ class OllamaProvider:
         )
 
 
+# ------------------------------------------------------------------ Gemini
+
+# finish reasons of a Gemini candidate that mean Google's safety system declined
+GEMINI_REFUSALS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "IMAGE_SAFETY"}
+
+
+def gemini_tool(tool) -> dict:
+    """The same tool definition as a Gemini function declaration (the JSON schema as is)."""
+    schema = tool.schema()
+    return {
+        "name": schema["name"],
+        "description": schema["description"],
+        "parameters_json_schema": schema["input_schema"],
+    }
+
+
+def gemini_error(error: Exception) -> ProviderUnavailable:
+    """An exception of the Gemini SDK (or of the network under it) as ProviderUnavailable."""
+    code = getattr(error, "code", None)
+    status = str(getattr(error, "status", "") or "")
+    text = str(error)
+    if code == 429 or "RESOURCE_EXHAUSTED" in status + text:
+        reason = "quota"
+    elif code in (401, 403) or "API_KEY_INVALID" in text or status == "PERMISSION_DENIED":
+        reason = "auth"
+    else:
+        reason = "error"
+    return ProviderUnavailable(reason, f"{type(error).__name__} {code or ''}".strip())
+
+
+def _name(value) -> str:
+    """An SDK enum (or a plain string in tests) as its upper-case name."""
+    return str(getattr(value, "name", value) or "").upper()
+
+
+class GeminiSession:
+    def __init__(self, client, model: str, config: dict, contents: list):
+        self.client, self.model, self.config, self.contents = client, model, config, contents
+        self.last_request: dict | None = None
+        self._calls = 0
+
+    def respond(self, allow_tools: bool) -> Turn:
+        # past the tool-call limit the model may not call a function (mode NONE)
+        config = dict(self.config)
+        config["tool_config"] = {
+            "function_calling_config": {"mode": "AUTO" if allow_tools else "NONE"}
+        }
+        request = {"model": self.model, "contents": self.contents, "config": config}
+        self.last_request = request
+        try:
+            response = self.client.models.generate_content(**request)
+        except Exception as error:  # quota, key, API or network: the page falls back to guided
+            raise gemini_error(error) from error
+        usage = _get(response, "usage_metadata")
+        turn = Turn(
+            input_tokens=_get(usage, "prompt_token_count") or 0,
+            output_tokens=(_get(usage, "candidates_token_count") or 0)
+            + (_get(usage, "thoughts_token_count") or 0),
+            model=_get(response, "model_version") or self.model,
+        )
+        blocked = _name(_get(_get(response, "prompt_feedback"), "block_reason"))
+        blocked = "" if blocked == "BLOCKED_REASON_UNSPECIFIED" else blocked
+        candidates = _get(response, "candidates") or []
+        if blocked or not candidates:
+            # the question itself was blocked: a refusal, never retried on another model
+            turn.stop_reason, turn.refusal_category = "refusal", (blocked or "blocked").lower()
+            return turn
+        candidate = candidates[0]
+        finish = _name(_get(candidate, "finish_reason"))
+        if finish in GEMINI_REFUSALS:
+            turn.stop_reason, turn.refusal_category = "refusal", finish.lower()
+            return turn
+        content = _get(candidate, "content")
+        parts = _get(content, "parts") or []
+        turn.text = "\n".join(
+            _get(p, "text") for p in parts if _get(p, "text") and not _get(p, "thought")
+        ).strip()
+        for part in parts:
+            call = _get(part, "function_call")
+            if not call:
+                continue
+            self._calls += 1
+            turn.tool_uses.append(
+                ToolUse(
+                    _get(call, "id") or f"call_{self._calls}",
+                    _get(call, "name") or "",
+                    dict(_get(call, "args") or {}),
+                )
+            )
+        if turn.tool_uses:
+            turn.stop_reason = "tool_use"
+        elif finish == "MAX_TOKENS":
+            turn.stop_reason = "max_tokens"
+        # the model's turn goes back exactly as received (it carries Gemini's thought signatures)
+        self.contents.append(content)
+        return turn
+
+    def add_tool_results(self, results: list[tuple[ToolUse, str, bool]]) -> None:
+        parts = []
+        for use, content, is_error in results:
+            payload = json.loads(content)
+            function_response = {
+                "name": use.name,
+                "response": payload if is_error else {"output": payload},
+            }
+            if not use.id.startswith("call_"):  # an id the API gave (ours are local counters)
+                function_response["id"] = use.id
+            parts.append({"function_response": function_response})
+        self.contents.append({"role": "user", "parts": parts})
+
+
+class GeminiProvider:
+    name = GEMINI
+
+    def __init__(
+        self, client=None, api_key: str | None = None, timeout: float = 30.0, max_retries: int = 1
+    ):
+        self._client, self.api_key, self.timeout, self.max_retries = (
+            client,
+            api_key,
+            timeout,
+            max_retries,
+        )
+
+    def client(self):
+        if self._client is None:
+            if not self.api_key:
+                raise ProviderUnavailable("auth", "no Gemini API key")
+            from google import genai
+            from google.genai import types
+
+            # the key is passed explicitly and Vertex AI is off, so the SDK never falls back to
+            # another credential source or to a (billed) Google Cloud project
+            self._client = genai.Client(
+                api_key=self.api_key,
+                vertexai=False,
+                http_options=types.HttpOptions(
+                    timeout=int(self.timeout * 1000),  # milliseconds
+                    retry_options=types.HttpRetryOptions(
+                        attempts=1 + self.max_retries,
+                        # 429 is not retried: a used-up quota stays used up
+                        http_status_codes=[408, 500, 502, 503, 504],
+                    ),
+                ),
+            )
+        return self._client
+
+    def session(
+        self,
+        model: str,
+        system: str,
+        tools: list,
+        question: str,
+        history: list | None,
+        max_tokens: int,
+        effort: str | None = None,
+    ):
+        config = {
+            "system_instruction": system,
+            "tools": [{"function_declarations": [gemini_tool(t) for t in tools]}],
+            "max_output_tokens": max_tokens,
+            "temperature": 0,
+            # the loop in agent.py runs the tools itself, with its validation and limits
+            "automatic_function_calling": {"disable": True},
+        }
+        contents = list(history or []) + [{"role": "user", "parts": [{"text": question}]}]
+        return GeminiSession(self.client(), model, config, contents)
+
+
 def _get(obj, name):
-    """A field of an Ollama response object or of a plain dict (tests use dicts)."""
+    """A field of an SDK response object or of a plain dict (tests use dicts)."""
     if obj is None:
         return None
     if isinstance(obj, dict):

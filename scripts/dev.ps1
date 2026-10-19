@@ -128,8 +128,10 @@ try {
         }
         'app' {
             # The public report card. Reads only exports/public (run bi-export after a dbt build).
+            # The AI analyst's settings (ESG_AI_*, GEMINI_API_KEY, ...) come from the shell or .env
+            # (scripts/run_local.py copies only those names from .env; the shell wins).
             Assert-Venv
-            Invoke-Step $Py @('-m', 'streamlit', 'run', 'app/streamlit_app.py')
+            Invoke-Step $Py @('scripts/run_local.py', '-m', 'streamlit', 'run', 'app/streamlit_app.py')
         }
         'airflow' {
             # Airflow 3 (standalone) with the esg_lens_pipeline DAG in Docker: http://localhost:8080
@@ -155,11 +157,12 @@ try {
                 '--entrypoint', 'bash', 'esg-lens-airflow:3.3.2', '/opt/esg-lens-india/orchestration/run_dag_test.sh')
         }
         'eval' {
-            # AI analyst evaluation (evals/ai_analyst_questions.yaml) -> docs/ai_analyst_eval.md.
-            # The live part needs ESG_AI_ENABLED=true (free local model through Ollama by default; with
-            # ESG_AI_PROVIDER=anthropic also ANTHROPIC_API_KEY); without it only the question set is checked.
+            # AI analyst evaluation (evals/ai_analyst_questions.yaml) -> docs/ai_analyst_eval.md and
+            # evals/results/<provider>__<model>.json. The live part needs ESG_AI_ENABLED=true (free local
+            # model through Ollama by default; ESG_AI_PROVIDER=gemini also needs GEMINI_API_KEY, =anthropic
+            # ANTHROPIC_API_KEY), from the shell or .env; without it only the question set is checked.
             Assert-Venv
-            Invoke-Step $Py @('scripts/eval_ai_analyst.py')
+            Invoke-Step $Py @('scripts/run_local.py', 'scripts/eval_ai_analyst.py')
         }
     }
 }

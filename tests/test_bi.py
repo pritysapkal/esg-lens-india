@@ -90,6 +90,45 @@ def test_public_export_writes_only_rpt_public_files(tmp_path):
     assert dict((row[0], row[1]) for row in kind)["value"] == "DOUBLE"
 
 
+def test_public_export_rounds_fractions_so_rebuilds_write_the_same_bytes(tmp_path):
+    """Floating-point noise (a different summation order) must not change the committed files:
+    fractional columns are rounded to PUBLIC_DECIMALS, whole numbers and text are untouched,
+    and the reconciliation compares with the same rounding."""
+    assert EXPORT.PUBLIC_DECIMALS == RECONCILE.PUBLIC_DECIMALS == 6
+    written = []
+    for noise in (0.0, 1e-13):
+        con = duckdb.connect(":memory:")
+        for name in EXPORT.PUBLIC_TABLES:
+            con.execute(
+                f"create table {name} as select * from (values "
+                f"('b', 2::bigint, 0.1 + 0.2 + {noise}, 85.46070349::double, 1.25::decimal(4,2)), "
+                f"('a', 1::bigint, 1/3 + {noise}, null::double, 0.5::decimal(4,2))) "
+                "as t(isin, n_companies, share, pct, value)"
+            )
+        folder = tmp_path / f"public_{noise}"
+        folder.mkdir()
+        EXPORT.export_public(con, folder)
+        written.append({p.name: p.read_bytes() for p in folder.iterdir()})
+        con.close()
+    assert written[0] == written[1]
+    frame = pd.read_parquet(tmp_path / "public_0.0" / "rpt_public_group_metrics.parquet")
+    assert list(frame["isin"]) == ["a", "b"] and list(frame["n_companies"]) == [1, 2]
+    assert list(frame["share"]) == [0.333333, 0.3] and frame["pct"].iloc[1] == 85.460703
+    assert frame["pct"].isna().iloc[0] and list(frame["value"]) == [0.5, 1.25]
+
+
+def test_committed_public_files_hold_at_most_six_decimals():
+    public = EXPORTS / "public"
+    if not (public / "rpt_public_group_metrics.parquet").exists():
+        pytest.skip("run dev.ps1 bi-export first")
+    for path in sorted(public.glob("rpt_public_*.parquet")):
+        frame = pd.read_parquet(path)
+        for column in frame.select_dtypes("float").columns:
+            values = frame[column].dropna()
+            drift = (values - values.round(EXPORT.PUBLIC_DECIMALS)).abs()
+            assert values.empty or drift.max() < 1e-12, (path.name, column)
+
+
 def test_public_tables_are_exactly_the_rpt_public_models():
     assert set(EXPORT.PUBLIC_TABLES) == {
         path.stem for path in (ROOT / "dbt" / "models" / "marts").glob("rpt_public_*.sql")
@@ -333,6 +372,12 @@ def _excel_check(workbook: Path, cases: list[dict], tmp_path: Path) -> dict:
 
 @needs_warehouse
 def test_workbook_calculates_in_excel_and_agrees_with_the_warehouse(tmp_path):
+    """The workbook is built from exports/public, so warehouse figures are compared rounded to
+    the decimals of the public export."""
+
+    def public(value: float) -> float:
+        return round(value, EXPORT.PUBLIC_DECIMALS)
+
     workbook = _public_workbook(tmp_path)
     con = duckdb.connect(str(WAREHOUSE), read_only=True)
     try:
@@ -374,7 +419,9 @@ def test_workbook_calculates_in_excel_and_agrees_with_the_warehouse(tmp_path):
             assert case["ranked"] != "yes" and case["check"] == "-", case
         else:
             assert case["ranked"] == "yes", case
-            assert case["percentile"] == pytest.approx(row.percentile_in_group, abs=1e-9), case
+            assert case["percentile"] == pytest.approx(public(row.percentile_in_group), abs=1e-9), (
+                case
+            )
             # the hidden COUNTIFS formulas give the same rank and percentile
             assert case["check"].startswith("OK"), case
             ranked += 1
@@ -388,7 +435,7 @@ def test_workbook_calculates_in_excel_and_agrees_with_the_warehouse(tmp_path):
         if pd.isna(median):
             assert case["median"] == "n<5", case
         else:
-            assert case["median"] == pytest.approx(median, rel=1e-12), case
+            assert case["median"] == pytest.approx(public(median), rel=1e-12), case
     assert ranked > 40 and not_material > 0
 
     columns = {header: column for header, column, *_ in EXCEL.SUMMARY_COLUMNS}
@@ -406,7 +453,7 @@ def test_workbook_calculates_in_excel_and_agrees_with_the_warehouse(tmp_path):
             assert cell["value"] in ("n<5", "not yet observable"), cell
             withheld += 1
         else:
-            assert cell["value"] == pytest.approx(float(value), rel=1e-12), cell
+            assert cell["value"] == pytest.approx(public(float(value)), rel=1e-12), cell
             shown += 1
     assert shown > 500 and withheld > 0
 

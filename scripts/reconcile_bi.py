@@ -31,6 +31,9 @@ DBT_DIR = ROOT / "dbt"
 LOCAL = ROOT / "exports" / "local"
 PUBLIC = ROOT / "exports" / "public"
 TOLERANCE = 1e-9
+# exports/public is rounded to this many decimals by export_bi.py (PUBLIC_DECIMALS); a public
+# figure is compared with the local figure rounded the same way
+PUBLIC_DECIMALS = 6
 YEAR = "company_year__fiscal_year_label"
 
 MF_BATCH = """
@@ -192,7 +195,8 @@ def compare(ours: dict, theirs: dict) -> tuple[int, float, list[str]]:
 
 
 def public_matches(ours: dict, folder: Path = PUBLIC) -> tuple[int, list[str]]:
-    """Every figure rpt_public_group_metrics shows equals the local DAX-equivalent figure."""
+    """Every figure rpt_public_group_metrics shows equals the local DAX-equivalent figure,
+    rounded to the decimals of the public export."""
     table = pd.read_parquet(folder / "rpt_public_group_metrics.parquet")
     compared, problems = 0, []
     for measure, (metric, group) in CHECKS.items():
@@ -201,9 +205,10 @@ def public_matches(ours: dict, folder: Path = PUBLIC) -> tuple[int, list[str]]:
         for row in rows.itertuples():
             key = (row.group_value, row.fiscal_year_label) if group else (row.fiscal_year_label,)
             value = getattr(row, metric)
+            expected = round(ours[measure][key], PUBLIC_DECIMALS)
             compared += 1
-            if not math.isclose(value, ours[measure][key], rel_tol=TOLERANCE, abs_tol=TOLERANCE):
-                problems.append(f"public {measure} {key}: {value} vs {ours[measure][key]}")
+            if not math.isclose(value, expected, rel_tol=TOLERANCE, abs_tol=TOLERANCE):
+                problems.append(f"public {measure} {key}: {value} vs {expected}")
     return compared, problems
 
 

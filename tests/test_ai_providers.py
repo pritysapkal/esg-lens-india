@@ -1,5 +1,6 @@
-"""The local (Ollama) provider of the AI analyst, with a fake Ollama client: same tools, same
-guardrails, same limits, same refusal behaviour as the Anthropic provider. No model and no network
+"""The local (Ollama) and Gemini providers of the AI analyst, with fake clients: same tools, same
+guardrails, same limits, same refusal behaviour as the Anthropic provider; for Gemini also the
+free-tier failures (quota, key, API error) raised as ProviderUnavailable. No model and no network
 are needed (runs in CI)."""
 
 from __future__ import annotations
@@ -7,6 +8,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -167,8 +169,224 @@ def test_providers_read_no_file_and_hold_no_key():
         "read_text",
         "dotenv",
         "os.environ",
+        "os.getenv",
         "fallbacks",
         "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
     ):
         assert forbidden not in source, forbidden
-    assert providers.DEFAULT_MODELS == {"anthropic": "claude-haiku-4-5", "ollama": "qwen2.5:3b"}
+    assert providers.DEFAULT_MODELS == {"anthropic": "claude-haiku-4-5", "ollama": "qwen2.5:3b",
+                                        "gemini": "gemini-3.5-flash-lite"}  # fmt: skip
+
+
+# ------------------------------------------------------------------ Gemini (fake client)
+
+
+class FakeGemini:
+    """Plays back scripted Gemini responses (plain dicts with the fields of the SDK's
+    GenerateContentResponse) or raises scripted errors, and records every request."""
+
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.requests = []
+        self.models = SimpleNamespace(generate_content=self._generate)
+
+    def _generate(self, **request):
+        self.requests.append(json.loads(json.dumps(request, default=str)))
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+
+def _gemini(text="", calls=(), finish="STOP", block=None, with_ids=True):
+    parts = [{"text": text}] if text else []
+    parts += [
+        {"function_call": {"name": n, "args": a, **({"id": f"fc{i}"} if with_ids else {})}}
+        for i, (n, a) in enumerate(calls)
+    ]
+    candidate = {"content": {"role": "model", "parts": parts}, "finish_reason": finish}
+    return {
+        "model_version": "gemini-3.5-flash-lite",
+        "candidates": [] if block else [candidate],
+        "prompt_feedback": {"block_reason": block} if block else None,
+        "usage_metadata": {"prompt_token_count": 800, "candidates_token_count": 30},
+    }
+
+
+def ask_gemini(question, client, **kwargs):
+    return agent.ask(question, client=client, provider="gemini", **kwargs)
+
+
+CONCENTRATION = ("concentration", {"year": "FY2024-25", "top_n": 3})
+
+
+def test_gemini_loop_runs_the_same_tools_with_the_same_limits():
+    from google.genai import types
+
+    client = FakeGemini([
+        _gemini(calls=[("concentration", {"year": "FY2024-25", "top_n": 5})]),
+        _gemini("The five largest emitters held 85.5% (concentration, rpt_public_concentration)."),
+    ])  # fmt: skip
+    answer = ask_gemini("How concentrated?", client)
+    assert answer.provider == "gemini" and "85.5%" in answer.text
+    assert [c.name for c in answer.calls] == ["concentration"]
+    assert answer.calls[0].result["summary"]["top_5_share_pct"] == pytest.approx(85.4607, abs=1e-3)
+    assert answer.input_tokens == 1600 and answer.output_tokens == 60
+
+    first, second = client.requests
+    config = first["config"]
+    assert first["model"] == "gemini-3.5-flash-lite"
+    assert config["system_instruction"] == agent.SYSTEM_PROMPT
+    declarations = config["tools"][0]["function_declarations"]
+    assert [d["name"] for d in declarations] == [t.name for t in tools.tools()]
+    assert declarations[0]["parameters_json_schema"] == tools.tools()[0].schema()["input_schema"]
+    assert config["max_output_tokens"] == agent.LIMITS.max_output_tokens
+    assert config["temperature"] == 0
+    assert config["automatic_function_calling"] == {"disable": True}  # our loop runs the tools
+    assert config["tool_config"] == {"function_calling_config": {"mode": "AUTO"}}
+    (response_part,) = second["contents"][-1]["parts"]
+    function_response = response_part["function_response"]
+    assert function_response["name"] == "concentration" and function_response["id"] == "fc0"
+    assert function_response["response"]["output"]["source"] == "rpt_public_concentration"
+    # what is sent is valid for the real SDK types (no network)
+    types.GenerateContentConfig.model_validate(config)
+    for content in second["contents"]:
+        types.Content.model_validate(content)
+
+
+def test_gemini_bad_arguments_and_unknown_tools_go_back_as_errors():
+    client = FakeGemini([
+        _gemini(calls=[("company_card", {"company": "Tesla", "year": "FY2024-25"}),
+                       ("run_sql", {"query": "select * from fct_company_year"})], with_ids=False),
+        _gemini("Tesla is not covered."),
+    ])  # fmt: skip
+    answer = ask_gemini("Tesla?", client)
+    assert [c.error is not None for c in answer.calls] == [True, True]
+    assert all(c.result is None for c in answer.calls)
+    parts = client.requests[1]["contents"][-1]["parts"]
+    errors = [p["function_response"]["response"]["error"] for p in parts]
+    assert "not one of the" in errors[0] and "unknown tool" in errors[1]
+    assert all("id" not in p["function_response"] for p in parts)  # no id was given, none made up
+
+
+def test_gemini_tool_calls_are_capped_and_then_forbidden():
+    limit = agent.LIMITS.tool_calls_per_question
+    client = FakeGemini(
+        [_gemini(calls=[CONCENTRATION]) for _ in range(limit)]
+        + [_gemini("Answer from what I have.")]
+    )
+    answer = ask_gemini("x", client)
+    assert len(answer.calls) == limit and answer.text == "Answer from what I have."
+    assert len(client.requests) == agent.LIMITS.max_requests_per_question
+    modes = [r["config"]["tool_config"]["function_calling_config"]["mode"] for r in client.requests]
+    assert modes == ["AUTO"] * limit + ["NONE"]
+
+
+def test_gemini_extra_calls_are_not_run_and_a_runaway_model_is_cut_off():
+    limit = agent.LIMITS.tool_calls_per_question
+    client = FakeGemini([_gemini(calls=[CONCENTRATION] * (limit + 2)), _gemini("ok")])
+    answer = ask_gemini("x", client)
+    assert len(answer.calls) == limit
+    parts = client.requests[1]["contents"][-1]["parts"]
+    assert sum("limit reached" in json.dumps(p) for p in parts) == 2
+
+    endless = FakeGemini(
+        [_gemini(calls=[CONCENTRATION]) for _ in range(agent.LIMITS.max_requests_per_question)]
+    )
+    answer = ask_gemini("x", endless)
+    assert answer.stop_reason == "max_turns"
+    assert len(endless.requests) == agent.LIMITS.max_requests_per_question
+
+
+@pytest.mark.parametrize(
+    ("response", "category"),
+    [(_gemini(finish="SAFETY"), "safety"), (_gemini(finish="PROHIBITED_CONTENT"), "prohibited_content"),
+     (_gemini(block="JAILBREAK"), "jailbreak")],
+)  # fmt: skip
+def test_gemini_refusal_stays_a_refusal(response, category):
+    """A safety stop of Gemini (answer or question blocked): one request, shown as a refusal,
+    never retried on another model or provider."""
+    client = FakeGemini([response])
+    declined = ask_gemini("x", client)
+    assert len(client.requests) == 1 and not client.responses
+    assert declined.model_refused and declined.refused and declined.refusal_category == category
+    assert "declined" in declined.text and not declined.calls
+
+
+def test_gemini_out_of_scope_refusal_and_cut_off_answer():
+    refused = ask_gemini(
+        "Should I buy Reliance?",
+        FakeGemini([_gemini(agent.REFUSAL_PREFIX + ". I can tell you about intensities.")]),
+    )
+    assert refused.refused and not refused.model_refused and not refused.calls
+    cut = ask_gemini("x", FakeGemini([_gemini("A long answer", finish="MAX_TOKENS")]))
+    assert cut.stop_reason == "max_tokens" and "cut off" in cut.text
+
+
+def api_error(code, status):
+    """An error as the Gemini SDK raises it (google.genai.errors)."""
+    from google.genai import errors
+
+    cls = errors.ClientError if code < 500 else errors.ServerError
+    return cls(code, {"error": {"code": code, "message": "fake", "status": status}})
+
+
+@pytest.mark.parametrize(
+    ("error", "reason"),
+    [(lambda: api_error(429, "RESOURCE_EXHAUSTED"), "quota"),
+     (lambda: api_error(400, "API_KEY_INVALID"), "auth"),
+     (lambda: api_error(403, "PERMISSION_DENIED"), "auth"),
+     (lambda: api_error(503, "UNAVAILABLE"), "error"),
+     (lambda: TimeoutError("read timed out"), "error")],
+)  # fmt: skip
+def test_gemini_quota_key_and_api_errors_become_provider_unavailable(error, reason):
+    """The page turns these into a plain message and the guided questions (tests/test_app.py)."""
+    client = FakeGemini([_gemini(calls=[CONCENTRATION]), error()])
+    with pytest.raises(agent.ProviderUnavailable) as raised:
+        ask_gemini("x", client)
+    assert raised.value.reason == reason
+    assert len(client.requests) == 2  # no retry on another model or provider
+
+
+def test_gemini_client_gets_the_key_timeout_and_no_quota_retry(monkeypatch):
+    from google import genai
+
+    seen = {}
+    monkeypatch.setattr(genai, "Client", lambda **kwargs: seen.update(kwargs) or object())
+    monkeypatch.setattr(agent, "setting", {"GEMINI_API_KEY": "test-key-from-env"}.get)
+    agent.make_provider("gemini").client()
+    assert seen["api_key"] == "test-key-from-env" and seen["vertexai"] is False
+    options = seen["http_options"]
+    assert options.timeout == agent.LIMITS.timeout_seconds * 1000  # milliseconds
+    assert options.retry_options.attempts == 1 + agent.LIMITS.max_retries
+    assert 429 not in options.retry_options.http_status_codes
+
+
+def test_gemini_without_a_key_never_builds_a_client(monkeypatch):
+    from google import genai
+
+    def no_client(**kwargs):
+        raise AssertionError("a client was built without a key")
+
+    monkeypatch.setattr(genai, "Client", no_client)
+    monkeypatch.setattr(agent, "setting", lambda name: None)
+    with pytest.raises(agent.ProviderUnavailable) as raised:
+        agent.ask("x", provider="gemini")
+    assert raised.value.reason == "auth"
+
+
+def test_gemini_key_comes_only_from_the_environment_or_streamlit_secrets(monkeypatch):
+    import streamlit as st
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.setattr(st, "secrets", {})
+    assert agent.make_provider("gemini").api_key is None
+    monkeypatch.setenv("GOOGLE_API_KEY", "google-key")  # the SDK's own variable is not used
+    assert agent.make_provider("gemini").api_key is None
+    monkeypatch.setattr(st, "secrets", {"GEMINI_API_KEY": "from-secrets"})
+    assert agent.make_provider("gemini").api_key == "from-secrets"
+    monkeypatch.setenv("GEMINI_API_KEY", "from-env")
+    assert agent.make_provider("gemini").api_key == "from-env"  # the environment wins

@@ -329,16 +329,33 @@ def test_system_prompt_states_the_guardrails():
      ("true", "ollama", None, True), ("TRUE", "Ollama", None, True),
      ("true", "anthropic", None, False),   # the paid provider needs its key
      ("true", "anthropic", "k", True), (None, "anthropic", "k", False),
+     ("true", "gemini", None, False),      # Gemini needs its key too
+     ("true", "Gemini", "k", True), (None, "gemini", "k", False), ("false", "gemini", "k", False),
      ("true", "openai", "k", False)],      # an unknown provider stays off
 )  # fmt: skip
 def test_off_unless_switched_on_with_what_the_provider_needs(
     monkeypatch, switch, provider, key, enabled
 ):
-    values = {"ESG_AI_ENABLED": switch, "ESG_AI_PROVIDER": provider, "ANTHROPIC_API_KEY": key}
+    """`key` is the provider's own key: ANTHROPIC_API_KEY or GEMINI_API_KEY, never the other."""
+    name = (provider or "").lower()
+    key_name = {"gemini": "GEMINI_API_KEY"}.get(name, "ANTHROPIC_API_KEY")
+    values = {"ESG_AI_ENABLED": switch, "ESG_AI_PROVIDER": provider, key_name: key}
     monkeypatch.setattr(agent, "setting", values.get)
     assert agent.is_enabled() is enabled
+    assert agent.switched_on() is ((switch or "").lower() == "true")
     if not enabled:
         assert agent.disabled_reason()
+    if name == "gemini" and switch == "true" and not key:
+        assert agent.disabled_reason() == "no GEMINI_API_KEY is set"
+
+
+def test_one_providers_key_does_not_switch_on_another(monkeypatch):
+    values = {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "gemini", "ANTHROPIC_API_KEY": "k"}
+    monkeypatch.setattr(agent, "setting", values.get)
+    assert not agent.is_enabled()
+    values = {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "anthropic", "GEMINI_API_KEY": "k"}
+    monkeypatch.setattr(agent, "setting", values.get)
+    assert not agent.is_enabled()
 
 
 def test_settings_come_only_from_the_environment_or_streamlit_secrets(monkeypatch):
@@ -366,6 +383,9 @@ def test_default_provider_and_models(monkeypatch):
         agent, "setting", {"ESG_AI_PROVIDER": "anthropic", "ESG_AI_MODEL": "claude-sonnet-5-5"}.get
     )
     assert agent.provider_name() == "anthropic" and agent.model_name() == "claude-sonnet-5-5"
+    monkeypatch.setattr(agent, "setting", {"ESG_AI_PROVIDER": "gemini"}.get)
+    assert agent.provider_name() == "gemini" and agent.model_name() == "gemini-3.5-flash-lite"
+    assert agent.sends_questions_to_google()
 
 
 def test_no_refusal_fallback_anywhere_in_the_analyst():
@@ -420,6 +440,52 @@ def test_scoring_rules():
     }
     assert eval_ai_analyst.score(number_q, agent.Answer(text="It fell by 40.3%."))["numbers"]
     assert not eval_ai_analyst.score(number_q, agent.Answer(text="It fell by 4.3%."))["numbers"]
+
+
+def test_eval_supports_gemini_paces_it_and_stops_without_saving_on_a_used_up_quota(monkeypatch):
+    """No live call: agent.ask is replaced. A quota error is retried once after a wait; a second
+    one stops the run (QuotaExhausted, nothing saved); other errors are failed questions."""
+    import eval_ai_analyst
+
+    questions = eval_ai_analyst.load()[:3]
+    slept, calls = [], []
+
+    def flaky(question, provider, model):
+        calls.append(question)
+        if len(calls) == 2:
+            raise agent.ProviderUnavailable("quota")
+        if len(calls) == 4:
+            raise agent.ProviderUnavailable("error", "ServerError 503")
+        return agent.Answer(text="ok")
+
+    monkeypatch.setattr(agent, "ask", flaky)
+    run = eval_ai_analyst.run_live(questions, "gemini", "gemini-3.5-flash-lite", 10.0, slept.append)
+    assert slept == [10.0, eval_ai_analyst.QUOTA_WAIT, 10.0]  # pause, quota wait + retry, pause
+    assert len(calls) == 4 and [r["error"] is not None for r in run["rows"]] == [False, False, True]
+    assert eval_ai_analyst.summary(run)["cost"] == "free (Gemini free tier)"
+
+    def used_up(question, provider, model):
+        raise agent.ProviderUnavailable("quota")
+
+    monkeypatch.setattr(agent, "ask", used_up)
+    with pytest.raises(eval_ai_analyst.QuotaExhausted):
+        eval_ai_analyst.run_live(questions, "gemini", "gemini-3.5-flash-lite", 0.0, slept.append)
+
+
+def test_eval_report_shows_gemini_as_pending_until_it_is_run(monkeypatch, tmp_path):
+    import eval_ai_analyst
+
+    monkeypatch.setattr(eval_ai_analyst, "REPORT", tmp_path / "report.md")
+    ollama = {"provider": "ollama", "model": "qwen2.5:3b", "date": "2026-10-19",
+              "rows": [eval_ai_analyst.score(q, agent.Answer(text="x")) for q in eval_ai_analyst.load()]}  # fmt: skip
+    eval_ai_analyst.write_report([ollama], {})
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
+    (row,) = [line for line in report.splitlines() if line.startswith("| gemini |")]
+    assert "pending — run locally by Prity" in row and row.count("|") == 13
+    gemini = dict(ollama, provider="gemini", model="gemini-3.5-flash-lite")
+    eval_ai_analyst.write_report([ollama, gemini], {})
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "pending" not in report and "free (Gemini free tier)" in report
 
 
 def test_restatement_tool_returns_the_withheld_shares_as_withheld():

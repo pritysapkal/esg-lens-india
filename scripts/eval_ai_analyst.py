@@ -2,11 +2,18 @@
 
     python scripts/eval_ai_analyst.py                    # live, with the configured provider
     python scripts/eval_ai_analyst.py --provider ollama --model qwen2.5:3b
+    python scripts/eval_ai_analyst.py --provider gemini         # free tier; paced (--pause)
     python scripts/eval_ai_analyst.py --offline          # no model call: checks the question set
     python scripts/eval_ai_analyst.py --report-only      # rebuild the report from saved results
 
-The live run needs ESG_AI_ENABLED=true (and ANTHROPIC_API_KEY for the anthropic provider). Each
-live run is saved to evals/results/<provider>__<model>.json; the report shows every saved run.
+The live run needs ESG_AI_ENABLED=true (and GEMINI_API_KEY for gemini, ANTHROPIC_API_KEY for
+anthropic). Each live run is saved to evals/results/<provider>__<model>.json; the report shows
+every saved run, and a "pending" row for each provider in PENDING that has no saved run yet.
+
+Gemini's free tier has per-minute and daily quotas, so a gemini run pauses between questions
+(--pause, default GEMINI_PAUSE seconds). If the quota runs out, the question is retried once
+after a minute (a per-minute quota refills); if it is still out, the run stops and nothing is
+saved - a run with quota failures would not be comparable. Run it again later.
 
 Live scoring per question:
   tools     every expected tool was called (refusals: no tool call at all)
@@ -52,6 +59,14 @@ PRICES = {  # USD per million input / output tokens
     "claude-haiku-5-5": (0.10, 0.50),
     "claude-fable-5-1": (10.0, 50.0),
 }
+# providers whose evaluation is still to be run (on the owner's machine, with their own key)
+PENDING = {"gemini": ("gemini-3.5-flash-lite", "pending — run locally by Prity")}
+GEMINI_PAUSE = 10.0  # seconds between questions of a gemini run (free-tier per-minute quota)
+QUOTA_WAIT = 65.0  # seconds before the one retry of a question that hit the quota
+
+
+class QuotaExhausted(RuntimeError):
+    """The provider's quota is used up: the live run stops without saving."""
 
 
 def load() -> list[dict]:
@@ -152,14 +167,31 @@ def score(
     }
 
 
-def run_live(questions: list[dict], provider: str, model: str) -> dict:
+def run_live(
+    questions: list[dict], provider: str, model: str, pause: float = 0.0, sleep=time.sleep
+) -> dict:
     rows = []
-    for q in questions:
+    for index, q in enumerate(questions):
+        if index and pause:
+            sleep(pause)
         started = time.perf_counter()
-        try:
-            answer, error = agent.ask(q["question"], provider=provider, model=model), None
-        except Exception as exc:  # a timeout or a dead server is a failed question
-            answer, error = None, f"{type(exc).__name__}: {exc}"[:300]
+        for attempt in (1, 2):
+            try:
+                answer, error = agent.ask(q["question"], provider=provider, model=model), None
+            except agent.ProviderUnavailable as exc:
+                if exc.reason == "quota" and attempt == 1:
+                    print(
+                        f"{q['id']:<42} quota reached, waiting {QUOTA_WAIT:.0f}s and retrying once"
+                    )
+                    sleep(QUOTA_WAIT)
+                    started = time.perf_counter()
+                    continue
+                if exc.reason in ("quota", "auth"):
+                    raise QuotaExhausted(f"{q['id']}: {exc}") from exc
+                answer, error = None, f"{type(exc).__name__}: {exc}"[:300]
+            except Exception as exc:  # a timeout or a dead server is a failed question
+                answer, error = None, f"{type(exc).__name__}: {exc}"[:300]
+            break
         result = score(q, answer, error, time.perf_counter() - started)
         rows.append(result)
         print(f"{q['id']:<42} {'PASS' if result['passed'] else 'FAIL'}  {result['seconds']:6.1f}s  tools={result['called']}"
@@ -194,6 +226,8 @@ def summary(run: dict) -> dict:
     price = PRICES.get(run["model"])
     if run["provider"] == "ollama":
         cost = "free (local)"
+    elif run["provider"] == "gemini":
+        cost = "free (Gemini free tier)"
     elif price:
         cost = f"about ${(tokens_in * price[0] + tokens_out * price[1]) / 1e6:.2f}"
     else:
@@ -260,6 +294,8 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
             "| Provider | Model | Passed | Tool selection | Numbers right | Refusals right | Wrongly refused | Mentions | Errors | Avg time per question | Slowest | Cost of the run |",
             "|---|---|---|---|---|---|---|---|---|---|---|---|",
         ]
+        evaluated = {run["provider"] for run in runs}
+        pending = [(p, m, note) for p, (m, note) in PENDING.items() if p not in evaluated]
         for run in runs:
             m = summary(run)
             lines.append(
@@ -267,6 +303,8 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
                 f"{m['numbers']} / {m['n_numbers']} | {m['refusals']} / {m['n_refusals']} | {m['false_refusals']} | "
                 f"{m['mentions']} / {m['n']} | {m['errors']} | {m['avg_seconds']:.0f} s | {m['max_seconds']:.0f} s | {m['cost']} |"
             )
+        for provider, model, note in pending:
+            lines.append(f"| {provider} | `{model}` | {note} |" + " |" * 9)
         mark = {True: "pass", False: "FAIL"}
         for run in runs:
             m = summary(run)
@@ -304,9 +342,14 @@ def main(argv: list[str] | None = None) -> int:
         "--no-report", action="store_true", help="do not rewrite docs/ai_analyst_eval.md"
     )
     parser.add_argument(
-        "--provider", choices=["ollama", "anthropic"], help="override ESG_AI_PROVIDER"
+        "--provider", choices=["ollama", "gemini", "anthropic"], help="override ESG_AI_PROVIDER"
     )
     parser.add_argument("--model", help="override ESG_AI_MODEL")
+    parser.add_argument(
+        "--pause",
+        type=float,
+        help=f"seconds between questions (default {GEMINI_PAUSE:.0f} for gemini, else 0)",
+    )
     args = parser.parse_args(argv)
     if args.provider:
         os.environ["ESG_AI_PROVIDER"] = args.provider
@@ -320,7 +363,17 @@ def main(argv: list[str] | None = None) -> int:
     run = None
     if not (args.offline or args.report_only):
         if agent.is_enabled():
-            run = run_live(questions, agent.provider_name(), agent.model_name())
+            provider = agent.provider_name()
+            pause = (
+                args.pause
+                if args.pause is not None
+                else (GEMINI_PAUSE if provider == "gemini" else 0.0)
+            )
+            try:
+                run = run_live(questions, provider, agent.model_name(), pause)
+            except QuotaExhausted as error:
+                print(f"STOPPED, nothing saved - the provider's quota or key failed: {error}")
+                return 1
             print(f"saved {save(run).relative_to(ROOT)}")
         else:
             print(f"AI analyst switched off ({agent.disabled_reason()}): live evaluation not run")

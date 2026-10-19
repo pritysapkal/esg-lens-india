@@ -117,17 +117,150 @@ def test_visitors_get_guided_questions_and_a_friendly_note(monkeypatch):
     assert app.radio and app.radio[0].value == "group"  # guided questions are the default
     assert any("Query used:" in c.value for c in app.caption)
     notes = [info.value for info in app.info]
-    assert any("not available on this public site" in n and "video" in n for n in notes)
-    for technical in (
-        "ESG_AI_ENABLED",
-        "ANTHROPIC_API_KEY",
-        "ESG_AI_PROVIDER",
-        "Ollama",
-        "secrets",
-        "environment",
-    ):
-        assert not any(technical in n for n in notes), technical
+    assert any("not switched on for this site" in n and "video" in n for n in notes)
+    _no_setup_details(notes)
     assert not app.chat_input  # no way to send a free-text question while it is off
+
+
+TECHNICAL = ("ESG_AI_ENABLED", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "ESG_AI_PROVIDER", "Ollama",
+             "secrets", "environment", "429", "RESOURCE_EXHAUSTED", "ClientError")  # fmt: skip
+
+
+def _no_setup_details(texts: list[str]) -> None:
+    for technical in TECHNICAL:
+        assert not any(technical in t for t in texts), technical
+
+
+def _ai_page(monkeypatch, settings: dict[str, str], provider=None):
+    """The Ask-the-data page with these settings in the environment (as dev.ps1 app sets them
+    from the shell or .env); `provider` replaces agent.make_provider (a fake client, no network)."""
+    from streamlit.testing.v1 import AppTest
+
+    from app.ai_analyst import agent
+
+    for name in ("ESG_AI_ENABLED", "ESG_AI_PROVIDER", "ESG_AI_MODEL", "GEMINI_API_KEY",
+                 "ANTHROPIC_API_KEY", "GOOGLE_API_KEY"):  # fmt: skip
+        monkeypatch.delenv(name, raising=False)
+    for name, value in settings.items():
+        monkeypatch.setenv(name, value)
+    if provider is not None:
+        monkeypatch.setattr(agent, "make_provider", lambda *a, **k: provider)
+    app = AppTest.from_file(str(APP / "streamlit_app.py"), default_timeout=60)
+    app.run()
+    app.switch_page("views/ai_analyst.py").run()
+    assert not app.exception
+    return app
+
+
+def _gemini_provider(responses):
+    sys.path.insert(0, str(ROOT / "tests"))
+    from test_ai_providers import FakeGemini
+
+    from app.ai_analyst import providers
+
+    client = FakeGemini(responses)
+    return providers.GeminiProvider(client=client), client
+
+
+@needs_public
+def test_free_text_box_appears_locally_when_switched_on_from_dot_env(monkeypatch, tmp_path):
+    """The fix: settings in .env reach the app through scripts/run_local.py (dev.ps1 app), and
+    with ESG_AI_ENABLED=true and the provider's key the input box is shown - not the note."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import run_local
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("ESG_AI_ENABLED=true\nESG_AI_PROVIDER=gemini\nGEMINI_API_KEY=fake-key\n")
+    settings = run_local.ai_settings(env_file, {})
+    app = _ai_page(monkeypatch, settings)
+    assert app.chat_input, "no input box although the analyst is switched on"
+    assert not any("not switched on" in i.value for i in app.info)
+    assert any("sent to Google's Gemini API" in i.value and "improve its products" in i.value
+               for i in app.info)  # fmt: skip
+    assert any("Google Gemini (gemini-3.5-flash-lite)" in c.value for c in app.caption)
+    assert app.radio and app.radio[0].value == "group"  # guided questions stay the default
+
+
+@needs_public
+def test_local_model_box_appears_without_a_key_or_a_google_notice(monkeypatch):
+    app = _ai_page(monkeypatch, {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "ollama"})
+    assert app.chat_input
+    assert not any("Google" in i.value for i in app.info)
+
+
+@needs_public
+def test_switched_on_without_a_key_falls_back_to_guided_questions(monkeypatch):
+    app = _ai_page(monkeypatch, {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "gemini"})
+    assert not app.chat_input
+    notes = [i.value for i in app.info]
+    assert any("not available right now" in n and "guided questions" in n for n in notes)
+    _no_setup_details(notes)
+    assert any("Query used:" in c.value for c in app.caption)  # guided mode answers
+
+
+@needs_public
+def test_used_up_quota_pauses_free_text_and_keeps_guided_questions(monkeypatch):
+    from test_ai_providers import api_error
+
+    provider, client = _gemini_provider([api_error(429, "RESOURCE_EXHAUSTED")])
+    settings = {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "gemini", "GEMINI_API_KEY": "k"}
+    app = _ai_page(monkeypatch, settings, provider)
+    app.chat_input[0].set_value("How concentrated are emissions?").run()
+    assert not app.exception and len(client.requests) == 1
+    warnings = [w.value for w in app.warning]
+    assert any("quota is used up" in w and "guided questions" in w for w in warnings)
+    _no_setup_details(warnings)
+    app.run()  # the next interaction: free text stays paused for this session
+    assert not app.exception and not app.chat_input
+    assert any("quota is used up" in i.value for i in app.info)
+    assert any("Query used:" in c.value for c in app.caption)
+    assert app.session_state["analyst_history"] == []  # the failed question is not counted
+
+
+@needs_public
+def test_an_api_error_gives_a_plain_message_and_the_box_stays(monkeypatch):
+    from test_ai_providers import api_error
+
+    provider, _ = _gemini_provider([api_error(503, "UNAVAILABLE")])
+    settings = {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "gemini", "GEMINI_API_KEY": "k"}
+    app = _ai_page(monkeypatch, settings, provider)
+    app.chat_input[0].set_value("How concentrated are emissions?").run()
+    assert not app.exception
+    warnings = [w.value for w in app.warning]
+    assert any("could not answer just now" in w for w in warnings)
+    _no_setup_details(warnings)
+    app.run()
+    assert app.chat_input  # a passing error does not pause free text
+
+
+@needs_public
+def test_a_gemini_refusal_is_shown_as_a_refusal(monkeypatch):
+    from test_ai_providers import _gemini
+
+    provider, client = _gemini_provider([_gemini(finish="SAFETY")])
+    settings = {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "gemini", "GEMINI_API_KEY": "k"}
+    app = _ai_page(monkeypatch, settings, provider)
+    app.chat_input[0].set_value("something it declines").run()
+    assert not app.exception and len(client.requests) == 1  # no second model, no retry
+    assert any("declined to answer" in w.value for w in app.warning)
+    ((question, reply),) = app.session_state["analyst_history"]
+    assert reply.model_refused and reply.provider == "gemini"
+
+
+@needs_public
+def test_a_gemini_answer_shows_its_tool_calls(monkeypatch):
+    from test_ai_providers import _gemini
+
+    provider, _ = _gemini_provider([
+        _gemini(calls=[("concentration", {"year": "FY2024-25", "top_n": 5})]),
+        _gemini("The five largest emitters held 85.5%."),
+    ])  # fmt: skip
+    settings = {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "gemini", "GEMINI_API_KEY": "k"}
+    app = _ai_page(monkeypatch, settings, provider)
+    app.chat_input[0].set_value("How concentrated are emissions?").run()
+    assert not app.exception
+    assert any("85.5%" in m.value for m in app.markdown)
+    assert any("Numbers used (1 query)" in e.label for e in app.expander)
 
 
 @needs_public

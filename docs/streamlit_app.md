@@ -27,7 +27,7 @@ opens the file itself.
 | Company report card | Pick a company and year: Disclosure Quality Score, grade, rank and percentile in the ranking group, the six component scores, the reasons points were lost, assurance; computed intensities against the group's typical company; percentile bars grouped **Environment / Social / Governance** and sorted within each group, coloured by better half (blue) or worse half (orange) of the ranking group, with the number on every bar and a marker so that 0 is visible; KPIs that are not ranked listed apart, with the reason ("not ranked for this group (not material)", "n<5") | disclosure quality, company year, company percentile, group metrics |
 | Sectors | Any published group figure by sector group, peer group, ranking group, size band or ownership, year by year; withheld cells read **n<5 (withheld)**, restatements of the latest year **not yet observable**; chart of the shown values (intensities on a log axis labelled 1 / 10 / 100 / 1,000) and the company counts behind them | group metrics |
 | Concentration | Pareto chart of company shares of the year's Scope 1+2 emissions (shares only, no tonnes), top 1 / 5 / 10 and companies needed for 80% | concentration |
-| Ask the data | **Guided questions** (default, no language model): six question types built from dropdowns, each one call of a validated tool, answered with a sentence, a table and the query used. Below it, the AI analyst for questions in your own words - only where it is switched on locally, never on the public site, where visitors see a short note instead ([ai_analyst.md](ai_analyst.md)) | all seven, through the same fixed tools |
+| Ask the data | **Guided questions** (default, no language model): six question types built from dropdowns, each one call of a validated tool, answered with a sentence, a table and the query used. Below it, the AI analyst for questions in your own words - where it is switched on: locally with any provider, on the public site only with Gemini's free tier; otherwise visitors see a short note instead ([ai_analyst.md](ai_analyst.md)) | all seven, through the same fixed tools |
 | Methodology | Sources, the publication rule, how to read the figures, limits, where the details are | - |
 
 Labels that appear wherever they apply:
@@ -60,17 +60,41 @@ last task of the Airflow DAG) checks their columns.
 Steps on [share.streamlit.io](https://share.streamlit.io): New app -> this repository -> main
 file `app/streamlit_app.py`. Community Cloud installs `app/requirements.txt` (only Streamlit,
 pandas, PyArrow, Plotly and the Anthropic SDK, same pins as `requirements.txt`; the Ollama
-client is not needed there). `.streamlit/config.toml` switches off Streamlit's usage statistics
+client is not needed there; the Google Gen AI SDK is, for the optional Gemini analyst).
+`.streamlit/config.toml` switches off Streamlit's usage statistics
 and hides the developer toolbar from visitors.
 
-**The deployment runs with the AI analyst off, and the guided questions on.** Do not add
-`ESG_AI_ENABLED`, `ESG_AI_PROVIDER` or `ANTHROPIC_API_KEY` to the app's *Secrets*: a public page
-with a key behind it could be used by anyone, the per-session limits reset with every page
-reload, and a local model does not exist on Community Cloud. Visitors get the guided questions
-(the same tools, no model) and a short, plain note that free-text questions are not available
-on the public site and that **a demonstration of the AI analyst is in the project video** - no
-setup details. To record that demonstration, run the app locally with the free local model
-(`$env:ESG_AI_ENABLED = 'true'`, see [ai_analyst.md](ai_analyst.md)).
+**The guided questions are the default and always on. The AI analyst is off unless you switch
+on Gemini's free tier** - the only provider allowed on the public site:
+
+- **Off (default):** add nothing to the app's *Secrets*. Visitors get the guided questions (the
+  same tools, no model) and a short, plain note that free-text questions are not switched on for
+  this site and that **a demonstration of the AI analyst is in the project video** - no setup
+  details.
+- **Gemini, free tier (optional):** in *Manage app -> Settings -> Secrets* add
+
+  ```toml
+  ESG_AI_ENABLED = "true"
+  ESG_AI_PROVIDER = "gemini"
+  GEMINI_API_KEY = "<your Google AI Studio key>"
+  ```
+
+  Rules: the key lives **only** in these Secrets (and your local env / `.env`), never in the
+  repository; **NEVER enable billing on the Google Cloud project of this key** - with billing off
+  the worst case is a used-up free quota, never a bill. Every session keeps the limits (10
+  questions, 4 tool calls and 5 requests per question, 1,500 output tokens, 30 s timeout), and
+  visitors see the notice *"Questions are sent to Google's Gemini API; on the free tier Google may
+  use them to improve its products."* above the box.
+- **When Gemini cannot answer** - the free quota is used up, the key is missing or rejected, or the
+  API fails - the page says so in one plain sentence and points to the guided questions, which keep
+  working; a used-up quota pauses free text for the rest of the session. Nothing crashes, and no
+  error code or setting name is shown (details: [ai_analyst.md](ai_analyst.md), "Gemini").
+- **Never** put `ANTHROPIC_API_KEY` (paid per token) or the `ollama` provider (no local model on
+  Community Cloud) in the deployment's Secrets: the per-session limits reset with every page
+  reload, so a paid key behind a public page could be spent by anyone.
+
+To record the demonstration, run the app locally (`$env:ESG_AI_ENABLED = 'true'`, or the same
+lines in `.env`; see [ai_analyst.md](ai_analyst.md)).
 
 **Look and readability.** Page title "ESG Lens India - public report card". Every chart uses 14 px
 text (`ui.readable`: Streamlit's chart theme otherwise draws axis labels at 12 px); checked with

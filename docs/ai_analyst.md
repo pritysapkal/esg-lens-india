@@ -7,7 +7,7 @@ no other query path. Evaluation: [ai_analyst_eval.md](ai_analyst_eval.md).
 | Mode | What it is | Where it runs | Cost |
 |---|---|---|---|
 | **Guided questions** (default) | A question builder with dropdowns; no language model | everywhere, including the public site | free |
-| **AI analyst** | A language model picks the tools for a question typed in your own words | only on a computer where it is switched on - **never in the public deployment** | free with the local model (Ollama), or paid per question with Claude |
+| **AI analyst** | A language model picks the tools for a question typed in your own words | where it is switched on: locally with any provider; on the public site **only with Gemini's free tier**, behind the per-session limits and a notice to visitors | free with the local model (Ollama) or Gemini's free tier; paid per question with Claude |
 
 ## Guided questions (no language model)
 
@@ -65,22 +65,82 @@ value again before a query runs: an unknown tool, an unknown argument, a metric 
 public, a company or year that is not covered, a number out of range - each returns an error to
 the model instead of running anything. There is no free-form SQL anywhere.
 
-### Two providers, one loop
+### Three providers, one loop
 
 [`app/ai_analyst/providers.py`](../app/ai_analyst/providers.py). The loop, the tools, the system
-prompt, the guardrails, the limits and the refusal handling are the same for both; only the
+prompt, the guardrails, the limits and the refusal handling are the same for all three; only the
 transport differs.
 
-| | `ollama` (default) | `anthropic` |
+| | `ollama` (default) | `gemini` | `anthropic` |
+|---|---|---|---|
+| Model | `qwen2.5:3b` on this laptop | `gemini-3.5-flash-lite` | `claude-haiku-4-5` |
+| Cost | free | free (Google's free tier; billing must stay off) | about 1 US cent per question (see Cost) |
+| Key | none | `GEMINI_API_KEY` | `ANTHROPIC_API_KEY` |
+| Network | only `localhost` (Ollama's server) | the Gemini API (Google AI Studio key) | the Anthropic API |
+| SDK | `ollama` | Google Gen AI SDK `google-genai` 2.28.0 | `anthropic` |
+| Tool format | Ollama function tools (the same JSON schema) | function declarations with the same JSON schema (`parameters_json_schema`); the SDK's automatic function calling is off | Anthropic tools, `strict` |
+| Stop tool calls at the limit | tools are no longer offered (Ollama has no `tool_choice`) | function calling mode `NONE` | `tool_choice: none` |
+| Request timeout | 180 s (a small model on a laptop CPU is slow) | 30 s, 1 retry (408 and 5xx only; never 429) | 30 s, 1 retry |
+| Refusal | the model's own out-of-scope refusal only | also Google's safety stop (finish reason `SAFETY`, `PROHIBITED_CONTENT`, ... or a blocked question), shown as such, never retried | also the API's safety refusal, shown as such, never retried on another model |
+| Cannot answer (quota, key, API down) | an error message | `ProviderUnavailable`: the page falls back to the guided questions (below) | an error message |
+
+### Gemini (free tier)
+
+**Model: `gemini-3.5-flash-lite`.** Checked on 2026-10-20 in Google's official documentation:
+the [models page](https://ai.google.dev/gemini-api/docs/models) (last updated 2026-10-13) lists
+it as a stable model and recommends it, with `gemini-3.8-flash`, for new projects (the 2.0 models
+are shut down, and 2.5 is open only to earlier users); its
+[model page](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite) (2026-07-30)
+lists function calling as supported, with 1,048,576 input and 65,536 output tokens; the
+[pricing page](https://ai.google.dev/gemini-api/docs/pricing) (2026-10-16) shows a free tier for
+it - input and output "Free of charge", and **"Used to improve our products: Yes"**. A Flash-Lite
+model was chosen over `gemini-3.8-flash` because the questions are short tool-routing tasks and
+the lighter models have historically had the more generous free-tier quotas. Another model can
+be set with `ESG_AI_MODEL`.
+
+**Free-tier rate limits (2026-10-20).** The official
+[rate-limits page](https://ai.google.dev/gemini-api/docs/rate-limits) (last updated 2026-10-15)
+no longer prints per-model free-tier numbers: it says limits are per project, are measured as
+requests per minute (RPM), tokens per minute (TPM) and requests per day (RPD), vary by model and
+tier, and are shown for your own project in Google AI Studio; the daily count resets at
+midnight Pacific time. **Look up the live numbers for your key in AI Studio** (project ->
+rate limits) before a long session. For orientation only: the last published free-tier figures,
+for the older `gemini-2.5-flash-lite`, were 15 RPM, 250,000 TPM and 1,000 RPD. With these limits
+the analyst uses 2 to 3 requests per question (at most 5), so a few hundred questions a day.
+
+**Get a key (free).** Sign in at [Google AI Studio](https://aistudio.google.com/), choose *Get API
+key* -> *Create API key* (it creates or uses a Google Cloud project), and copy the key. Then:
+
+- Put it **only** in your local environment or your local `.env` (git ignores `.env`), or in the
+  Streamlit app's *Secrets* for the deployment - **never in code, in `.env.example`, or in any
+  tracked file**. A test fails if a Google key (`AIza...`) or a `GEMINI_API_KEY=` value is ever
+  tracked, and `.gitignore` also covers Google credential files (`client_secret*.json`,
+  service-account JSON, `application_default_credentials.json`).
+- **NEVER enable billing on the Google Cloud project that holds this key.** With billing off, the
+  key can only use the free tier: when the quota runs out, requests are refused (HTTP 429) and
+  nothing is charged. With billing on, the same key would be charged per token, and the public
+  site would let anyone spend it. Keep a separate project if you ever need paid use.
+- The analyst passes the key to the SDK explicitly with Vertex AI switched off, so the SDK never
+  picks up `GOOGLE_API_KEY`, gcloud credentials or a (billed) Cloud project by itself.
+
+**Privacy.** On the free tier Google may use what is sent to improve its products. The page
+tells every visitor before they ask: *"Questions are sent to Google's Gemini API; on the free
+tier Google may use them to improve its products."* Only the question, the system prompt, the
+tool definitions and the tool results (public figures) are sent.
+
+**When Gemini cannot answer, the page falls back to the guided questions.** The guided questions
+are the default, sit above the free-text box and never depend on a model, so they always work.
+
+| Situation | What the reader sees | Free-text box |
 |---|---|---|
-| Model | `qwen2.5:3b` on this laptop | `claude-haiku-4-5` |
-| Cost | free | about 1 US cent per question (see Cost) |
-| Key | none | `ANTHROPIC_API_KEY` |
-| Network | only `localhost` (Ollama's server) | the Anthropic API |
-| Tool format | Ollama function tools (the same JSON schema) | Anthropic tools, `strict` |
-| Stop tool calls at the limit | tools are no longer offered (Ollama has no `tool_choice`) | `tool_choice: none` |
-| Request timeout | 180 s (a small model on a laptop CPU is slow) | 30 s, 1 retry |
-| Refusal | the model's own out-of-scope refusal only | also the API's safety refusal, shown as such, never retried on another model |
+| free-tier quota used up (HTTP 429 `RESOURCE_EXHAUSTED`) | "Free-text questions are paused: the free AI quota is used up for now. The guided questions above answer the same data and always work." | hidden for the rest of the browser session (retrying would only hit the quota again) |
+| key missing (`ESG_AI_ENABLED=true` but no `GEMINI_API_KEY`) or rejected (401 / 403 / invalid key) | "Free-text questions are not available right now. The guided questions above ..." | not shown |
+| API error, timeout, network (5xx, 30 s) | "The AI analyst could not answer just now (the AI service did not respond). Please try again in a minute. The guided questions above ..." | stays; the failed question is not counted |
+| safety stop by Gemini | the usual refusal warning ("The model declined to answer ...") | stays |
+
+No message shows a status code, a variable name or a key; the reason goes to the app log only
+(the terminal locally, *Manage app -> Logs* on Community Cloud). The page never crashes on an API
+failure, and a failed question is not retried on another model or provider.
 
 ### Local model: what this laptop can run
 
@@ -114,21 +174,38 @@ explicitly, so it never falls back to another credential source.
 
 | Variable | Default | |
 |---|---|---|
-| `ESG_AI_ENABLED` | off | must be `true` for either provider (any other value, or unset, keeps the analyst off) |
-| `ESG_AI_PROVIDER` | `ollama` | `ollama` or `anthropic`; anything else keeps the analyst off |
-| `ESG_AI_MODEL` | `qwen2.5:3b` / `claude-haiku-4-5` | any model the provider has |
+| `ESG_AI_ENABLED` | off | must be `true` for every provider (any other value, or unset, keeps the analyst off) |
+| `ESG_AI_PROVIDER` | `ollama` | `gemini`, `ollama` or `anthropic`; anything else keeps the analyst off |
+| `ESG_AI_MODEL` | `qwen2.5:3b` / `gemini-3.5-flash-lite` / `claude-haiku-4-5` | any model the provider has |
 | `OLLAMA_HOST` | `http://127.0.0.1:11434` | ollama only |
+| `GEMINI_API_KEY` | - | gemini only, required (Google AI Studio, free tier; see above) |
 | `ANTHROPIC_API_KEY` | - | anthropic only, required |
 | `ESG_AI_EFFORT` | not sent | anthropic only; `low`, `medium` or `high`, for models that accept it (`claude-haiku-4-5` does not) |
 
-Local use, PowerShell, free model: `$env:ESG_AI_ENABLED = 'true'`, then `.\scripts\dev.ps1 app`.
-With Claude instead: also `$env:ESG_AI_PROVIDER = 'anthropic'; $env:ANTHROPIC_API_KEY = '...'`.
-Secrets can also go in `.streamlit/secrets.toml`, which git ignores (a test fails if it, `.env` or
-anything key-like is ever tracked).
+Local use, PowerShell, free local model: `$env:ESG_AI_ENABLED = 'true'`, then
+`.\scripts\dev.ps1 app`. With Gemini: also `$env:ESG_AI_PROVIDER = 'gemini'` and
+`$env:GEMINI_API_KEY = '<your key>'`. With Claude: `$env:ESG_AI_PROVIDER = 'anthropic'` and
+`$env:ANTHROPIC_API_KEY = '...'`.
 
-**Visitors of the public site never see setup details.** With the analyst off, the page shows the
-guided questions and a short note that free-text questions are not available on the public site
-and that a demonstration is in the project video.
+Or put the same lines in your local `.env` (`ESG_AI_ENABLED=true`, `ESG_AI_PROVIDER=gemini`,
+`GEMINI_API_KEY=<your key>`): `.\scripts\dev.ps1 app` and `eval` start through
+[`scripts/run_local.py`](../scripts/run_local.py), which copies **only** these AI settings
+(`ESG_AI_*`, `OLLAMA_HOST`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`) from `.env` into the
+environment of the app; a value set in the shell wins. The app itself still reads only the
+environment and Streamlit secrets. (Before this launcher, settings in `.env` never reached the
+app, so the page always showed the "not switched on" note.) Secrets can also go in
+`.streamlit/secrets.toml`, which git ignores (a test fails if it, `.env` or anything key-like is
+ever tracked).
+
+**What the page shows.** The guided questions are the default and always work. Below them:
+
+- analyst **off** (`ESG_AI_ENABLED` not `true`; the default, also on the public site unless Gemini
+  is switched on there): a short note that free-text questions are not switched on for this site
+  and that a demonstration is in the project video - no setup details;
+- **on, and the provider has what it needs** (its key; the local model needs none): the
+  "Ask in your own words" box, with the Google notice when the provider is Gemini;
+- **on, but the key is missing** or Gemini's quota / key failed earlier in the session: a plain
+  "not available right now" / "paused" message pointing to the guided questions (table above).
 
 **A refusal stays a refusal.** If Claude's safety classifier declines a request
 (`stop_reason: "refusal"`), the analyst does not retry it on another model: it stops and shows
@@ -146,11 +223,12 @@ Hard limits in `agent.LIMITS`, checked by tests:
 | Model requests per question | 5 (4 tool rounds + the answer) | the loop stops with "ask a narrower question" |
 | Output tokens per response | 1,500 | the answer is cut and marked as cut |
 | Question length | 500 characters | the question is not sent |
-| Request timeout | Claude: 30 seconds, 1 retry (connection errors, 429, 5xx only); local model: 180 seconds | the page says the analyst could not answer; the rest of the app is unaffected |
+| Request timeout | Claude and Gemini: 30 seconds, 1 retry (Claude: connection errors, 429, 5xx; Gemini: 408 and 5xx, never 429); local model: 180 seconds | the page says the analyst could not answer; the rest of the app is unaffected |
 | Local context window | 8,192 tokens (`num_ctx`) | Ollama's own default is smaller and cuts a long prompt silently; the prompt with the six tools is about 3,000 tokens |
 
 So one question costs at most 5 requests and 7,500 output tokens, and one session at most 50
-requests.
+requests. The limits are the same for every provider (`agent.LIMITS`; tests check them with the
+fake Anthropic, Ollama and Gemini clients).
 
 ## Guardrails
 
@@ -194,11 +272,28 @@ loosely. That is why the numbers are shown next to the answer, and why the evalu
   window sent, tool results returned as `tool` messages, bad arguments and unknown tools sent
   back as errors, arguments given as a JSON string parsed, tools withdrawn at the call limit, a
   runaway model cut off, out-of-scope refusals, the local host and timeout passed to the client.
+- `tests/test_ai_providers.py`, Gemini part (CI, fake Gemini client, no network): the same system
+  prompt and the six tools as function declarations with the same JSON schema, automatic function
+  calling off, the output cap and temperature 0 sent, the request valid for the real SDK types;
+  tool results returned as function responses; bad arguments and unknown tools sent back as
+  errors; mode `NONE` at the tool-call limit; extra calls not run; a runaway model cut off; safety
+  stops (answer or question blocked) shown as refusals after one request; quota (429), key
+  (400 / 403) and API errors (5xx, timeout) raised as `ProviderUnavailable` with no retry
+  elsewhere; the client built with the key, Vertex AI off, a 30 s timeout and no 429 retry;
+  without a key no client is built; the key comes only from the environment or Streamlit secrets
+  (`GOOGLE_API_KEY` is ignored).
 - `tests/test_app.py`: every page and every guided question runs and opens only the public files;
   visitors get the guided questions and a note with no setup details; no input box after 10
-  questions.
-- `tests/test_repo_safety.py`: no tracked file holds anything key-like; `.env` and
-  `.streamlit/secrets.toml` are ignored and untracked.
+  questions; **with `ESG_AI_ENABLED=true` and the provider's key (read from a `.env` through
+  `scripts/run_local.py`) the input box appears**, with the Google notice for Gemini; the local
+  model needs no key; switched on without a key, a used-up quota and an API error each give a
+  plain message and leave the guided questions working (the quota pauses free text for the
+  session, an API error does not); a Gemini refusal is shown as a refusal; a Gemini answer shows
+  its tool calls.
+- `tests/test_repo_safety.py`: no tracked file holds anything key-like (Anthropic, Google `AIza...`,
+  `GEMINI_API_KEY=` values, ...); `.env`, `.streamlit/secrets.toml` and Google credential files
+  are ignored and untracked; `.env.example` holds no key; the app reads the Gemini key only
+  through `agent.setting`; the `.env` launcher copies only the AI settings and the shell wins.
 - [evals/ai_analyst_questions.yaml](../evals/ai_analyst_questions.yaml): 20 questions - 11 plain,
   2 on provisional data, 3 on withheld figures, 1 on a KPI that is not ranked, 3 that must be
   refused - each with the tools it needs, the calls that answer it and the expected numbers, taken
@@ -207,7 +302,10 @@ loosely. That is why the numbers are shown next to the answer, and why the evalu
 - `.\scripts\dev.ps1 eval` asks the model every question and scores tool selection, numeric
   accuracy (with a tolerance per number), refusals and mentions (withheld, provisional, no causal
   wording); each run is saved under `evals/results/` and [ai_analyst_eval.md](ai_analyst_eval.md)
-  shows them all.
+  shows them all. `ESG_AI_PROVIDER=gemini` works the same way; a Gemini run pauses 10 s between
+  questions for the free-tier per-minute quota, retries a question once after a minute if the
+  quota is hit, and stops without saving if it is still used up (a run with quota failures would
+  not be comparable).
 
 ### Evaluation results (local models, 2026-10-19)
 
@@ -233,7 +331,8 @@ reader can catch the slips above. The questions and expected answers were not ch
 runs. Treat the local model as a demonstration of the architecture, not as a source of numbers:
 for numbers, the guided questions (same tools, no model) are exact. A larger model would do
 better; the Claude provider is wired and tested but was not evaluated here (no key on this
-machine).
+machine). **Gemini (`gemini-3.5-flash-lite`): pending - to be run locally by Prity** with her own
+free-tier key (`$env:ESG_AI_PROVIDER = 'gemini'`, then `.\scripts\dev.ps1 eval`).
 
 ## Cost
 
@@ -263,6 +362,8 @@ input cost of follow-up requests; it is not switched on.
   questions are the reliable way to get a figure.
 - The local model needs about 2 GB of free memory and a minute or so for the first question
   (loading); on a busy laptop Windows pages and answers slow down sharply.
-- The Claude provider has not been evaluated live (no key on this machine).
-- The limits apply per browser session; someone who reloads the page gets a new session - one
-  more reason the public deployment keeps the analyst off.
+- The Claude provider has not been evaluated live (no key on this machine); the Gemini
+  evaluation is pending.
+- The limits apply per browser session; someone who reloads the page gets a new session. That is
+  why the public site may only use Gemini's free tier with billing off: the worst a visitor can
+  do is use up the day's free quota, after which the page falls back to the guided questions.
