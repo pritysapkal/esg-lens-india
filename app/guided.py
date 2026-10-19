@@ -276,8 +276,8 @@ def _describe_restatements(args: dict, result: dict) -> tuple[str, pd.DataFrame]
     rows = pd.DataFrame(result["rows"])
     if rows.empty:
         return "No restatement figures.", rows
-    # the 5-company rule of the other group figures, applied to the shares here as well
-    small = rows["n_companies"] < 5
+    # the table withholds the shares of a group of fewer than 5 companies; the tool says which
+    small = rows["status"] != "shown"
     for column in ("pct_material", "pct_material_flattering"):
         rows[column] = [
             ("n<5 (withheld)" if s else _num(v)) for v, s in zip(rows[column], small, strict=True)

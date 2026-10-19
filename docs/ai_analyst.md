@@ -27,9 +27,10 @@ itself, so a reader can see exactly what was asked.
 | Who changed most on carbon intensity (confirmed changes only)? | `top_movers_confirmed` | improvements or deteriorations, ranking group, how many |
 | How often are figures restated in the next report? | `restatement_summary` | all figures, by peer group, or by metric |
 
-One rule is added on display: the restatement summary holds peer groups of 3 and 4 companies,
-and guided mode shows their shares as *n<5 (withheld)*, the same 5-company rule as every other
-group statistic of the project. `tests/test_guided.py` checks that every question type goes
+Withheld figures come from the tables themselves: `rpt_public_group_metrics` and
+`rpt_public_restatement_summary` leave a group statistic empty for fewer than 5 companies, the
+tools pass that on as *n<5 (withheld)*, and guided mode and the AI analyst show it as such (for
+example the restatement shares of the peer groups of 3 and 4 companies). `tests/test_guided.py` checks that every question type goes
 through `tools.call` and nothing else (a spy on the call, and a static check of the module), that
 every combination of the group question runs, and that no table shows a raw column name.
 

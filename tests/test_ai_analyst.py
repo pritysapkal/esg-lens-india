@@ -420,3 +420,19 @@ def test_scoring_rules():
     }
     assert eval_ai_analyst.score(number_q, agent.Answer(text="It fell by 40.3%."))["numbers"]
     assert not eval_ai_analyst.score(number_q, agent.Answer(text="It fell by 4.3%."))["numbers"]
+
+
+def test_restatement_tool_returns_the_withheld_shares_as_withheld():
+    """rpt_public_restatement_summary withholds the shares of groups of fewer than 5 companies;
+    the tool passes that on with a status and a note, and keeps the counts."""
+    result = tools.call("restatement_summary", {"level": "peer_group"})
+    small = [r for r in result["rows"] if r["n_companies"] < 5]
+    assert small and all(r["status"] == "n<5 (withheld)" for r in small)
+    assert all(r["pct_material"] is None and r["pct_material_flattering"] is None for r in small)
+    assert all(r["n_material"] is not None for r in small)  # counts stay
+    large = [r for r in result["rows"] if r["n_companies"] >= 5]
+    assert large and all(r["status"] == "shown" and r["pct_material"] is not None for r in large)
+    assert any("n<5 (withheld)" in note for note in result["notes"])
+    # one company's own figures are not a group statistic: shown
+    company = tools.call("restatement_summary", {"level": "company"})["rows"]
+    assert all(r["status"] == "shown" for r in company)

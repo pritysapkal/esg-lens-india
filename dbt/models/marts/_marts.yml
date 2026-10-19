@@ -1821,6 +1821,14 @@ models:
     description: n companies with material
   - name: pct_companies_with_material
     description: pct companies with material
+  - name: suppressed_reason
+    description: 'fewer_than_5_companies when a group-level row (overall, metric, peer group, KPMG-comparable)
+      has fewer than 5 companies: its shares (pct_*) are then empty, its counts stay. Empty otherwise, and
+      always empty at the company level (one company''s own figures, not a group statistic).'
+    tests:
+    - accepted_values:
+        arguments:
+          values: [fewer_than_5_companies]
 - name: fct_disclosure_quality
   description: 'Disclosure Quality Score (v2) per company and financial year: total (0-100), the component
     scores (0-1), grade, rank and percentile within the ranking group and year, and the reasons for lost
@@ -2145,17 +2153,17 @@ models:
   - name: n_companies_in_year
     description: Companies with Scope 1+2 emissions that year (the base of the shares).
   - name: share_of_total_pct
-    description: Share of the Scope 1+2 emissions of all companies covered that year, in % (0-100).
+    description: Share of the Scope 1+2 emissions of all companies covered that year, in % (0-100); empty
+      in a year with fewer than 5 companies.
     tests:
-    - not_null
     - dbt_utils.accepted_range:
         arguments:
           min_value: 0
           max_value: 100
   - name: cumulative_share_pct
-    description: Share held by this company and every larger emitter together, in % (0-100).
+    description: Share held by this company and every larger emitter together, in % (0-100); empty in a
+      year with fewer than 5 companies.
     tests:
-    - not_null
     - dbt_utils.accepted_range:
         arguments:
           min_value: 0
@@ -2164,6 +2172,12 @@ models:
     description: true for the five largest emitters of the year.
   - name: is_top_10
     description: true for the ten largest emitters of the year.
+  - name: suppressed_reason
+    description: fewer_than_5_companies in a year with fewer than 5 companies (the shares are then empty).
+    tests:
+    - accepted_values:
+        arguments:
+          values: [fewer_than_5_companies]
 - name: rpt_public_company_percentile
   description: 'PUBLIC model (docs/publication_policy.md): position of each company in its ranking group,
     per KPI and financial year, from fct_company_kpi_percentile (rows with a value only). Percentile (100

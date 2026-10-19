@@ -66,14 +66,14 @@ table rpt_public_concentration
 		summarizeBy: none
 		sourceColumn: n_companies_in_year
 
-	/// Share of the Scope 1+2 emissions of all companies covered that year, in % (0-100).
+	/// Share of the Scope 1+2 emissions of all companies covered that year, in % (0-100); empty in a year with fewer than 5 companies.
 	column share_of_total_pct
 		dataType: double
 		lineageTag: 615ec038-d49e-53c2-b6c1-57117555ba29
 		summarizeBy: none
 		sourceColumn: share_of_total_pct
 
-	/// Share held by this company and every larger emitter together, in % (0-100).
+	/// Share held by this company and every larger emitter together, in % (0-100); empty in a year with fewer than 5 companies.
 	column cumulative_share_pct
 		dataType: double
 		lineageTag: d5a957fc-a2b2-568f-9c4c-12d93ba3281b
@@ -93,6 +93,13 @@ table rpt_public_concentration
 		lineageTag: 05609a0e-7027-5c89-870a-3381379477c6
 		summarizeBy: none
 		sourceColumn: is_top_10
+
+	/// fewer_than_5_companies in a year with fewer than 5 companies (the shares are then empty).
+	column suppressed_reason
+		dataType: string
+		lineageTag: e5100321-5983-50a3-bd3c-d213393d7760
+		summarizeBy: none
+		sourceColumn: suppressed_reason
 
 	partition rpt_public_concentration = m
 		mode: import

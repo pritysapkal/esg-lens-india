@@ -20,6 +20,12 @@
 --     model, or such a row is missing from the model;
 --  7. rpt_public_company_percentile shows kpi_value_public for a KPI that is not public_safe
 --     (a filed value).
+-- The 5-company rule in EVERY public table (docs/publication_policy.md):
+--  8. a group statistic or a position within a group is shown although fewer than 5 companies
+--     stand behind it - restatement shares of a group level, Disclosure Quality ranks and
+--     percentiles, KPI ranks and percentiles, year-on-year ranks, concentration shares;
+--  9. a rpt_public_* table exists that this test does not classify, so the rule cannot silently
+--     skip a new public table (add it to min_5_coverage below).
 
 -- The column lists are read from information_schema, so tell dbt what must be built first:
 -- depends_on: {{ ref('fct_company_year') }}
@@ -31,6 +37,7 @@
 -- depends_on: {{ ref('rpt_public_concentration') }}
 -- depends_on: {{ ref('rpt_public_company_percentile') }}
 -- depends_on: {{ ref('rpt_public_ghg_yoy') }}
+-- depends_on: {{ ref('rpt_public_restatement_summary') }}
 
 with model_pairs as (
     select
@@ -272,3 +279,94 @@ left join {{ ref('kpi_catalogue') }} as catalogue
         percentile.kpi_name = catalogue.kpi_name
         and catalogue.metric_type = 'company_value'
 where percentile.kpi_value_public is not null and not coalesce(catalogue.public_safe, false)
+
+-- 8. the 5-company rule, table by table: a row is a violation when a statistic is shown and the
+-- companies behind it are fewer than 5. The company level of the restatement summary and the
+-- company-level KPI columns are one company's own values, not group statistics.
+union all
+
+select
+    'rpt_public_restatement_summary: share shown for fewer than 5 companies: '
+    || level || ' / ' || group_key as problem
+from {{ ref('rpt_public_restatement_summary') }}
+where
+    level != 'company'
+    and n_companies < 5
+    and coalesce(
+        pct_no_change, pct_minor, pct_material, pct_material_unexplained,
+        pct_material_flattering, pct_companies_with_material
+    ) is not null
+
+union all
+
+select
+    'rpt_public_restatement_summary: suppressed_reason does not match the company count: '
+    || level || ' / ' || group_key as problem
+from {{ ref('rpt_public_restatement_summary') }}
+where
+    (suppressed_reason is not null)
+    != (level != 'company' and n_companies < 5)
+
+union all
+
+select
+    'rpt_public_disclosure_quality: rank or percentile for fewer than 5 companies: '
+    || isin || ' / ' || fiscal_year_label as problem
+from {{ ref('rpt_public_disclosure_quality') }}
+where
+    coalesce(dqs_group_n, 0) < 5
+    and (dqs_rank_in_group is not null or dqs_percentile_in_group is not null)
+
+union all
+
+select
+    'rpt_public_company_percentile: rank or percentile for fewer than 5 companies: '
+    || isin || ' / ' || fiscal_year_label || ' / ' || kpi_name as problem
+from {{ ref('rpt_public_company_percentile') }}
+where
+    coalesce(n_in_group, 0) < 5
+    and (percentile_in_group is not null or rank_in_group is not null)
+
+union all
+
+select
+    'rpt_public_ghg_yoy: rank for fewer than 5 comparable companies: '
+    || isin || ' / ' || to_year as problem
+from {{ ref('rpt_public_ghg_yoy') }}
+where
+    coalesce(n_companies_compared, 0) < 5
+    and (
+        is_ranked
+        or improvement_rank_in_group is not null
+        or deterioration_rank_in_group is not null
+        or improvement_rank_overall is not null
+        or deterioration_rank_overall is not null
+    )
+
+union all
+
+select
+    'rpt_public_concentration: shares of a year with fewer than 5 companies: '
+    || fiscal_year_label as problem
+from {{ ref('rpt_public_concentration') }}
+where
+    coalesce(n_companies_in_year, 0) < 5
+    and (share_of_total_pct is not null or cumulative_share_pct is not null)
+
+-- 9. every public table is classified here (group statistics checked above, in check 5 for
+-- rpt_public_group_metrics, or - for rpt_public_company_year - company values only)
+union all
+
+select 'public table not covered by the 5-company check: ' || public_tables.table_name as problem
+from information_schema.tables as public_tables
+where
+    starts_with(public_tables.table_name, 'rpt_public_')
+    and public_tables.table_name not in (
+        'rpt_public_company_year',
+        'rpt_public_disclosure_quality',
+        'rpt_public_group_metrics',
+        'rpt_public_restatement_summary',
+        'rpt_public_concentration',
+        'rpt_public_company_percentile',
+        'rpt_public_ghg_yoy'
+    )

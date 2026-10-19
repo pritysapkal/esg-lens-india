@@ -322,12 +322,20 @@ def restatement_summary(level: str, group_key: str | None = None) -> dict:
         rows = rows[rows["group_key"] == group_key]
     columns = ["level", "group_key", "n_pairs", "n_material", "pct_material", "n_material_flattering",
                "pct_material_flattering", "n_companies", "n_companies_with_material"]  # fmt: skip
+    out = _records(rows[columns].head(60))
+    # the table withholds the shares of a group of fewer than 5 companies; say so in every row
+    for record, reason in zip(out, rows["suppressed_reason"].head(60), strict=True):
+        record["status"] = "n<5 (withheld)" if reason == "fewer_than_5_companies" else "shown"
     notes = [
         "A restatement is a difference between two filings, not a finding of wrongdoing.",
         "The latest year has no next report yet, so its restatements are not observable.",
     ]
+    if any(r["status"] != "shown" for r in out):
+        notes.append(
+            "n<5 (withheld): the shares of a group of fewer than 5 companies are not published; the counts are."
+        )
     return {
-        "rows": _records(rows[columns].head(60)),
+        "rows": out,
         "notes": notes,
         "source": "rpt_public_restatement_summary",
     }

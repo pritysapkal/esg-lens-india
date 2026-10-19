@@ -1,7 +1,8 @@
 -- rpt_public_concentration must be a proper Pareto table. Rows returned are violations: per
 -- financial year the shares add up to 100, the cumulative share of the last emitter is 100,
 -- ranks run 1..n without gaps, and exactly min(5, n) and min(10, n) companies carry the top-5
--- and top-10 flags.
+-- and top-10 flags. A year with fewer than 5 companies has no shares (5-company rule): its
+-- shares must all be empty instead.
 
 with by_year as (
     select
@@ -28,8 +29,8 @@ select
     n_top_10
 from by_year
 where
-    abs(share_sum - 100) > 1e-6
-    or abs(last_cumulative - 100) > 1e-6
+    (n_companies >= 5 and (abs(share_sum - 100) > 1e-6 or abs(last_cumulative - 100) > 1e-6))
+    or (n_companies < 5 and (share_sum is not null or last_cumulative is not null))
     or n_ranks != n_rows
     or max_rank != n_rows
     or n_companies != n_rows

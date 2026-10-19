@@ -7,7 +7,8 @@ Fails when:
   2. a Parquet column is named like a raw filed quantity (tonnes, GJ, kl, turnover, headcount,
      the hidden sums of the semantic layer, restatement values);
   3. rpt_public_group_metrics shows a statistic for fewer than 5 companies;
-  4. rpt_public_company_percentile shows a value for a KPI that is not public_safe.
+  4. rpt_public_company_percentile shows a value for a KPI that is not public_safe;
+  5. rpt_public_restatement_summary shows a share for a group level of fewer than 5 companies.
 The same rules run inside dbt (assert_public_models_safe); this checks the files that leave.
 """
 
@@ -69,6 +70,17 @@ def problems(folder: Path) -> list[str]:
             percentiles["kpi_value_public"].notna() & ~percentiles["kpi_name"].isin(public)
         ]
         found += [f"filed value shown for {k}" for k in sorted(set(filed["kpi_name"]))]
+    restatements = tables.get("rpt_public_restatement_summary")
+    if restatements is not None:
+        shares = [c for c in restatements.columns if c.startswith("pct_")]
+        small = restatements[
+            (restatements["level"] != "company") & (restatements["n_companies"] < 5)
+        ]
+        shown = small[small[shares].notna().any(axis=1)]
+        found += [
+            f"restatement share shown for fewer than 5 companies: {r.level} / {r.group_key}"
+            for r in shown.itertuples()
+        ]
     return found
 
 

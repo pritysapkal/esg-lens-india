@@ -103,3 +103,28 @@ def test_rpt_public_ghg_yoy_has_only_computed_values():
     final_select = sql.rsplit("\nselect\n", 1)[1]
     for raw in ("ghg_s12_tco2e", "ghg_s1_tco2e", "ghg_s2_tco2e", "turnover_cr", "turnover_inr"):
         assert raw not in final_select, f"raw quantity {raw} in the output of rpt_public_ghg_yoy"
+
+
+def test_check_public_catches_a_small_group_share(tmp_path):
+    """The file check of exports/public flags a restatement share shown for fewer than 5 companies."""
+    import shutil as _shutil
+    import sys as _sys
+
+    import pandas as pd
+
+    public = ROOT / "exports" / "public"
+    if not (public / "rpt_public_restatement_summary.parquet").exists():
+        pytest.skip("run dev.ps1 bi-export first")
+    _sys.path.insert(0, str(ROOT / "scripts"))
+    import check_public
+
+    for path in public.glob("rpt_public_*.parquet"):
+        _shutil.copy(path, tmp_path / path.name)
+    assert check_public.problems(tmp_path) == []
+    frame = pd.read_parquet(tmp_path / "rpt_public_restatement_summary.parquet")
+    small = (frame["level"] == "peer_group") & (frame["n_companies"] < 5)
+    assert small.any()
+    frame.loc[small, "pct_material"] = 12.3  # what the table published before the fix
+    frame.to_parquet(tmp_path / "rpt_public_restatement_summary.parquet")
+    found = check_public.problems(tmp_path)
+    assert found and all("fewer than 5 companies" in p for p in found)

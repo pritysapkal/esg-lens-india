@@ -156,6 +156,13 @@ table rpt_public_restatement_summary
 		summarizeBy: none
 		sourceColumn: pct_companies_with_material
 
+	/// fewer_than_5_companies when a group-level row (overall, metric, peer group, KPMG-comparable) has fewer than 5 companies: its shares (pct_*) are then empty, its counts stay. Empty otherwise, and always empty at the company level (one company's own figures, not a group statistic).
+	column suppressed_reason
+		dataType: string
+		lineageTag: c85c5f3a-55f7-5b25-8bb9-314e360b8926
+		summarizeBy: none
+		sourceColumn: suppressed_reason
+
 	partition rpt_public_restatement_summary = m
 		mode: import
 		source =
