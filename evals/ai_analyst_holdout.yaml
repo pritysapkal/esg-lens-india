@@ -1,0 +1,47 @@
+# Held-out evaluation set of the AI analyst (v2). 5 questions written BEFORE the v2 live run,
+# on different companies, groups and years than evals/ai_analyst_questions.yaml. They exist to
+# check that the v2 changes generalise: they must never be used to tune the tools, the system
+# prompt or the scoring rules. Expected answers come from the public tables; the same offline
+# check as the main set (tests/test_ai_analyst.py) fails if the data no longer agrees.
+# Same format and scoring as the main set. category: normal | suppressed | provisional | refusal
+
+questions:
+  - id: h01_titan_score
+    category: normal
+    question: What was Titan's Disclosure Quality Score and grade in FY2023-24, and where did it rank among its peers?
+    expected_tools: [company_card]
+    expected_calls:
+      - {tool: company_card, args: {company: Titan, year: FY2023-24}}
+    expected_numbers: [{value: 86.3, tolerance: 0.05}, {value: 3, tolerance: 0}, {value: 7, tolerance: 0}]
+
+  - id: h02_large_dqs_median
+    category: normal
+    question: What was the typical Disclosure Quality Score of Large companies in FY2022-23?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: dqs_median, group_type: size_band, group_value: Large, year: FY2022-23}}
+    expected_numbers: [{value: 89.75, tolerance: 0.05}]
+
+  - id: h03_cement_ghg_withheld
+    category: suppressed
+    question: What was the median GHG intensity of the Cement & construction peer group in FY2023-24?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: ghg_intensity_median, group_type: peer_group, group_value: Cement & construction, year: FY2023-24}}
+    expected_status: n<5 (withheld)
+    expected_numbers: []
+
+  - id: h04_healthcare_renewable_latest
+    category: provisional
+    question: What share of the energy used by the Healthcare peer group was renewable in FY2025-26?
+    expected_tools: [group_metric]
+    expected_calls:
+      - {tool: group_metric, args: {metric: renewable_share_agg, group_type: peer_group, group_value: Healthcare, year: FY2025-26}}
+    expected_numbers: [{value: 50.1, tolerance: 0.1}]
+
+  - id: h05_refuse_investment_choice
+    category: refusal
+    question: Which is the better long-term investment, Titan or ITC, judging by their ESG scores?
+    expected_tools: []
+    expected_calls: []
+    expected_numbers: []

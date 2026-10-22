@@ -53,7 +53,7 @@ def test_tool_set_is_fixed_and_schemas_are_strict():
                 "group_type": "sector_group",
                 "group_value": "IT services",
             },
-            "not allowed",
+            "not a sector_group; it is a group in several group types",
         ),
         (
             "group_metric",
@@ -713,3 +713,116 @@ def test_the_report_shows_variability_without_counting_it(monkeypatch, tmp_path)
     assert "q12: re-run passed; first scored answer (FAIL) stays official" in row
     assert "0 / 1" in row  # the official result is the failed first answer
     assert "Run-to-run variability" in report
+
+
+# ------------------------------------------------------------------ v2: group-type resolution
+
+
+def test_group_type_is_found_from_a_unique_group_name():
+    right = tools.call("group_metric", {"metric": "renewable_share_agg", "group_type": "peer_group",
+                                        "group_value": "Metals & mining", "year": "FY2024-25"})  # fmt: skip
+    for given in (None, "sector_group"):  # left out, or wrong
+        args = {
+            "metric": "renewable_share_agg",
+            "group_value": "Metals & mining",
+            "year": "FY2024-25",
+        }
+        result = tools.call("group_metric", {**args, "group_type": given} if given else args)
+        assert result["group_type"] == "peer_group" and result["rows"] == right["rows"]
+    assert any("is a peer_group, not a sector_group" in n for n in result["notes"])
+
+
+def test_an_ambiguous_group_name_lists_the_matching_group_types():
+    # 'Asset-heavy' is both a sector_group and a ranking_group
+    with pytest.raises(tools.ToolArgumentError, match=r"ranking_group, sector_group.*group_type"):
+        tools.call("group_metric", {"metric": "dqs_median", "group_value": "Asset-heavy"})
+    with pytest.raises(
+        tools.ToolArgumentError, match=r"not a peer_group.*ranking_group, sector_group"
+    ):
+        tools.call("group_metric", {"metric": "dqs_median", "group_type": "peer_group",
+                                    "group_value": "Asset-heavy"})  # fmt: skip
+    # a correct type settles it
+    ok = tools.call("group_metric", {"metric": "dqs_median", "group_type": "sector_group",
+                                     "group_value": "Asset-heavy", "year": "FY2024-25"})  # fmt: skip
+    assert ok["group_type"] == "sector_group"
+
+
+def test_group_arguments_that_cannot_be_resolved_say_what_is_wrong():
+    with pytest.raises(tools.ToolArgumentError, match="group_value='Nowhere' is not allowed"):
+        tools.call("group_metric", {"metric": "dqs_median", "group_value": "Nowhere"})
+    with pytest.raises(tools.ToolArgumentError, match="group_type=None|give group_type"):
+        tools.call("group_metric", {"metric": "dqs_median"})
+    with pytest.raises(tools.ToolArgumentError, match="group_type='galaxy' is not allowed"):
+        tools.call("group_metric", {"metric": "dqs_median", "group_type": "galaxy",
+                                    "group_value": "Metals & mining"})  # fmt: skip
+    # a type alone still lists every group of the type
+    assert (
+        len(tools.call("group_metric", {"metric": "dqs_median", "group_type": "size_band"})["rows"])
+        > 3
+    )
+
+
+def test_other_tools_name_the_right_kind_of_group():
+    with pytest.raises(
+        tools.ToolArgumentError, match=r"'Metals & mining' is a peer_group, not a ranking_group"
+    ):
+        tools.call(
+            "top_movers_confirmed", {"direction": "improvement", "ranking_group": "Metals & mining"}
+        )
+    with pytest.raises(tools.ToolArgumentError, match=r"'HDFCBANK' is a company, not a peer_group"):
+        tools.call("restatement_summary", {"level": "peer_group", "group_key": "HDFCBANK"})
+
+
+def test_v2_tool_descriptions_separate_group_metric_from_restatement_summary():
+    by = {t.name: t for t in tools.tools()}
+    assert "material_restatement_share" in by["group_metric"].description
+    assert (
+        "group_type" in by["group_metric"].description and "null" in by["group_metric"].description
+    )
+    assert "material_restatement_share" in by["restatement_summary"].description
+    assert "Breakdowns" in by["restatement_summary"].description
+    assert "group_type" in by["group_metric"].parameters
+    assert None in by["group_metric"].parameters["group_type"]["enum"]
+
+
+def test_holdout_set_is_separate_complete_and_consistent_with_the_data():
+    import eval_ai_analyst
+
+    holdout, main = eval_ai_analyst.load("holdout"), eval_ai_analyst.load()
+    assert len(holdout) == 5 and not {q["id"] for q in holdout} & {q["id"] for q in main}
+    assert not {q["question"] for q in holdout} & {q["question"] for q in main}
+    categories = {q["category"] for q in holdout}
+    assert {"suppressed", "provisional", "refusal"} <= categories
+    for q in holdout:
+        assert set(q["expected_tools"]) == {c["tool"] for c in q["expected_calls"]}, q["id"]
+        assert not eval_ai_analyst.check_offline(q), q["id"]
+    assert len(main) == 20  # the main set is untouched
+
+
+def test_labelled_and_holdout_runs_get_their_own_files_and_report_sections(monkeypatch, tmp_path):
+    import eval_ai_analyst as ev
+
+    monkeypatch.setattr(ev, "REPORT", tmp_path / "report.md")
+    monkeypatch.setattr(ev, "RESULTS", tmp_path)
+    v1 = ev.result_path("gemini", "gemini-3.5-flash-lite")
+    assert ev.result_path("gemini", "gemini-3.5-flash-lite", "v2") != v1
+    assert ev.result_path("gemini", "gemini-3.5-flash-lite", "v2", "holdout").name.endswith(
+        "__v2__holdout.json"
+    )
+    base = {"provider": "gemini", "model": "gemini-3.5-flash-lite", "date": "2026-10-23"}
+    v1_run = dict(base, rows=[ev.score(q, agent.Answer(text="x")) for q in ev.load()])
+    v2_run = dict(base, label="v2", rows=[ev.score(q, agent.Answer(text="x")) for q in ev.load()])
+    hold_run = dict(base, label="v2", set="holdout",
+                    rows=[ev.score(q, agent.Answer(text="x")) for q in ev.load("holdout")])  # fmt: skip
+    for run in (v1_run, v2_run, hold_run):
+        ev.save(run)
+    assert len(list(tmp_path.glob("*.json"))) == 3
+    ev.write_report(ev.saved_runs(), {}, {})
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "## Labelled re-runs of the 20 questions" in report and "## Held-out set" in report
+    v1_part = report.split("## Labelled re-runs")[0]
+    main_rows = [
+        x for x in v1_part.splitlines() if x.startswith("| gemini | `gemini-3.5-flash-lite` | **")
+    ]
+    assert len(main_rows) == 1  # the v1 table: one row, v2 not mixed in
+    assert "pending" not in report  # a saved v1 gemini run exists

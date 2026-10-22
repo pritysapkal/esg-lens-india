@@ -7,6 +7,13 @@
     python scripts/eval_ai_analyst.py --report-only      # rebuild the report from saved results
     python scripts/eval_ai_analyst.py --provider gemini --only q02 q03   # re-run some questions,
                                                          # merged into the saved run
+    python scripts/eval_ai_analyst.py --provider gemini --label v2       # a separate, fresh run
+    python scripts/eval_ai_analyst.py --provider gemini --label v2 --set holdout   # held-out set
+
+--label names a run (saved as <provider>__<model>__<label>.json); runs without a label are v1 and
+are never touched. --set holdout uses evals/ai_analyst_holdout.yaml (never used for tuning). The
+report keeps the v1 table as it was and shows labelled runs and held-out runs in sections of
+their own.
 
 The live run needs ESG_AI_ENABLED=true (and GEMINI_API_KEY for gemini, ANTHROPIC_API_KEY for
 anthropic). Each live run is saved to evals/results/<provider>__<model>.json; the report shows
@@ -58,6 +65,7 @@ sys.path.insert(0, str(ROOT))
 from app.ai_analyst import agent, providers, tools  # noqa: E402
 
 QUESTIONS = ROOT / "evals" / "ai_analyst_questions.yaml"
+HOLDOUT = ROOT / "evals" / "ai_analyst_holdout.yaml"
 REPORT = ROOT / "docs" / "ai_analyst_eval.md"
 RESULTS = ROOT / "evals" / "results"
 NUMBER = re.compile(r"[-+−]?\d[\d,]*(?:\.\d+)?")
@@ -92,8 +100,9 @@ class QuotaExhausted(RuntimeError):
     """The provider's quota is used up: the live run stops without saving."""
 
 
-def load() -> list[dict]:
-    return yaml.safe_load(QUESTIONS.read_text(encoding="utf-8"))["questions"]
+def load(qset: str = "main") -> list[dict]:
+    path = HOLDOUT if qset == "holdout" else QUESTIONS
+    return yaml.safe_load(path.read_text(encoding="utf-8"))["questions"]
 
 
 def numbers_in(value) -> list[float]:
@@ -296,8 +305,11 @@ def run_live(
     return {"provider": provider, "model": model, "date": date.today().isoformat(), "rows": rows}
 
 
-def result_path(provider: str, model: str) -> Path:
-    return RESULTS / f"{provider}__{re.sub(r'[^A-Za-z0-9.]+', '-', model)}.json"
+def result_path(provider: str, model: str, label: str | None = None, qset: str = "main") -> Path:
+    suffix = "".join(
+        f"__{part}" for part in (label, "holdout" if qset == "holdout" else None) if part
+    )
+    return RESULTS / f"{provider}__{re.sub(r'[^A-Za-z0-9.]+', '-', model)}{suffix}.json"
 
 
 def _named(question: dict, name: str) -> bool:
@@ -312,8 +324,10 @@ def select(questions: list[dict], only: list[str]) -> list[dict]:
     return [q for q in questions if any(_named(q, name) for name in only)]
 
 
-def load_run(provider: str, model: str) -> dict | None:
-    path = result_path(provider, model)
+def load_run(
+    provider: str, model: str, label: str | None = None, qset: str = "main"
+) -> dict | None:
+    path = result_path(provider, model, label, qset)
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
@@ -339,7 +353,7 @@ def merge(previous: dict | None, run: dict, questions: list[dict]) -> dict:
 
 def save(run: dict) -> Path:
     RESULTS.mkdir(parents=True, exist_ok=True)
-    path = result_path(run["provider"], run["model"])
+    path = result_path(run["provider"], run["model"], run.get("label"), run.get("set", "main"))
     path.write_text(
         json.dumps(run, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
     )
@@ -355,7 +369,9 @@ def saved_runs() -> list[dict]:
 def summary(run: dict, questions: list[dict] | None = None, strict: bool = False) -> dict:
     """The rates of one run. Not-scored questions (provider outages) count in "of all" and are
     left out of every other rate, which is over the answered questions."""
-    by_id = {q["id"]: q for q in (questions if questions is not None else load())}
+    if questions is None:
+        questions = load(run.get("set", "main"))
+    by_id = {q["id"]: q for q in questions}
     rows = [rescored(r, by_id.get(r["id"]), strict) for r in run["rows"]]
     answered = [r for r in rows if not r["not_scored"]]
     with_numbers = [r for r in answered if r["has_numbers"]]
@@ -406,7 +422,84 @@ def summary(run: dict, questions: list[dict] | None = None, strict: bool = False
     }
 
 
-def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
+def is_v1(run: dict) -> bool:
+    return not run.get("label") and run.get("set", "main") == "main"
+
+
+def extra_sections(runs: list[dict], offline_holdout: dict[str, list[str]]) -> list[str]:
+    """Labelled runs (v2, ...) and held-out runs: separate from the v1 table above, never merged."""
+    lines: list[str] = []
+    mark = {True: "pass", False: "FAIL"}
+    for qset, title in (
+        ("main", "Labelled re-runs of the 20 questions"),
+        ("holdout", "Held-out set"),
+    ):
+        group = [r for r in runs if not is_v1(r) and r.get("set", "main") == qset]
+        if not group:
+            continue
+        questions = load(qset)
+        lines += ["", f"## {title}", ""]
+        if qset == "holdout":
+            bad = {k: v for k, v in offline_holdout.items() if v}
+            lines += [
+                f"5 questions in [evals/ai_analyst_holdout.yaml](../evals/ai_analyst_holdout.yaml), "
+                "written before the v2 run and never used to tune the tools, the prompt or the scoring. "
+                f"Offline check: **{sum(not v for v in offline_holdout.values())} of "
+                f"{len(offline_holdout)} consistent with the data.**"
+                + "".join(f" `{k}`: {'; '.join(v)}." for k, v in bad.items()),
+                "",
+            ]
+        else:
+            lines += [
+                "Same 20 questions, expected answers and scoring as v1 (above, unchanged), run fresh "
+                "after the v2 tool changes (group type found from the group name, clearer errors, "
+                "clearer tool descriptions). v1 results are not replaced.",
+                "",
+            ]
+        lines += [
+            "| Run | Provider | Model | Date | Passed (of all) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        ]
+        summaries = [(run, summary(run, questions)) for run in group]
+        for run, m in summaries:
+            lines.append(
+                f"| {run.get('label') or 'held-out'} | {run['provider']} | `{run['model']}` | {run['date']} | "
+                f"**{m['passed']} / {m['n']}** | **{m['passed']} / {m['answered']}** | {m['not_scored']} | "
+                f"{m['tools']} / {m['answered']} | {m['numbers']} / {m['n_numbers']} | "
+                f"{m['refusals']} / {m['n_refusals']} | {m['false_refusals']} | {m['caveats']} / {m['n_caveats']} |"
+            )
+        for run, m in summaries:
+            lines += [
+                "",
+                f"### {run.get('label') or 'held-out'}: {run['provider']} `{run['model']}`",
+                "",
+                "| Question | Category | Tools | Numbers | Mentions | Time | Tools called |",
+                "|---|---|---|---|---|---|---|",
+            ]
+            for r in m["rows"]:
+                cells = (
+                    "not scored | not scored | not scored"
+                    if r["not_scored"]
+                    else f"{mark[r['tools']]} | {mark[r['numbers']]} | {mark[r['mentions']]}"
+                )
+                lines.append(
+                    f"| `{r['id']}` | {r['category']} | {cells} | {r['seconds']:.0f} s | "
+                    f"{', '.join(r['called']) or '-'} |"
+                )
+            for r in m["rows"]:
+                if not r["passed"] and not r["not_scored"]:
+                    short = (r["error"] or r["answer"]).replace("\n", " ").replace("|", "/")[:400]
+                    lines.append(f"- failed `{r['id']}`: {short or '(empty answer)'}")
+    return lines
+
+
+def write_report(
+    runs: list[dict],
+    offline: dict[str, list[str]],
+    offline_holdout: dict[str, list[str]] | None = None,
+) -> None:
+    later_sections = extra_sections(runs, offline_holdout or {})
+    runs = [r for r in runs if is_v1(r)]
     questions = load()
     by_category: dict[str, int] = {}
     for q in questions:
@@ -566,6 +659,7 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
                         args = ", ".join(f"{k}={v!r}" for k, v in call["arguments"].items())
                         result = f" -> error: {call['error']}" if call["error"] else ""
                         lines.append(f"  - `{call['name']}({args})`{result}")
+    lines += later_sections
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
@@ -582,6 +676,18 @@ def main(argv: list[str] | None = None) -> int:
         "--provider", choices=["ollama", "gemini", "anthropic"], help="override ESG_AI_PROVIDER"
     )
     parser.add_argument("--model", help="override ESG_AI_MODEL")
+    parser.add_argument(
+        "--label",
+        help="name this run (e.g. v2): saved in its own file, shown in its own report section; "
+        "unlabelled runs are v1 and are never overwritten",
+    )
+    parser.add_argument(
+        "--set",
+        dest="qset",
+        choices=["main", "holdout"],
+        default="main",
+        help="question set: main (the 20 questions) or holdout (evals/ai_analyst_holdout.yaml)",
+    )
     parser.add_argument(
         "--only",
         nargs="+",
@@ -602,8 +708,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.model:
         os.environ["ESG_AI_MODEL"] = args.model
 
-    questions = load()
-    offline = {q["id"]: check_offline(q) for q in questions}
+    questions = load(args.qset)
+    offline_main = {q["id"]: check_offline(q) for q in load()}
+    offline_holdout = {q["id"]: check_offline(q) for q in load("holdout")}
+    offline = offline_holdout if args.qset == "holdout" else offline_main
     for qid, problems in offline.items():
         print(f"{qid:<42} {'ok' if not problems else '; '.join(problems)}")
     run = None
@@ -618,11 +726,15 @@ def main(argv: list[str] | None = None) -> int:
             selected = select(questions, args.only) if args.only else questions
             try:
                 run = run_live(selected, provider, agent.model_name(), pause)
+                if args.label:
+                    run["label"] = args.label
+                if args.qset != "main":
+                    run["set"] = args.qset
             except QuotaExhausted as error:
                 print(f"STOPPED, nothing saved - the provider's quota or key failed: {error}")
                 return 1
             if args.only:
-                previous = load_run(provider, run["model"])
+                previous = load_run(provider, run["model"], args.label, args.qset)
                 known = len((previous or {}).get("variability", []))
                 run = merge(previous, run, questions)
                 for v in run.get("variability", [])[known:]:
@@ -634,9 +746,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"AI analyst switched off ({agent.disabled_reason()}): live evaluation not run")
     if not args.no_report:
-        write_report(saved_runs(), offline)
+        write_report(saved_runs(), offline_main, offline_holdout)
         print(f"written {REPORT.relative_to(ROOT)}")
-    consistent = not any(offline.values())
+    consistent = not any(offline_main.values()) and not any(offline_holdout.values())
     return 0 if consistent and (run is None or all(r["passed"] for r in run["rows"])) else 1
 
 

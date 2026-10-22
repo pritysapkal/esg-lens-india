@@ -113,16 +113,62 @@ def _year_notes(years) -> list[str]:
 # ------------------------------------------------------------------ the tools
 
 
+def _group_types_of(value) -> list[str]:
+    """Every group type that has a group with this value."""
+    groups = data.table("rpt_public_group_metrics")
+    if not isinstance(value, str):
+        return []
+    return sorted(groups.loc[groups["group_value"] == value, "group_type"].unique())
+
+
+def resolve_group(group_type, group_value) -> tuple[str, str | None]:
+    """The (group_type, group_value) to query. The type may be left out or be wrong: it is then
+    taken from the value when only one group type has that value. Otherwise a clear error."""
+    types = allowed()["group_types"]
+    if group_value is None:
+        if group_type is None:
+            raise ToolArgumentError(
+                "give group_type (to list all its groups) or group_value. "
+                f"Group types: {', '.join(types)}"
+            )
+        _one_of("group_type", group_type, types)
+        return group_type, None
+    matching = _group_types_of(group_value)
+    if not matching:
+        _one_of("group_value", group_value, allowed()["group_values"])
+    if group_type in matching:
+        return group_type, group_value
+    if group_type is not None and group_type not in types:
+        _one_of("group_type", group_type, types)
+    if len(matching) == 1:
+        return matching[0], group_value
+    listed = ", ".join(matching)
+    wrong = f"'{group_value}' is not a {group_type}; it is" if group_type else f"'{group_value}' is"
+    raise ToolArgumentError(
+        f"{wrong} a group in several group types ({listed}). Say which with group_type."
+    )
+
+
+def _other_type_hint(name: str, value, own_types: list[str], found_in: list[str]) -> str:
+    """'X' is a peer_group, not a ranking_group - for an argument that holds a group of the wrong kind."""
+    if found_in:
+        return f" '{value}' is a {' / '.join(found_in)}, not a {' / '.join(own_types)}."
+    return ""
+
+
 def group_metric(
-    metric: str, group_type: str, group_value: str | None = None, year: str | None = None
+    metric: str,
+    group_type: str | None = None,
+    group_value: str | None = None,
+    year: str | None = None,
 ) -> dict:
     a = allowed()
     _one_of("metric", metric, a["metrics"])
-    _one_of("group_type", group_type, a["group_types"])
+    asked_type = group_type
+    group_type, group_value = resolve_group(group_type, group_value)
     groups = data.table("rpt_public_group_metrics")
     rows = groups[groups["group_type"] == group_type]
     if group_value is not None:
-        _one_of("group_value", group_value, sorted(rows["group_value"].unique()))
         rows = rows[rows["group_value"] == group_value]
     if year is not None:
         _one_of("year", year, a["years"])
@@ -141,6 +187,8 @@ def group_metric(
             }
         )
     notes = _year_notes(r["year"] for r in out)
+    if asked_type is not None and asked_type != group_type:
+        notes.append(f"'{group_value}' is a {group_type}, not a {asked_type}: {group_type} used.")
     if any(r["status"].startswith("n<5") for r in out):
         notes.append(
             "n<5 (withheld): fewer than 5 companies stand behind the figure, so it is not published."
@@ -159,6 +207,7 @@ def group_metric(
         "metric": metric,
         "label": label,
         "unit": unit,
+        "group_type": group_type,
         "rows": out,
         "notes": notes,
         "source": "rpt_public_group_metrics",
@@ -280,6 +329,12 @@ def top_movers_confirmed(direction: str, ranking_group: str | None = None, limit
     if ranking_group is not None:
         # every ranking group the schema offers is accepted; one without GHG year-on-year pairs
         # (e.g. Financials) simply has no movers
+        if ranking_group not in allowed()["ranking_groups"]:
+            hint = _other_type_hint(
+                "ranking_group", ranking_group, ["ranking_group"], _group_types_of(ranking_group)
+            )
+            if hint:
+                raise ToolArgumentError(f"ranking_group={ranking_group!r} is not allowed.{hint}")
         _one_of("ranking_group", ranking_group, allowed()["ranking_groups"])
         frame = frame[frame["ranking_group"] == ranking_group]
     ranked = frame[frame["is_ranked"].astype(bool)].sort_values(
@@ -320,7 +375,15 @@ def restatement_summary(level: str, group_key: str | None = None) -> dict:
     frame = data.table("rpt_public_restatement_summary")
     rows = frame[frame["level"] == level]
     if group_key is not None:
-        _one_of("group_key", group_key, sorted(rows["group_key"].unique()))
+        keys = sorted(rows["group_key"].unique())
+        if group_key not in keys:
+            elsewhere = sorted(frame.loc[frame["group_key"] == group_key, "level"].unique())
+            hint = _other_type_hint("group_key", group_key, [level], elsewhere)
+            if hint:
+                raise ToolArgumentError(
+                    f"group_key={group_key!r} is not allowed for this level.{hint}"
+                )
+        _one_of("group_key", group_key, keys)
         rows = rows[rows["group_key"] == group_key]
     columns = ["level", "group_key", "n_pairs", "n_material", "pct_material", "n_material_flattering",
                "pct_material_flattering", "n_companies", "n_companies_with_material"]  # fmt: skip
@@ -353,11 +416,15 @@ def tools() -> list[Tool]:
     return [
         Tool("group_metric",
              "A published group figure (whole group, typical company, share or count) by group and year, "
-             "from rpt_public_group_metrics. Withheld figures come back with status 'n<5 (withheld)'.",
+             "from rpt_public_group_metrics. Withheld figures come back with status 'n<5 (withheld)'. "
+             "group_type may be null when group_value is given: it is then found from the value (an error "
+             "lists the types if several have it). The share of figures restated materially in one year "
+             "is the metric material_restatement_share with that year.",
              {"metric": {"type": "string", "enum": a["metrics"]},
-              "group_type": {"type": "string", "enum": a["group_types"]},
+              "group_type": {"type": ["string", "null"], "enum": [*a["group_types"], None],
+                             "description": "Kind of group; null to find it from group_value."},
               "group_value": {"type": ["string", "null"], "enum": [*a["group_values"], None],
-                              "description": "One group of that type, or null for all groups. For group_type 'all' use 'All companies'."},
+                              "description": "One group, or null for all groups of the type. For the whole set use 'All companies'."},
               "year": {**year, "type": ["string", "null"], "enum": [*a["years"], None]}},
              ("metric", "group_type", "group_value", "year"), group_metric),
         Tool("company_card",
@@ -383,8 +450,9 @@ def tools() -> list[Tool]:
               "limit": {"type": "integer", "description": "How many movers (1-10)."}},
              ("direction", "ranking_group", "limit"), top_movers_confirmed),
         Tool("restatement_summary",
-             "How often figures were changed materially in the next year's report, and how many of those make the "
-             "trend look better, overall or by peer group, metric or company.",
+             "Breakdowns of how often figures were changed materially in the next year's report, and how many of "
+             "those make the trend look better: overall, by metric, by peer group or by company. Not for the "
+             "share in one specific year (use group_metric with material_restatement_share and the year).",
              {"level": {"type": "string", "enum": a["restatement_levels"]},
               "group_key": {"type": ["string", "null"], "description": "One group (e.g. a peer group or metric id), or null."}},
              ("level", "group_key"), restatement_summary),
@@ -410,7 +478,17 @@ def call(name: str, arguments: dict) -> dict:
         p
         for p in tool.required
         if p not in arguments
-        and p not in ("group_value", "year", "kpi", "ranking_group", "group_key", "top_n", "limit")
+        and p
+        not in (
+            "group_type",
+            "group_value",
+            "year",
+            "kpi",
+            "ranking_group",
+            "group_key",
+            "top_n",
+            "limit",
+        )
     ]
     if missing:
         raise ToolArgumentError(f"{name} needs {missing}")

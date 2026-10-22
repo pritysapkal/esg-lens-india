@@ -379,9 +379,17 @@ the all-companies row for IT services (`q12`). The tool refuses every such call,
 no wrong figure comes from it; the cost is a refusal or a give-up instead of an answer. Gemini
 corrected itself in one run of `q12` and not in the others.
 
-*Possible future improvement (not implemented):* a clearer tool error that names the right group
-type, e.g. "Metals & mining is a peer_group, not a sector_group: call group_metric with
-group_type='peer_group'", instead of only listing the allowed values of the type that was asked.
+*Implemented in v2 (the v1 results above are unchanged):* `group_type` is optional in
+`group_metric`. When it is left out or wrong, it is found from `group_value` if only one group type
+has that value (`Metals & mining` -> `peer_group`; the result says so in a note). If several do
+(`Asset-heavy` is both a `sector_group` and a `ranking_group`), the error lists the matching types.
+`top_movers_confirmed` and `restatement_summary` errors name the kind a value really is ("'Metals &
+mining' is a peer_group, not a ranking_group"). The tool descriptions now say that a restatement
+share for one year is `group_metric(material_restatement_share, year=...)` and that
+`restatement_summary` is for breakdowns. The v2 run is evaluated fresh on the same 20 questions
+(its own section in [ai_analyst_eval.md](ai_analyst_eval.md)) and on 5 held-out questions
+([evals/ai_analyst_holdout.yaml](../evals/ai_analyst_holdout.yaml)) that were written before the run
+and are not used to tune anything.
 
 **What this means, plainly.** Gemini's free tier is the most accurate of the three (16 of 20, 10
 of 13 numbers) but not steady: one question passed on one run and failed on another. The small
