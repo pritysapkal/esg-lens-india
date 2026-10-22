@@ -533,16 +533,53 @@ def test_eval_retries_a_server_error_once_and_then_marks_it_not_scored(monkeypat
     assert (m["n"], m["answered"], m["not_scored"]) == (3, 2, 1)
 
 
-def test_saved_gemini_run_counts_its_504s_as_not_scored():
+def test_rows_saved_before_not_scored_existed_count_their_504s_as_not_scored():
+    """The first Gemini run saved 504s as plain errors, with no "not_scored" field."""
     import eval_ai_analyst
 
-    run = eval_ai_analyst.load_run("gemini", "gemini-3.5-flash-lite")
-    if run is None:
-        pytest.skip("no saved Gemini run")
-    m = eval_ai_analyst.summary(run)
-    outages = sorted(r["id"][:3] for r in m["rows"] if r["not_scored"])
-    assert outages == ["q02", "q03", "q10", "q18"]
-    assert m["answered"] == m["n"] - 4 and m["passed"] <= m["answered"]
+    (question,) = [q for q in eval_ai_analyst.load() if q["id"] == "q02_companies_for_80"]
+    row = eval_ai_analyst.score(question, None, "ProviderUnavailable: error: ServerError 504")
+    legacy = {k: v for k, v in row.items() if k != "not_scored"}
+    assert eval_ai_analyst.is_not_scored(legacy)
+    assert not eval_ai_analyst.is_not_scored(dict(legacy, error="ClientError 400"))
+    m = eval_ai_analyst.summary({"provider": "gemini", "model": "m", "rows": [legacy]}, [question])
+    assert (m["n"], m["answered"], m["not_scored"]) == (1, 0, 1)
+
+
+def test_required_words_accept_clear_equivalents_for_every_provider():
+    import eval_ai_analyst
+
+    mentioned = eval_ai_analyst.mentioned
+    for text in ("It is not material for this group.", "It is not considered material.",
+                 "Water is NOT material here.", "not seen as material"):  # fmt: skip
+        assert mentioned("not material", text), text
+    for text in ("It is not ranked. Material issues aside", "not one of the three most material",
+                 "It is material.", "immaterial"):  # fmt: skip
+        assert not mentioned("not material", text), text
+    assert mentioned("Hindustan Unilever", "Hindustan Unilever led the improvement")
+    assert not mentioned("not material", "not considered material", strict=True)  # the old rule
+
+    # the expected text itself is unchanged: the rule changed, not the question
+    (q17,) = [q for q in eval_ai_analyst.load() if q["id"] == "q17_infosys_water_not_ranked"]
+    assert q17["expected_text"] == ["not material"]
+    answer = agent.Answer(text="Infosys is not ranked: water is not considered material for IT services.",
+                          calls=[agent.ToolCall("company_percentiles", {})])  # fmt: skip
+    assert eval_ai_analyst.score(q17, answer)["passed"]
+
+
+def test_saved_runs_are_rescored_from_their_answers_with_the_same_rules():
+    """Re-scoring a saved row gives what scoring the same answer live gives, and the strict
+    (pre-change) rule differs only on required words."""
+    import eval_ai_analyst
+
+    questions = {q["id"]: q for q in eval_ai_analyst.load()}
+    for run in eval_ai_analyst.saved_runs():
+        after = eval_ai_analyst.summary(run)
+        before = eval_ai_analyst.summary(run, strict=True)
+        assert after["passed"] >= before["passed"]  # equivalents only ever add matches
+        for a, b in zip(after["rows"], before["rows"], strict=True):
+            if a["passed"] != b["passed"]:
+                assert questions[a["id"]].get("expected_text"), a["id"]
 
 
 def test_only_reruns_the_named_questions_and_merges_them_into_the_saved_run(monkeypatch, tmp_path):
@@ -589,7 +626,7 @@ def test_eval_report_shows_gemini_as_pending_until_it_is_run(monkeypatch, tmp_pa
     eval_ai_analyst.write_report([ollama], {})
     report = (tmp_path / "report.md").read_text(encoding="utf-8")
     (row,) = [line for line in report.splitlines() if line.startswith("| gemini |")]
-    (header,) = [line for line in report.splitlines() if line.startswith("| Provider |")]
+    header = next(line for line in report.splitlines() if line.startswith("| Provider |"))
     assert "pending — run locally by Prity" in row and row.count("|") == header.count("|")
     gemini = dict(ollama, provider="gemini", model="gemini-3.5-flash-lite")
     eval_ai_analyst.write_report([ollama, gemini], {})
@@ -611,3 +648,68 @@ def test_restatement_tool_returns_the_withheld_shares_as_withheld():
     # one company's own figures are not a group statistic: shown
     company = tools.call("restatement_summary", {"level": "company"})["rows"]
     assert all(r["status"] == "shown" for r in company)
+
+
+def test_a_rerun_replaces_only_a_not_scored_row_and_otherwise_is_variability():
+    """--only: an outage row is replaced by the re-run; a question that already has a scored
+    answer keeps it (even a failed one), and the re-run is saved as a variability note."""
+    import eval_ai_analyst as ev
+
+    questions = ev.load()
+    q02, q12 = questions[1], next(q for q in questions if q["id"].startswith("q12"))
+    outage = ev.score(q02, None, "ProviderUnavailable: error: ServerError 504", not_scored=True)
+    failed = ev.score(
+        q12, agent.Answer(text="I can't answer that from the ESG Lens India public data")
+    )
+    assert not failed["passed"] and not failed["not_scored"]
+    previous = {"provider": "gemini", "model": "m", "date": "d", "rows": [outage, failed]}
+
+    good = agent.Answer(text="It took 4 companies.", calls=[agent.ToolCall("concentration", {})])
+    better = agent.Answer(
+        text="68.1% in FY2025-26, provisional.", calls=[agent.ToolCall("group_metric", {})]
+    )
+    rerun = {"provider": "gemini", "model": "m", "date": "d2",
+             "rows": [ev.score(q02, good), ev.score(q12, better)]}  # fmt: skip
+    assert rerun["rows"][1]["passed"]  # the re-run of q12 would pass
+    merged = ev.merge(previous, rerun, questions)
+
+    by_id = {r["id"]: r for r in merged["rows"]}
+    assert not by_id[q02["id"]]["not_scored"] and by_id[q02["id"]]["answer"] == good.text
+    assert not by_id[q12["id"]]["passed"] and by_id[q12["id"]]["answer"] == failed["answer"]
+    assert [v["id"] for v in merged["variability"]] == [q12["id"]] and merged["variability"][0][
+        "passed"
+    ]
+
+    m = ev.summary(merged, questions)
+    assert m["passed"] <= 1 and m["not_scored"] == 0  # q12 still counts as failed
+    assert m["variability_notes"] == [
+        "q12: re-run passed; first scored answer (FAIL) stays official"
+    ]
+
+    # an outage on the re-run of a scored question says nothing and is not recorded
+    outage_again = ev.score(q12, None, "ServerError 504", not_scored=True)
+    again = ev.merge(merged, dict(rerun, rows=[outage_again]), questions)
+    assert again["variability"] == merged["variability"] and again["rows"] == merged["rows"]
+
+
+def test_the_report_shows_variability_without_counting_it(monkeypatch, tmp_path):
+    import eval_ai_analyst as ev
+
+    monkeypatch.setattr(ev, "REPORT", tmp_path / "report.md")
+    questions = ev.load()
+    q12 = next(q for q in questions if q["id"].startswith("q12"))
+    failed = ev.score(
+        q12, agent.Answer(text="I can't answer that from the ESG Lens India public data")
+    )
+    better = ev.score(q12, agent.Answer(text="68.1%, provisional.",
+                                        calls=[agent.ToolCall("group_metric", {})]))  # fmt: skip
+    run = {"provider": "gemini", "model": "gemini-3.5-flash-lite", "date": "d", "rows": [failed],
+           "variability": [better]}  # fmt: skip
+    ev.write_report([run], {})
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
+    header = next(line for line in report.splitlines() if line.startswith("| Provider |"))
+    row = next(line for line in report.splitlines() if line.startswith("| gemini |"))
+    assert header.endswith("| Variability |") and row.count("|") == header.count("|")
+    assert "q12: re-run passed; first scored answer (FAIL) stays official" in row
+    assert "0 / 1" in row  # the official result is the failed first answer
+    assert "Run-to-run variability" in report

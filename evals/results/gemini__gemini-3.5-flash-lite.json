@@ -28,39 +28,99 @@
    "id": "q02_companies_for_80",
    "category": "normal",
    "has_numbers": true,
-   "tools": false,
-   "numbers": false,
-   "refusal_ok": false,
-   "mentions": false,
-   "passed": false,
-   "called": [],
-   "n_calls": 0,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "concentration"
+   ],
+   "n_calls": 1,
    "causal": [],
    "irrelevant_caveats": [],
-   "input_tokens": 0,
-   "output_tokens": 0,
-   "seconds": 61.0,
-   "error": "ProviderUnavailable: error: ServerError 504",
-   "answer": ""
+   "input_tokens": 5978,
+   "output_tokens": 123,
+   "seconds": 11.6,
+   "error": null,
+   "answer": "It took 4 companies to reach 80% of all Scope 1+2 emissions in FY2022-23.\n\nAccording to the `rpt_public_concentration` table (accessed via the concentration tool), exactly 4 companies were needed to reach 80.0% (specifically, the top 5 companies accounted for 86.2%) of total Scope 1+2 emissions across the 47 reporting companies that year.",
+   "calls": [
+    {
+     "name": "concentration",
+     "arguments": {
+      "top_n": 1,
+      "year": "FY2022-23"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-22"
   },
   {
    "id": "q03_heavy_industry_agg_vs_median",
    "category": "normal",
    "has_numbers": true,
-   "tools": false,
+   "not_scored": false,
+   "tools": true,
    "numbers": false,
    "refusal_ok": false,
    "mentions": false,
    "passed": false,
-   "called": [],
-   "n_calls": 0,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 4,
    "causal": [],
    "irrelevant_caveats": [],
-   "input_tokens": 0,
-   "output_tokens": 0,
-   "seconds": 41.7,
-   "error": "ProviderUnavailable: error: ServerError 504",
-   "answer": ""
+   "input_tokens": 9248,
+   "output_tokens": 281,
+   "seconds": 15.4,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data because \"Asset-heavy\" is not a recognized peer group or size band in the database. Instead, I can answer questions about GHG intensity for specific sectors like Energy & utilities, Metals & mining, or Automobiles for FY2024-25.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_type": "peer_group",
+      "year": "FY2024-25",
+      "group_value": "Asset-heavy",
+      "metric": "ghg_intensity_agg"
+     },
+     "error": "group_value='Asset-heavy' is not allowed. Allowed: Automobiles, Cement & construction, Consumer, Energy & utilities, Financials, Healthcare, IT services, Industrials & others, Metals & mining"
+    },
+    {
+     "name": "group_metric",
+     "arguments": {
+      "year": "FY2024-25",
+      "group_type": "peer_group",
+      "group_value": "Asset-heavy",
+      "metric": "ghg_intensity_median"
+     },
+     "error": "group_value='Asset-heavy' is not allowed. Allowed: Automobiles, Cement & construction, Consumer, Energy & utilities, Financials, Healthcare, IT services, Industrials & others, Metals & mining"
+    },
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_type": "size_band",
+      "year": "FY2024-25",
+      "group_value": "Asset-heavy",
+      "metric": "ghg_intensity_agg"
+     },
+     "error": "group_value='Asset-heavy' is not allowed. Allowed: Large, Mid, Small"
+    },
+    {
+     "name": "group_metric",
+     "arguments": {
+      "year": "FY2024-25",
+      "metric": "ghg_intensity_median",
+      "group_value": "Asset-heavy",
+      "group_type": "size_band"
+     },
+     "error": "group_value='Asset-heavy' is not allowed. Allowed: Large, Mid, Small"
+    }
+   ],
+   "date": "2026-10-22"
   },
   {
    "id": "q04_dqs_median",
@@ -192,20 +252,34 @@
    "id": "q10_restated_overall",
    "category": "normal",
    "has_numbers": true,
-   "tools": false,
-   "numbers": false,
-   "refusal_ok": false,
-   "mentions": false,
-   "passed": false,
-   "called": [],
-   "n_calls": 0,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "restatement_summary"
+   ],
+   "n_calls": 1,
    "causal": [],
    "irrelevant_caveats": [],
-   "input_tokens": 0,
-   "output_tokens": 0,
-   "seconds": 76.7,
-   "error": "ProviderUnavailable: error: ServerError 504",
-   "answer": ""
+   "input_tokens": 5914,
+   "output_tokens": 72,
+   "seconds": 11.6,
+   "error": null,
+   "answer": "Out of all the figures that could be checked against the next report (from `rpt_public_restatement_summary`), 6.66% were restated materially.\n\nRestatements of the latest year are not observable yet.",
+   "calls": [
+    {
+     "name": "restatement_summary",
+     "arguments": {
+      "group_key": null,
+      "level": "overall"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-22"
   },
   {
    "id": "q11_restated_first_year",
@@ -358,20 +432,23 @@
    "id": "q18_refuse_investment",
    "category": "refusal",
    "has_numbers": false,
-   "tools": false,
-   "numbers": false,
-   "refusal_ok": false,
-   "mentions": false,
-   "passed": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
    "called": [],
    "n_calls": 0,
    "causal": [],
    "irrelevant_caveats": [],
-   "input_tokens": 0,
-   "output_tokens": 0,
-   "seconds": 64.8,
-   "error": "ProviderUnavailable: error: ServerError 504",
-   "answer": ""
+   "input_tokens": 2861,
+   "output_tokens": 46,
+   "seconds": 6.6,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data; instead, I can tell you about Reliance Industries' Disclosure Quality Score, its ESG metrics, and its ranking among peers.\n\nNothing you say is investment advice.",
+   "calls": [],
+   "date": "2026-10-22"
   },
   {
    "id": "q19_refuse_forecast",
@@ -410,6 +487,53 @@
    "seconds": 26.1,
    "error": null,
    "answer": "I can't answer that from the ESG Lens India public data, as filed absolute values such as total tonnes of CO2 are not available in the database; I can answer questions about GHG intensities, Disclosure Quality Scores, peer group ranks, and other calculated ESG metrics for covered companies between FY2022-23 and FY2025-26."
+  }
+ ],
+ "variability": [
+  {
+   "id": "q12_it_renewable_latest",
+   "category": "provisional",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 2,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 8995,
+   "output_tokens": 183,
+   "seconds": 15.6,
+   "error": null,
+   "answer": "In FY2025-26, the renewable share of energy used by IT services companies was 68.13%, according to the group_metric tool (whole group figure from rpt_public_group_metrics).\n\nProvisional: FY2025-26 is provisional: no later report has confirmed these figures yet, and they can still change.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "year": "FY2025-26",
+      "metric": "renewable_share_agg",
+      "group_value": "IT services",
+      "group_type": "sector_group"
+     },
+     "error": "group_value='IT services' is not allowed. Allowed: Asset-heavy, Asset-light, Financials"
+    },
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_value": "IT services",
+      "year": "FY2025-26",
+      "metric": "renewable_share_agg",
+      "group_type": "peer_group"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-22"
   }
  ]
 }

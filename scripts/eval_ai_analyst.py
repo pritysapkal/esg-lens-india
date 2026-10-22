@@ -29,8 +29,10 @@ A question passes when all three pass.
 Not scored: a question the provider could not answer at all - a server error (5xx) or a timeout,
 after agent.ask's own retry and one more retry of the whole question here - is an outage, not a
 model failure. It is reported as "not scored", and the pass rate is given both over all questions
-and over the answered ones. Re-run just those questions with --only: the new rows replace the
-old ones in the saved run.
+and over the answered ones. Re-run just those questions with --only. A re-run counts only for a
+question that was NOT scored (an outage): it replaces that row. A question that already has a
+scored answer keeps its first scored answer as the official result; the re-run is saved in the
+run's "variability" list and reported as run-to-run variability, never as a replacement.
 
 Offline mode runs each expected tool call and checks that the expected numbers and statuses are
 what the tools return today.
@@ -82,6 +84,7 @@ GEMINI_PAUSE = 10.0  # seconds between questions of a gemini run (free-tier per-
 QUOTA_WAIT = 65.0  # seconds before the one retry of a question that hit the quota
 SERVER_ERROR_WAIT = 20.0  # seconds before the one retry of a question that hit a 5xx or timeout
 # a provider outage in a run saved before rows recorded "not_scored"
+MENTION_GAP = 2  # words allowed between the words of a required phrase (see mentioned)
 OUTAGE = re.compile(r"ServerError|\b5\d\d\b|timed? ?out|timeout", re.I)
 
 
@@ -152,6 +155,35 @@ def irrelevant_caveats(question: dict, text: str) -> list[str]:
     return found_caveats
 
 
+def mentioned(phrase: str, text: str, strict: bool = False) -> bool:
+    """A required phrase appears in the answer. Its words must come in order, in one clause, with
+    at most MENTION_GAP other words between two of them, so a clear equivalent counts: "not
+    material" matches "not considered material" and "not material for this group". strict=True
+    is the exact-phrase rule used before 2026-10-22 (kept to report the change)."""
+    if strict:
+        return phrase.casefold() in text.casefold()
+    gap = rf"(?:\s+[\w'-]+){{0,{MENTION_GAP}}}\s+"
+    pattern = r"\b" + gap.join(re.escape(word) for word in phrase.split()) + r"\b"
+    return bool(re.search(pattern, text, re.I))
+
+
+def judge_mentions(
+    question: dict, text: str, refusal_ok: bool, strict: bool = False
+) -> tuple[bool, list[str], list[str]]:
+    """(mentions passed, causal words, caveats that do not apply) for one answer. Used for live
+    answers and for re-scoring saved ones, so both follow the same rules."""
+    causal = CAUSAL.findall(text)
+    if question["category"] == "refusal":
+        return refusal_ok and not causal, causal, []
+    ok = refusal_ok and all(mentioned(p, text, strict) for p in question.get("expected_text", []))
+    if question["category"] == "suppressed":
+        ok = ok and bool(WITHHELD.search(text))
+    if question["category"] == "provisional":
+        ok = ok and "provisional" in text.lower()
+    irrelevant = irrelevant_caveats(question, text)
+    return ok and not causal and not irrelevant, causal, irrelevant
+
+
 def score(
     question: dict,
     answer: agent.Answer | None,
@@ -169,22 +201,12 @@ def score(
     if refusal:
         tools_ok = not answer.calls
         refusal_ok = answer.refused and not answer.calls
-        mentions_ok = refusal_ok
     else:
         tools_ok = set(question["expected_tools"]) <= called
         refusal_ok = not answer.refused  # a question it should answer must not be refused
-        mentions_ok = refusal_ok and all(
-            s.casefold() in text.casefold() for s in question.get("expected_text", [])
-        )
-        if question["category"] == "suppressed":
-            mentions_ok = mentions_ok and bool(WITHHELD.search(text))
-        if question["category"] == "provisional":
-            mentions_ok = mentions_ok and "provisional" in text.lower()
     numbers = numbers_in(text)
     numbers_ok = all(found(e, numbers) for e in question["expected_numbers"])
-    causal = CAUSAL.findall(text)
-    irrelevant = [] if refusal else irrelevant_caveats(question, text)
-    mentions_ok = mentions_ok and not causal and not irrelevant
+    mentions_ok, causal, irrelevant = judge_mentions(question, text, refusal_ok)
     if error:
         tools_ok = numbers_ok = mentions_ok = refusal_ok = False
     return {
@@ -221,17 +243,16 @@ def is_not_scored(row: dict) -> bool:
     return bool(row.get("error")) and bool(OUTAGE.search(row["error"]))
 
 
-def rescored(row: dict, question: dict | None) -> dict:
-    """A saved row under today's rules: the caveat check is applied to its saved answer (runs
-    saved before the check existed lack it). Nothing else is re-judged."""
+def rescored(row: dict, question: dict | None, strict: bool = False) -> dict:
+    """A saved row under today's mention rules, judged again from its saved answer: no model
+    call. Tools, numbers and refusals are kept as saved; an outage stays not scored."""
     row = dict(row, not_scored=is_not_scored(row))
     row.setdefault("irrelevant_caveats", [])
-    if question is None or row["not_scored"] or row["category"] == "refusal":
+    if question is None or row["not_scored"] or row["error"]:
         return row
-    irrelevant = irrelevant_caveats(question, row["answer"])
-    mentions = row["mentions"] and not irrelevant
-    return dict(row, irrelevant_caveats=irrelevant, mentions=mentions,
-                passed=row["tools"] and row["numbers"] and mentions)  # fmt: skip
+    ok, causal, irrelevant = judge_mentions(question, row["answer"], row["refusal_ok"], strict)
+    return dict(row, mentions=ok, causal=causal, irrelevant_caveats=irrelevant,
+                passed=row["tools"] and row["numbers"] and ok)  # fmt: skip
 
 
 def run_live(
@@ -297,12 +318,23 @@ def load_run(provider: str, model: str) -> dict | None:
 
 
 def merge(previous: dict | None, run: dict, questions: list[dict]) -> dict:
-    """The re-run rows in place of the saved ones, in the order of the question set."""
-    rows = {r["id"]: r for r in (previous or {}).get("rows", [])} | {
-        r["id"]: r for r in run["rows"]
-    }
+    """Re-run rows merged into the saved run, in the order of the question set. A re-run counts
+    only for a question that was not scored (a provider outage): it replaces that row. For a
+    question that already has a scored answer, the first scored answer stays official and the
+    re-run goes to the run's "variability" list (an outage on a re-run is not recorded)."""
+    rows = {r["id"]: r for r in (previous or {}).get("rows", [])}
+    variability = list((previous or {}).get("variability", []))
+    for row in run["rows"]:
+        saved = rows.get(row["id"])
+        if saved is None or is_not_scored(saved):
+            rows[row["id"]] = row
+        elif not is_not_scored(row):
+            variability.append(row)
     order = {q["id"]: i for i, q in enumerate(questions)}
-    return dict(run, rows=sorted(rows.values(), key=lambda r: order.get(r["id"], len(order))))
+    merged = dict(run, rows=sorted(rows.values(), key=lambda r: order.get(r["id"], len(order))))
+    if variability:
+        merged["variability"] = variability
+    return merged
 
 
 def save(run: dict) -> Path:
@@ -320,11 +352,11 @@ def saved_runs() -> list[dict]:
     return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(RESULTS.glob("*.json"))]
 
 
-def summary(run: dict, questions: list[dict] | None = None) -> dict:
+def summary(run: dict, questions: list[dict] | None = None, strict: bool = False) -> dict:
     """The rates of one run. Not-scored questions (provider outages) count in "of all" and are
     left out of every other rate, which is over the answered questions."""
     by_id = {q["id"]: q for q in (questions if questions is not None else load())}
-    rows = [rescored(r, by_id.get(r["id"])) for r in run["rows"]]
+    rows = [rescored(r, by_id.get(r["id"]), strict) for r in run["rows"]]
     answered = [r for r in rows if not r["not_scored"]]
     with_numbers = [r for r in answered if r["has_numbers"]]
     refusals = [r for r in answered if r["category"] == "refusal"]
@@ -341,8 +373,17 @@ def summary(run: dict, questions: list[dict] | None = None) -> dict:
         cost = f"about ${(tokens_in * price[0] + tokens_out * price[1]) / 1e6:.2f}"
     else:
         cost = "unknown price"
+    official = {r["id"]: r for r in rows}
+    variability = [rescored(r, by_id.get(r["id"]), strict) for r in run.get("variability", [])]
     return {
         "rows": rows,
+        "variability": variability,
+        "variability_notes": [
+            f"{v['id'].split('_')[0]}: re-run {'passed' if v['passed'] else 'failed'}; "
+            f"first scored answer ({'pass' if official[v['id']]['passed'] else 'FAIL'}) stays official"
+            for v in variability
+            if v["id"] in official
+        ],
         "passed": sum(r["passed"] for r in answered),
         "n": len(rows),
         "answered": len(answered),
@@ -411,11 +452,14 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
             "a timeout) even after one retry of the request and one retry of the question. That is an "
             "outage, not a model failure, so it is not counted against the model: the pass rate is "
             "given over all questions and over the answered ones, and every other column is over the "
-            "answered questions only. Re-run such questions with `--only` (they replace the saved "
-            "rows). Runs saved before the caveat check existed are re-checked on their saved answers.",
+            "answered questions only. Re-run such questions with `--only`: a re-run replaces a row only "
+            "if that question was not scored. A question that was already scored keeps its first "
+            "scored answer as the official result, and the re-run is reported as **run-to-run "
+            "variability** (last column), not counted. Runs saved before the caveat check existed "
+            "are re-checked on their saved answers.",
             "",
-            "| Provider | Model | Passed (of all) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check | Median time per question | Cost of the run |",
-            "|---|---|---|---|---|---|---|---|---|---|---|---|",
+            "| Provider | Model | Passed (of all) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check | Median time per question | Cost of the run | Variability |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
         ]
         evaluated = {run["provider"] for run in runs}
         pending = [(p, m, note) for p, (m, note) in PENDING.items() if p not in evaluated]
@@ -425,10 +469,38 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
                 f"| {run['provider']} | `{run['model']}` | **{m['passed']} / {m['n']}** | "
                 f"**{m['passed']} / {m['answered']}** | {m['not_scored']} | {m['tools']} / {m['answered']} | "
                 f"{m['numbers']} / {m['n_numbers']} | {m['refusals']} / {m['n_refusals']} | {m['false_refusals']} | "
-                f"{m['caveats']} / {m['n_caveats']} | {m['median_seconds']:.0f} s | {m['cost']} |"
+                f"{m['caveats']} / {m['n_caveats']} | {m['median_seconds']:.0f} s | {m['cost']} | "
+                f"{'; '.join(m['variability_notes']) or '-'} |"
             )
         for provider, model, note in pending:
-            lines.append(f"| {provider} | `{model}` | {note} |" + " |" * 9)
+            lines.append(f"| {provider} | `{model}` | {note} |" + " |" * 10)
+        lines += [
+            "",
+            "### Scoring change made after seeing the results (2026-10-22)",
+            "",
+            "Required words (`expected_text`) were matched as an exact phrase. After the Gemini run, "
+            'an answer that said Infosys\'s water intensity is "not considered material" failed for '
+            'lack of the words "not material". The rule now accepts the phrase\'s words in order '
+            f'with up to {MENTION_GAP} other words between them in one clause ("not considered '
+            'material", "not material for this group"). It applies to every provider alike; the '
+            "saved answers of all runs were scored again with no new model call. No question, "
+            "expected number or expected text was changed.",
+            "",
+            "| Provider | Model | Passed before (exact phrase) | Passed after | Mentions before | Mentions after | Questions that changed |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        for run, m in summaries:
+            before = summary(run, questions, strict=True)
+            changed = [
+                f"`{a['id']}` ({'pass' if a['passed'] else 'FAIL'})"
+                for a, b in zip(m["rows"], before["rows"], strict=True)
+                if a["passed"] != b["passed"] or a["mentions"] != b["mentions"]
+            ]
+            lines.append(
+                f"| {run['provider']} | `{run['model']}` | {before['passed']} / {before['n']} | "
+                f"{m['passed']} / {m['n']} | {before['mentions']} / {before['answered']} | "
+                f"{m['mentions']} / {m['answered']} | {', '.join(changed) or 'none'} |"
+            )
         mark = {True: "pass", False: "FAIL"}
         for run, m in summaries:
             lines += [
@@ -462,6 +534,23 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
                     f"Not scored (provider outage): {listed}. Re-run them with "
                     f"`python scripts/eval_ai_analyst.py --provider {run['provider']} --only {numbers}`.",
                 ]
+            if m["variability"]:
+                lines += [
+                    "",
+                    "Run-to-run variability - re-runs of questions that were already scored (the first "
+                    "scored answer above stays official; these are not counted):",
+                    "",
+                ]
+                for v in m["variability"]:
+                    short = v["answer"].replace("\n", " ").replace("|", "/")[:400]
+                    lines.append(
+                        f"- `{v['id']}` re-run ({v.get('date', 'undated')}): "
+                        f"{'passed' if v['passed'] else 'failed'}. {short}"
+                    )
+                    for call in v.get("calls", []):
+                        args = ", ".join(f"{k}={val!r}" for k, val in call["arguments"].items())
+                        result = f" -> error: {call['error']}" if call["error"] else ""
+                        lines.append(f"  - `{call['name']}({args})`{result}")
             failed = [r for r in m["rows"] if not r["passed"] and not r["not_scored"]]
             if failed:
                 lines += ["", "Answers that failed (first 400 characters):", ""]
@@ -498,7 +587,9 @@ def main(argv: list[str] | None = None) -> int:
         nargs="+",
         metavar="ID",
         help="run only these questions (full id or number, e.g. q02 q03) and merge them into the "
-        "saved run of the same provider and model",
+        "saved run of the same provider and model: a re-run replaces a not-scored (outage) row; a "
+        "question that was already scored keeps its first answer and the re-run is saved as a "
+        "variability note",
     )
     parser.add_argument(
         "--pause",
@@ -531,7 +622,13 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"STOPPED, nothing saved - the provider's quota or key failed: {error}")
                 return 1
             if args.only:
-                run = merge(load_run(provider, run["model"]), run, questions)
+                previous = load_run(provider, run["model"])
+                known = len((previous or {}).get("variability", []))
+                run = merge(previous, run, questions)
+                for v in run.get("variability", [])[known:]:
+                    print(
+                        f"{v['id']:<42} already scored: kept as run-to-run variability, not counted"
+                    )
             path = save(run)
             print(f"saved {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
         else:

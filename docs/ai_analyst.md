@@ -308,59 +308,93 @@ loosely. That is why the numbers are shown next to the answer, and why the evalu
   shows them all. `ESG_AI_PROVIDER=gemini` works the same way; a Gemini run pauses 10 s between
   questions for the free-tier per-minute quota, retries a question once after a minute if the
   quota is hit, and stops without saving if it is still used up (a run with quota failures would
-  not be comparable).
+  not be comparable). Questions the provider never answered (a 5xx or timeout after the retries)
+  are reported as "not scored"; `scripts/eval_ai_analyst.py --provider gemini --only q02 q03`
+  re-runs just those, and a re-run replaces a not-scored row only - a question that already has
+  a scored answer keeps it, and the re-run is saved as a variability note.
 
 ### Evaluation results (2026-10-19 local models, 2026-10-22 Gemini)
 
-The full report, per question: [ai_analyst_eval.md](ai_analyst_eval.md). "Not scored" are
-questions the provider never answered (HTTP 504 from Google, after the retries); they are an
-outage, not a model failure, so the pass rate is given over all 20 and over the answered ones,
-and the other columns are over the answered questions.
+The full report, per question: [ai_analyst_eval.md](ai_analyst_eval.md). The questions and the
+expected numbers and texts were fixed before any model ran and were never changed.
 
-| Model | Passed (of 20) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check | Median time per question |
-|---|---|---|---|---|---|---|---|---|---|
-| Gemini `gemini-3.5-flash-lite` | 12 / 20 | 12 / 16 | 4 | 15 / 16 | 8 / 10 | 2 / 2 | 2 | 14 / 14 | 42 s |
-| `qwen2.5:3b` (local) | 13 / 20 | 13 / 20 | 0 | 19 / 20 | 8 / 13 | 3 / 3 | 1 | 17 / 17 | 18 s |
-| `llama3.2:3b` (local) | 8 / 20 | 8 / 20 | 0 | 15 / 20 | 5 / 13 | 0 / 3 | 6 | 17 / 17 | 58 s |
+| Model | Passed (of 20) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check | Median time per question | Variability |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Gemini `gemini-3.5-flash-lite` (free tier) | **16 / 20** | 16 / 20 | 0 | 19 / 20 | 10 / 13 | 3 / 3 | 3 | 17 / 17 | 41 s | q12: re-run passed; first scored answer (FAIL) stays official |
+| `qwen2.5:3b` (local) | 13 / 20 | 13 / 20 | 0 | 19 / 20 | 8 / 13 | 3 / 3 | 1 | 17 / 17 | 18 s | - |
+| `llama3.2:3b` (local) | 8 / 20 | 8 / 20 | 0 | 15 / 20 | 5 / 13 | 0 / 3 | 6 | 17 / 17 | 58 s | - |
 
-**Gemini's four real failures** (the questions and expected answers were not changed):
+How to read it:
 
+- **Not scored** means the provider never answered a question (a server error or timeout after the
+  retries) - an outage, not a model failure. The first Gemini run lost `q02`, `q03`, `q10` and
+  `q18` to HTTP 504 from Google. They were re-run with `--only`, and the re-run answers are their
+  scored answers, so the final Gemini row has none.
+- **Re-runs count only for questions that were not scored.** A question that already has a scored
+  answer keeps its first one as the official result, even a failed one; `--only` enforces this
+  and saves the re-run as a *variability* note instead. `q12` was scored FAIL in the first run
+  and passed when it was re-run: the official result stays FAIL, and the pass is recorded as
+  run-to-run variability. The same model, prompt and question gave a different outcome - one
+  more reason not to read a single 20-question run as exact.
+- **Scoring change after seeing the results.** Required words were first matched as an exact
+  phrase, so Gemini's "not *considered* material" (`q17`) failed for lack of "not material". The
+  rule now accepts the words in order with up to two other words between them, for every
+  provider; all saved answers were scored again without a new model call. Effect: Gemini 15 -> 16
+  of 20 (`q17`), `qwen2.5:3b` 13 -> 13, `llama3.2:3b` 8 -> 8. Details in
+  [ai_analyst_eval.md](ai_analyst_eval.md).
+- The local models' runs did not record call arguments (runs do now), so their slips below are
+  read from their answers.
+
+**Gemini's four failures** (official results):
+
+- `q03` (Asset-heavy GHG intensity, whole group and typical company; scored on the re-run after
+  the 504s): wrong group type, then a refusal. Its four calls asked for `Asset-heavy` as a
+  `peer_group` (twice, for the whole-group and the median figure) and as a `size_band` (twice).
+  The tool refused all four with the allowed values of the type asked for (nine peer groups;
+  Large / Mid / Small), and the model never tried `sector_group`, where Asset-heavy lives. It then
+  answered that "Asset-heavy" is not a recognised peer group or size band. No figure was given,
+  so nothing is wrong, but the question is not answered.
 - `q11` (restatements of FY2022-23): wrong tool and wrong row. It called `restatement_summary`
   (level `overall`) instead of `group_metric(material_restatement_share, year FY2022-23)` and
-  gave that row's all-years share, 6.66% (274 of 4,115 figures), as the FY2022-23 share; the
-  expected answer is 14.1%.
-- `q15` (Metals & mining renewable share, withheld): a wrong group type, then a refusal. Its
-  answer lists "Asset-heavy, Asset-light, and Financials" - exactly the allowed values the tool
-  sends back when `Metals & mining` is asked for as a `sector_group` (it is a `peer_group`). It
-  did not correct the call and refused, so the "withheld" mention is missing.
-- `q12` (IT services renewable share, FY2025-26): three `group_metric` calls, then a refusal; the
-  68.1% and the "provisional" mention are missing. The saved run did not record call arguments
-  (it does now), so the bad argument cannot be named; the refusal lists peer groups, which
-  suggests the same kind of slip as `q15`. Re-running `q12` with `--only` will show the calls.
-- `q17` (Infosys water intensity, not ranked): right tool, right row, right meaning - "not
-  considered material" - but the required words are "not material", so the mention check fails.
-  That is the scorer's literal match; the expected text is left as it is.
+  gave the all-years share, 6.66%, as the FY2022-23 share (expected 14.1%).
+- `q12` (IT services renewable share, FY2025-26; first scored answer): three `group_metric`
+  calls, then a refusal; the 68.1% and the "provisional" mention are missing. That run did not
+  record call arguments, so what it sent in those three calls is not available; the refusal's
+  list of peer groups (Financials, Energy & utilities) suggests a group-type slip, but that is an
+  inference. In the re-run (variability, not counted) it first sent `group_type="sector_group",
+  group_value="IT services"` (refused: allowed Asset-heavy, Asset-light, Financials), then
+  corrected to `peer_group` and answered 68.1%, provisional.
+- `q15` (Metals & mining renewable share, withheld): wrong group type, then a refusal. Its answer
+  lists "Asset-heavy, Asset-light, and Financials" - the allowed values the tool returns when
+  `Metals & mining` is asked for as a `sector_group` (it is a `peer_group`) - so the "withheld"
+  mention is missing. (From the first run, before arguments were recorded.)
 
-**What this means, plainly.** The small local model is good at choosing a tool and at refusing
-what is out of scope, and not reliable with the numbers: in about one answer in three a figure is
-wrong or missing. The failures seen with `qwen2.5:3b`:
+**The failure common to the models: confusing the group types.** The data has six kinds of group
+(`sector_group`: Asset-heavy / Asset-light / Financials; `peer_group`: nine industry groups such
+as IT services or Metals & mining; `ranking_group`; `size_band`; `ownership_type`; `all`), and
+some names exist in more than one. Gemini sent `IT services` and `Metals & mining` as sector
+groups and `Asset-heavy` as a peer group and a size band (`q03`, `q12`, `q15`); `qwen2.5:3b` sent
+the group names `Asset-heavy` and `Automobiles` as the group type itself (`q03`, `q14`) and read
+the all-companies row for IT services (`q12`). The tool refuses every such call, as designed, so
+no wrong figure comes from it; the cost is a refusal or a give-up instead of an answer. Gemini
+corrected itself in one run of `q12` and not in the others.
 
-- passing a group name as the group type (`group_type="Asset-heavy"`); the tool refused the call,
-  as designed, and the model then gave up instead of correcting itself (2 questions);
-- a number that is not in the tool result ("10 companies" for 80% of emissions, where the tool
-  said 4) and a figure read from the wrong row (the all-companies renewable share given for IT
-  services; the all-years restatement share given for FY2022-23) (3 questions);
-- one answerable question refused, and one company rank given without its group size.
+*Possible future improvement (not implemented):* a clearer tool error that names the right group
+type, e.g. "Metals & mining is a peer_group, not a sector_group: call group_metric with
+group_type='peer_group'", instead of only listing the allowed values of the type that was asked.
+
+**What this means, plainly.** Gemini's free tier is the most accurate of the three (16 of 20, 10
+of 13 numbers) but not steady: one question passed on one run and failed on another. The small
+local `qwen2.5:3b` gets about a third of the numbers wrong or missing, and `llama3.2:3b` is not
+usable here. Besides the group types, `qwen2.5:3b` gave a number that is not in the tool result
+("10 companies" for 80% of emissions, where the tool said 4), read the all-years restatement
+share as FY2022-23 (as Gemini did), refused one answerable question and gave one company rank
+without its group size.
 
 The guardrails did their part: no invalid call reached the data, nothing outside the public
 tables was used, and every number shown under an answer is the true tool result - which is how a
-reader can catch the slips above. The questions and expected answers were not changed after the
-runs. Treat the local model as a demonstration of the architecture, not as a source of numbers:
-for numbers, the guided questions (same tools, no model) are exact. A larger model would do
-better; the Claude provider is wired and tested but was not evaluated here (no key on this
-machine). Gemini (`gemini-3.5-flash-lite`, free tier) was run on 2026-10-22: 12 of the 16
-questions it answered passed (`qwen2.5:3b`: 13 of 20), with the same kind of slip (a group passed
-under the wrong group type), and 4 questions were lost to Google server errors (HTTP 504).
+reader can catch the slips above. For numbers, the guided questions (same tools, no model) are
+exact. The Claude provider is wired and tested but was not evaluated (no key on this machine).
 
 ## Cost
 
@@ -390,8 +424,12 @@ input cost of follow-up requests; it is not switched on.
   questions are the reliable way to get a figure.
 - The local model needs about 2 GB of free memory and a minute or so for the first question
   (loading); on a busy laptop Windows pages and answers slow down sharply.
-- The Claude provider has not been evaluated live (no key on this machine). The Gemini run lost
-  4 of 20 questions to Google server errors (HTTP 504); re-run them with `--only`.
+- The Claude provider has not been evaluated live (no key on this machine). Gemini's free tier
+  answered 16 of 20 evaluation questions right, and one of the 20 changed outcome between two
+  runs; its server errors (HTTP 504) are retried once, and an answer it cannot give falls back
+  to the guided questions.
+- All models confuse the group types now and then (evaluation above); the tool refuses such a
+  call, so the cost is a refusal, not a wrong figure.
 - The limits apply per browser session; someone who reloads the page gets a new session. That is
   why the public site may only use Gemini's free tier with billing off: the worst a visitor can
   do is use up the day's free quota, after which the page falls back to the guided questions.
