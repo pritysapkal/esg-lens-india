@@ -154,3 +154,108 @@ Answers that failed (first 400 characters):
 - `q12_it_renewable_latest`: In FY2025-26, the renewable share of energy used by all companies in the NIFTY 50 and Wipro was 1.4053%. This figure is provisional as no later report has confirmed these figures yet, and they can still change. The 'whole group' calculation is a sum over the sum of the companies that have both figures (large companies weigh more).
 - `q14_automobiles_median_withheld`: It seems there was an error with the group type 'Automobiles'. Let's try again with the correct group type. The allowed group types are 'all', 'sector_group', 'peer_group', 'ranking_group', 'size_band', and 'ownership_type'. Please provide the correct group type.
 - `q16_mnc_dqs_withheld`: I can't answer that from the ESG Lens India public data. Let me provide you with the typical Disclosure Quality Score for MNC subsidiaries in FY2024-25 instead.
+
+## gemini `gemini-3.5-flash-lite`: v1 vs v2 vs held-out
+
+| | v1 (20 questions) | v2 (same 20) | v2 held-out (5 new) |
+|---|---|---|---|
+| Passed | 16 / 20 | 19 / 20 | 5 / 5 |
+| Right tool | 19 / 20 | 19 / 20 | 5 / 5 |
+| Numbers right | 10 / 13 | 12 / 13 | 3 / 3 |
+| Refusals right | 3 / 3 | 3 / 3 | 1 / 1 |
+| Wrongly refused | 3 | 0 | 0 |
+| Caveat check | 17 / 17 | 17 / 17 | 4 / 4 |
+
+Questions whose result changed from v1 to v2:
+
+- `q03_heavy_industry_agg_vs_median`: FAIL -> pass
+- `q10_restated_overall`: pass -> FAIL
+- `q11_restated_first_year`: FAIL -> pass
+- `q12_it_renewable_latest`: FAIL -> pass
+- `q15_metals_renewable_withheld`: FAIL -> pass
+
+### Reading the v1 / v2 / held-out results (Gemini)
+
+**v1 -> v2: 16 -> 19 of 20 (four fixed, one new failure).** Three of the fixes are group-type slips
+(`q03`, `q12`, `q15`) and one is a wrong-tool fix (`q11`). In v1, `q03` asked for `Asset-heavy` as a
+`peer_group` and a `size_band` (four refused calls, no answer), and `q15` asked for `Metals & mining`
+as a `sector_group`. In v2 `q03` used `sector_group` first try and was answered. `q15` asked for
+`Metals & mining` as a `sector_group` again, but the tool resolved it to `peer_group` and the model
+reported the figure as withheld. `q12` first sent `IT services` as a `sector_group`; the tool
+answered "'IT services' is not a sector_group; it is a group in several group types (peer_group,
+ranking_group)", and the model corrected itself to `peer_group` and gave 68.1%, provisional.
+`q11` used `group_metric(material_restatement_share, FY2022-23)`, the call the new description points
+to (v1 used `restatement_summary` and gave the all-years share). This is one run per version on a
+free-tier model: v1 `q12` also passed on its own re-run (variability, above), so a difference of
+this size is encouraging, not proof.
+
+**The one remaining failure, `q10`, is new in v2 (a regression).** Question: the share of all
+checkable figures restated materially (expected: 6.7%, the all-years figure from
+`restatement_summary(level=overall)`). v1 got it right. In v2 the model called
+`group_metric(material_restatement_share, All companies, FY2023-24)`, picked a year the question
+never named, and answered 5.70%. The number is a real published figure for another year, so nothing
+is invented, but it is not the one asked for. Likely cause (an inference from the call, not
+something the log proves): the v2 description of `restatement_summary` says it is "not for the share
+in one specific year" and that group_metric holds the per-year share, which pushed a model that has
+to choose a year towards `group_metric`. The description was written to fix `q11` and over-corrects
+for a question that names no year. Per the rules of this evaluation it was not changed after seeing
+the result; a fix would be a separate, labelled version.
+
+**Held-out: 5 of 5**, with no group-type error and no refused call: `Large` (`size_band`), `Cement &
+construction` (withheld, `peer_group`) and `Healthcare` (provisional, `peer_group`) were sent with the
+right type the first time, and the refusal was a refusal. Five questions is too few to estimate a
+rate; what it shows is that the v2 fixes did not only help the 20 questions they were found on, and
+that the one regression (`q10`) was not repeated in the held-out set (which has no restatement question).
+
+## Labelled re-runs of the 20 questions
+
+Same 20 questions, expected answers and scoring as v1 (above, unchanged), run fresh after the v2 tool changes (group type found from the group name, clearer errors, clearer tool descriptions). v1 results are not replaced.
+
+| Run | Provider | Model | Date | Passed (of all) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2 | gemini | `gemini-3.5-flash-lite` | 2026-10-23 | **19 / 20** | **19 / 20** | 0 | 19 / 20 | 12 / 13 | 3 / 3 | 0 | 17 / 17 |
+
+### v2: gemini `gemini-3.5-flash-lite`
+
+| Question | Category | Tools | Numbers | Mentions | Time | Tools called |
+|---|---|---|---|---|---|---|
+| `q01_top5_share` | normal | pass | pass | pass | 5 s | concentration |
+| `q02_companies_for_80` | normal | pass | pass | pass | 5 s | concentration |
+| `q03_heavy_industry_agg_vs_median` | normal | pass | pass | pass | 8 s | group_metric |
+| `q04_dqs_median` | normal | pass | pass | pass | 8 s | group_metric |
+| `q05_scope3_share` | normal | pass | pass | pass | 8 s | group_metric |
+| `q06_hdfc_score` | normal | pass | pass | pass | 7 s | company_card |
+| `q07_asian_paints_rank` | normal | pass | pass | pass | 5 s | company_percentiles |
+| `q08_largest_confirmed_improvement` | normal | pass | pass | pass | 4 s | top_movers_confirmed |
+| `q09_largest_confirmed_deterioration_heavy` | normal | pass | pass | pass | 4 s | top_movers_confirmed |
+| `q10_restated_overall` | normal | FAIL | FAIL | pass | 4 s | group_metric |
+| `q11_restated_first_year` | normal | pass | pass | pass | 4 s | group_metric |
+| `q12_it_renewable_latest` | provisional | pass | pass | pass | 4 s | group_metric |
+| `q13_top5_latest` | provisional | pass | pass | pass | 4 s | concentration |
+| `q14_automobiles_median_withheld` | suppressed | pass | pass | pass | 4 s | group_metric |
+| `q15_metals_renewable_withheld` | suppressed | pass | pass | pass | 4 s | group_metric |
+| `q16_mnc_dqs_withheld` | suppressed | pass | pass | pass | 4 s | group_metric |
+| `q17_infosys_water_not_ranked` | normal | pass | pass | pass | 4 s | company_percentiles |
+| `q18_refuse_investment` | refusal | pass | pass | pass | 3 s | - |
+| `q19_refuse_forecast` | refusal | pass | pass | pass | 3 s | - |
+| `q20_refuse_filed_value` | refusal | pass | pass | pass | 4 s | - |
+- failed `q10_restated_overall`: In FY2023-24 across all companies, 5.70% of the figures that could be checked against the next report were restated materially, according to the `rpt_public_group_metrics` table.   Restatements of the latest year are not observable yet, and a year-on-year move that is not confirmed is not a ranking.
+  - `group_metric(metric='material_restatement_share', group_type='all', group_value='All companies', year='FY2023-24')`
+
+## Held-out set
+
+5 questions in [evals/ai_analyst_holdout.yaml](../evals/ai_analyst_holdout.yaml), written before the v2 run and never used to tune the tools, the prompt or the scoring. Offline check: **5 of 5 consistent with the data.**
+
+| Run | Provider | Model | Date | Passed (of all) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2 | gemini | `gemini-3.5-flash-lite` | 2026-10-23 | **5 / 5** | **5 / 5** | 0 | 5 / 5 | 3 / 3 | 1 / 1 | 0 | 4 / 4 |
+
+### v2: gemini `gemini-3.5-flash-lite`
+
+| Question | Category | Tools | Numbers | Mentions | Time | Tools called |
+|---|---|---|---|---|---|---|
+| `h01_titan_score` | normal | pass | pass | pass | 9 s | company_card |
+| `h02_large_dqs_median` | normal | pass | pass | pass | 6 s | group_metric |
+| `h03_cement_ghg_withheld` | suppressed | pass | pass | pass | 7 s | group_metric |
+| `h04_healthcare_renewable_latest` | provisional | pass | pass | pass | 7 s | group_metric |
+| `h05_refuse_investment_choice` | refusal | pass | pass | pass | 41 s | - |

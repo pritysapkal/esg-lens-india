@@ -1,0 +1,677 @@
+{
+ "provider": "gemini",
+ "model": "gemini-3.5-flash-lite",
+ "date": "2026-10-23",
+ "rows": [
+  {
+   "id": "q01_top5_share",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "concentration"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6391,
+   "output_tokens": 146,
+   "seconds": 5.2,
+   "error": null,
+   "answer": "In FY2024-25, the five largest emitters held 85.46% of total Scope 1+2 emissions.\n\nAccording to the `concentration` tool (source: `rpt_public_concentration`), the cumulative share for the top 5 companies was 85.46% (led by NTPC at 49.14%, UltraTech Cement at 12.47%, Tata Steel at 9.92%, JSW Steel at 8.23%, and Reliance Industries at 5.70%).",
+   "calls": [
+    {
+     "name": "concentration",
+     "arguments": {
+      "top_n": 5,
+      "year": "FY2024-25"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q02_companies_for_80",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "concentration"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6182,
+   "output_tokens": 111,
+   "seconds": 4.8,
+   "error": null,
+   "answer": "It took 4 companies to reach 80% of all Scope 1+2 emissions in FY2022-23.\n\nAccording to the `rpt_public_concentration` table, the summary for FY2022-23 shows that 4 companies were needed to reach 80% (`companies_for_80_pct`), out of 47 reporting companies.",
+   "calls": [
+    {
+     "name": "concentration",
+     "arguments": {
+      "top_n": 1,
+      "year": "FY2022-23"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q03_heavy_industry_agg_vs_median",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 2,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6343,
+   "output_tokens": 187,
+   "seconds": 7.6,
+   "error": null,
+   "answer": "In FY2024-25, the GHG intensity for Asset-heavy companies as a whole was 282.067 tCO2e per Rs crore, and for the typical company (the median) it was 42.5964 tCO2e per Rs crore, according to the `rpt_public_group_metrics` table.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_value": "Asset-heavy",
+      "metric": "ghg_intensity_agg",
+      "year": "FY2024-25",
+      "group_type": "sector_group"
+     },
+     "error": null
+    },
+    {
+     "name": "group_metric",
+     "arguments": {
+      "year": "FY2024-25",
+      "group_type": "sector_group",
+      "group_value": "Asset-heavy",
+      "metric": "ghg_intensity_median"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q04_dqs_median",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6117,
+   "output_tokens": 121,
+   "seconds": 7.6,
+   "error": null,
+   "answer": "The median Disclosure Quality Score of all companies in FY2024-25 is 85.65 points, according to the `rpt_public_group_metrics` table via the `group_metric` tool.\n\nThe Disclosure Quality Score measures how well a company discloses, not its ESG performance: it is not an ESG rating.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "year": "FY2024-25",
+      "group_value": "All companies",
+      "group_type": "all",
+      "metric": "dqs_median"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q05_scope3_share",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6105,
+   "output_tokens": 136,
+   "seconds": 8.0,
+   "error": null,
+   "answer": "In FY2023-24, 72.92% of company reports disclosed Scope 3 emissions.\n\nAccording to the `rpt_public_group_metrics` table (`scope3_disclosed_share` for \"All companies\" in FY2023-24), the value is 72.9167% with 48 companies behind it.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "metric": "scope3_disclosed_share",
+      "group_value": "All companies",
+      "group_type": "all",
+      "year": "FY2023-24"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q06_hdfc_score",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "company_card"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6325,
+   "output_tokens": 134,
+   "seconds": 7.0,
+   "error": null,
+   "answer": "In FY2024-25, HDFC Bank had a Disclosure Quality Score of 85.3 and a grade of A. It ranked 5th out of 12 companies in its ranking group, placing at the 63.6th percentile.\n\nSource: `company_card` (table `rpt_public_company_year`).\n\nCaveat: The Disclosure Quality Score measures how well a company discloses, not its ESG performance: it is not an ESG rating.",
+   "calls": [
+    {
+     "name": "company_card",
+     "arguments": {
+      "company": "HDFC Bank",
+      "year": "FY2024-25"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q07_asian_paints_rank",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "company_percentiles"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6178,
+   "output_tokens": 127,
+   "seconds": 4.8,
+   "error": null,
+   "answer": "Asian Paints ranks 4th out of 8 companies in its ranking group (Consumer) on GHG intensity for FY2024-25, with a percentile of 57.1 (where 100 is best). \n\nThese numbers come from the `rpt_public_company_percentile` table via the `company_percentiles` tool.",
+   "calls": [
+    {
+     "name": "company_percentiles",
+     "arguments": {
+      "company": "Asian Paints",
+      "year": "FY2024-25",
+      "kpi": "ghg_intensity_tco2e_per_cr"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q08_largest_confirmed_improvement",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "top_movers_confirmed"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6208,
+   "output_tokens": 158,
+   "seconds": 3.6,
+   "error": null,
+   "answer": "Hindustan Unilever had the largest confirmed year-on-year improvement in GHG intensity, according to `top_movers_confirmed` (ranked pairs: 20, source: `rpt_public_ghg_yoy`). \n\nIts greenhouse gas intensity improved by 40.3%, moving from 0.24 to 0.15 tCO2e per Rs crore of turnover between FY2023-24 and FY2024-25, confirmed by the next report. \n\n*A year-on-year move that is not confirmed is not a ranking.*",
+   "calls": [
+    {
+     "name": "top_movers_confirmed",
+     "arguments": {
+      "ranking_group": null,
+      "direction": "improvement",
+      "limit": 1
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q09_largest_confirmed_deterioration_heavy",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "top_movers_confirmed"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6221,
+   "output_tokens": 154,
+   "seconds": 4.1,
+   "error": null,
+   "answer": "In the Asset-heavy ranking group, UltraTech Cement experienced the largest confirmed deterioration in GHG intensity, with an increase of 11.8% from FY2023-24 (1,047.45 tCO2e per Rs crore) to FY2024-25 (1,171.26 tCO2e per Rs crore).\n\nSource: `top_movers_confirmed` (Asset-heavy ranking group, deterioration).\nA year-on-year move that is not confirmed is not a ranking.",
+   "calls": [
+    {
+     "name": "top_movers_confirmed",
+     "arguments": {
+      "direction": "deterioration",
+      "limit": 1,
+      "ranking_group": "Asset-heavy"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q10_restated_overall",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": false,
+   "numbers": false,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": false,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6097,
+   "output_tokens": 131,
+   "seconds": 3.6,
+   "error": null,
+   "answer": "In FY2023-24 across all companies, 5.70% of the figures that could be checked against the next report were restated materially, according to the `rpt_public_group_metrics` table. \n\nRestatements of the latest year are not observable yet, and a year-on-year move that is not confirmed is not a ranking.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "metric": "material_restatement_share",
+      "group_type": "all",
+      "group_value": "All companies",
+      "year": "FY2023-24"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q11_restated_first_year",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6110,
+   "output_tokens": 147,
+   "seconds": 3.8,
+   "error": null,
+   "answer": "14.11% of the FY2022-23 figures were changed materially in the next year's report.\n\n- **Source:** `group_metric` from `rpt_public_group_metrics` (All companies, FY2022-23).\n- **Caveat:** Restatements of the latest year are not observable yet, and a year-on-year move that is not confirmed is not a ranking.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "metric": "material_restatement_share",
+      "group_type": "all",
+      "group_value": "All companies",
+      "year": "FY2022-23"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q12_it_renewable_latest",
+   "category": "provisional",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 2,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 9335,
+   "output_tokens": 185,
+   "seconds": 4.3,
+   "error": null,
+   "answer": "The renewable share of energy for IT services companies was 68.1% in FY2025-26.\n\nThese numbers come from the `rpt_public_group_metrics` table via the `group_metric` tool.\n\nProvisional: FY2025-26 is provisional: no later report has confirmed these figures yet, and they can still change.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "metric": "renewable_share_agg",
+      "year": "FY2025-26",
+      "group_type": "sector_group",
+      "group_value": "IT services"
+     },
+     "error": "'IT services' is not a sector_group; it is a group in several group types (peer_group, ranking_group). Say which with group_type."
+    },
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_value": "IT services",
+      "metric": "renewable_share_agg",
+      "group_type": "peer_group",
+      "year": "FY2025-26"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q13_top5_latest",
+   "category": "provisional",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "concentration"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6421,
+   "output_tokens": 193,
+   "seconds": 3.6,
+   "error": null,
+   "answer": "In FY2025-26, the top 5 companies accounted for 85.49% of total Scope 1+2 emissions among the companies covered. \n\nAccording to the `rpt_public_concentration` tool for FY2025-26, the top 5 emitters and their individual shares are:\n1. NTPC: 46.48%\n2. UltraTech Cement: 13.67%\n3. Tata Steel: 10.38%\n4. JSW Steel: 9.22%\n5. Reliance Industries: 5.75%\n\nProvisional: FY2025-26 is provisional: no later report has confirmed these figures yet, and they can still change.",
+   "calls": [
+    {
+     "name": "concentration",
+     "arguments": {
+      "year": "FY2025-26",
+      "top_n": 5
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q14_automobiles_median_withheld",
+   "category": "suppressed",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6149,
+   "output_tokens": 112,
+   "seconds": 3.9,
+   "error": null,
+   "answer": "The median GHG intensity for the Automobiles ranking group in FY2023-24 is withheld because fewer than 5 companies stand behind the figure. \n\nFrom `group_metric` in `rpt_public_group_metrics`.\nWithheld: fewer than 5 companies.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_value": "Automobiles",
+      "metric": "ghg_intensity_median",
+      "year": "FY2023-24",
+      "group_type": "ranking_group"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q15_metals_renewable_withheld",
+   "category": "suppressed",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6188,
+   "output_tokens": 111,
+   "seconds": 4.0,
+   "error": null,
+   "answer": "Withheld: fewer than 5 companies. According to the `rpt_public_group_metrics` tool, the renewable share of energy for the Metals & mining peer group in FY2024-25 is withheld because fewer than 5 companies stand behind the figure.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_value": "Metals & mining",
+      "group_type": "sector_group",
+      "metric": "renewable_share_agg",
+      "year": "FY2024-25"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q16_mnc_dqs_withheld",
+   "category": "suppressed",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6146,
+   "output_tokens": 134,
+   "seconds": 3.7,
+   "error": null,
+   "answer": "The typical Disclosure Quality Score for MNC subsidiaries in FY2024-25 is withheld because there are fewer than 5 companies behind the figure, according to the `group_metric` table (`rpt_public_group_metrics`).\n\nWithheld: fewer than 5 companies.\nDisclosure Quality Score measures how well a company discloses, not its ESG performance: it is not an ESG rating.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "year": "FY2024-25",
+      "group_type": "ownership_type",
+      "metric": "dqs_median",
+      "group_value": "MNC subsidiary"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q17_infosys_water_not_ranked",
+   "category": "normal",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "company_percentiles"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6150,
+   "output_tokens": 142,
+   "seconds": 3.9,
+   "error": null,
+   "answer": "No, Infosys is not ranked on water intensity among its peers in FY2024-25 because the KPI is not considered material for its ranking group.\n\nAccording to the `rpt_public_company_percentile` table, Infosys's ranking status for water intensity (`water_intensity_kl_per_cr`) in the IT services peer group for FY2024-25 is \"not ranked for this group (not material)\".",
+   "calls": [
+    {
+     "name": "company_percentiles",
+     "arguments": {
+      "year": "FY2024-25",
+      "company": "Infosys",
+      "kpi": "water_intensity_kl_per_cr"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q18_refuse_investment",
+   "category": "refusal",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [],
+   "n_calls": 0,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 2963,
+   "output_tokens": 53,
+   "seconds": 2.6,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data; I can provide information on Reliance Industries' disclosure quality scores, greenhouse gas intensities, and other sustainability metrics from FY2022-23 to FY2025-26.",
+   "calls": [],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q19_refuse_forecast",
+   "category": "refusal",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [],
+   "n_calls": 0,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 2968,
+   "output_tokens": 60,
+   "seconds": 2.7,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data; I can answer questions about ESG disclosures, intensities, scores, and rankings for NIFTY 50 companies plus Wipro for financial years FY2022-23 to FY2025-26.",
+   "calls": [],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "q20_refuse_filed_value",
+   "category": "refusal",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [],
+   "n_calls": 0,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 2972,
+   "output_tokens": 57,
+   "seconds": 3.5,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data, as filed absolute values such as total tonnes of CO2 are not available in the database; I can provide computed intensities, shares, medians, ranks, percentiles, Disclosure Quality Scores, and group metrics instead.",
+   "calls": [],
+   "date": "2026-10-23"
+  }
+ ],
+ "label": "v2"
+}

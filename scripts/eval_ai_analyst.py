@@ -426,10 +426,57 @@ def is_v1(run: dict) -> bool:
     return not run.get("label") and run.get("set", "main") == "main"
 
 
+def comparison(runs: list[dict]) -> list[str]:
+    """v1 vs labelled vs held-out for each provider/model that has a labelled run."""
+    lines: list[str] = []
+    for run in [r for r in runs if r.get("label") and r.get("set", "main") == "main"]:
+        key = (run["provider"], run["model"])
+        v1 = next((r for r in runs if is_v1(r) and (r["provider"], r["model"]) == key), None)
+        hold = next((r for r in runs if r.get("set") == "holdout" and r.get("label") == run["label"]
+                     and (r["provider"], r["model"]) == key), None)  # fmt: skip
+        if v1 is None:
+            continue
+        main_q, hold_q = load(), load("holdout")
+        a, b = summary(v1, main_q), summary(run, main_q)
+        c = summary(hold, hold_q) if hold else None
+        lines += [
+            "",
+            f"## {run['provider']} `{run['model']}`: v1 vs {run['label']} vs held-out",
+            "",
+            f"| | v1 (20 questions) | {run['label']} (same 20) | {run['label']} held-out (5 new) |",
+            "|---|---|---|---|",
+        ]
+        rows = [("Passed", "passed", "n"), ("Right tool", "tools", "answered"),
+                ("Numbers right", "numbers", "n_numbers"), ("Refusals right", "refusals", "n_refusals"),
+                ("Wrongly refused", "false_refusals", None), ("Caveat check", "caveats", "n_caveats")]  # fmt: skip
+        for name, key_, total in rows:
+            cells = []
+            for m in (a, b, c):
+                if m is None:
+                    cells.append("not run")
+                else:
+                    cells.append(f"{m[key_]} / {m[total]}" if total else str(m[key_]))
+            lines.append(f"| {name} | " + " | ".join(cells) + " |")
+        lines += ["", "Questions whose result changed from v1 to " + run["label"] + ":", ""]
+        by_v2 = {r["id"]: r for r in b["rows"]}
+        changed = [(r, by_v2[r["id"]]) for r in a["rows"] if r["id"] in by_v2
+                   and r["passed"] != by_v2[r["id"]]["passed"]]  # fmt: skip
+        lines += [
+            f"- `{x['id']}`: {mark_(x['passed'])} -> {mark_(y['passed'])}" for x, y in changed
+        ] or ["- none"]
+        lines += [""] + V2_NOTES.strip("\n").splitlines() if run["label"] == "v2" else []
+    return lines
+
+
+def mark_(passed: bool) -> str:
+    return "pass" if passed else "FAIL"
+
+
 def extra_sections(runs: list[dict], offline_holdout: dict[str, list[str]]) -> list[str]:
     """Labelled runs (v2, ...) and held-out runs: separate from the v1 table above, never merged."""
     lines: list[str] = []
     mark = {True: "pass", False: "FAIL"}
+    lines += comparison(runs)
     for qset, title in (
         ("main", "Labelled re-runs of the 20 questions"),
         ("holdout", "Held-out set"),
@@ -490,7 +537,47 @@ def extra_sections(runs: list[dict], offline_holdout: dict[str, list[str]]) -> l
                 if not r["passed"] and not r["not_scored"]:
                     short = (r["error"] or r["answer"]).replace("\n", " ").replace("|", "/")[:400]
                     lines.append(f"- failed `{r['id']}`: {short or '(empty answer)'}")
+                    for call in r.get("calls", []):
+                        args = ", ".join(f"{k}={v!r}" for k, v in call["arguments"].items())
+                        result = f" -> error: {call['error']}" if call["error"] else ""
+                        lines.append(f"  - `{call['name']}({args})`{result}")
     return lines
+
+
+V2_NOTES = """
+### Reading the v1 / v2 / held-out results (Gemini)
+
+**v1 -> v2: 16 -> 19 of 20 (four fixed, one new failure).** Three of the fixes are group-type slips
+(`q03`, `q12`, `q15`) and one is a wrong-tool fix (`q11`). In v1, `q03` asked for `Asset-heavy` as a
+`peer_group` and a `size_band` (four refused calls, no answer), and `q15` asked for `Metals & mining`
+as a `sector_group`. In v2 `q03` used `sector_group` first try and was answered. `q15` asked for
+`Metals & mining` as a `sector_group` again, but the tool resolved it to `peer_group` and the model
+reported the figure as withheld. `q12` first sent `IT services` as a `sector_group`; the tool
+answered "'IT services' is not a sector_group; it is a group in several group types (peer_group,
+ranking_group)", and the model corrected itself to `peer_group` and gave 68.1%, provisional.
+`q11` used `group_metric(material_restatement_share, FY2022-23)`, the call the new description points
+to (v1 used `restatement_summary` and gave the all-years share). This is one run per version on a
+free-tier model: v1 `q12` also passed on its own re-run (variability, above), so a difference of
+this size is encouraging, not proof.
+
+**The one remaining failure, `q10`, is new in v2 (a regression).** Question: the share of all
+checkable figures restated materially (expected: 6.7%, the all-years figure from
+`restatement_summary(level=overall)`). v1 got it right. In v2 the model called
+`group_metric(material_restatement_share, All companies, FY2023-24)`, picked a year the question
+never named, and answered 5.70%. The number is a real published figure for another year, so nothing
+is invented, but it is not the one asked for. Likely cause (an inference from the call, not
+something the log proves): the v2 description of `restatement_summary` says it is "not for the share
+in one specific year" and that group_metric holds the per-year share, which pushed a model that has
+to choose a year towards `group_metric`. The description was written to fix `q11` and over-corrects
+for a question that names no year. Per the rules of this evaluation it was not changed after seeing
+the result; a fix would be a separate, labelled version.
+
+**Held-out: 5 of 5**, with no group-type error and no refused call: `Large` (`size_band`), `Cement &
+construction` (withheld, `peer_group`) and `Healthcare` (provisional, `peer_group`) were sent with the
+right type the first time, and the refusal was a refusal. Five questions is too few to estimate a
+rate; what it shows is that the v2 fixes did not only help the 20 questions they were found on, and
+that the one regression (`q10`) was not repeated in the held-out set (which has no restatement question).
+"""
 
 
 def write_report(

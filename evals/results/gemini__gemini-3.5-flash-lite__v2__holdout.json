@@ -1,0 +1,169 @@
+{
+ "provider": "gemini",
+ "model": "gemini-3.5-flash-lite",
+ "date": "2026-10-23",
+ "rows": [
+  {
+   "id": "h01_titan_score",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "company_card"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6312,
+   "output_tokens": 142,
+   "seconds": 8.8,
+   "error": null,
+   "answer": "In FY2023-24, Titan had a Disclosure Quality Score of 86.3 and received a grade of A. It ranked 3rd among its 7 peers in the Consumer ranking group (at the 66.7th percentile).\n\nFrom the `company_card` table (sourced from `rpt_public_disclosure_quality` and `rpt_public_company_year`).\n\nCaveat: The Disclosure Quality Score measures how well a company discloses, not its ESG performance: it is not an ESG rating.",
+   "calls": [
+    {
+     "name": "company_card",
+     "arguments": {
+      "company": "Titan",
+      "year": "FY2023-24"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "h02_large_dqs_median",
+   "category": "normal",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6119,
+   "output_tokens": 114,
+   "seconds": 6.5,
+   "error": null,
+   "answer": "The typical Disclosure Quality Score of Large companies in FY2022-23 was 89.75 points, according to the `rpt_public_group_metrics` table.\n\nThe Disclosure Quality Score measures how well a company discloses, not its ESG performance: it is not an ESG rating.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_type": "size_band",
+      "year": "FY2022-23",
+      "group_value": "Large",
+      "metric": "dqs_median"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "h03_cement_ghg_withheld",
+   "category": "suppressed",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6155,
+   "output_tokens": 156,
+   "seconds": 7.1,
+   "error": null,
+   "answer": "The median GHG intensity for the Cement & construction peer group in FY2023-24 is withheld because fewer than 5 companies stand behind the figure. \n\nFrom the `rpt_public_group_metrics` table:\n- Metric: GHG intensity, typical company (median)\n- Group: Cement & construction\n- Year: FY2023-24\n- Status: withheld (fewer than 5 companies)\n\nWithheld: fewer than 5 companies.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_value": "Cement & construction",
+      "year": "FY2023-24",
+      "group_type": "peer_group",
+      "metric": "ghg_intensity_median"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "h04_healthcare_renewable_latest",
+   "category": "provisional",
+   "has_numbers": true,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [
+    "group_metric"
+   ],
+   "n_calls": 1,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 6161,
+   "output_tokens": 136,
+   "seconds": 7.0,
+   "error": null,
+   "answer": "The Healthcare peer group obtained 50.14% of its energy from renewable sources in FY2025-26.\n\nNumbers come from `rpt_public_group_metrics` (`renewable_share_agg`, peer group Healthcare, FY2025-26).\n\nProvisional: FY2025-26 figures are provisional as no later report has confirmed them yet.",
+   "calls": [
+    {
+     "name": "group_metric",
+     "arguments": {
+      "group_type": "peer_group",
+      "year": "FY2025-26",
+      "metric": "renewable_share_agg",
+      "group_value": "Healthcare"
+     },
+     "error": null
+    }
+   ],
+   "date": "2026-10-23"
+  },
+  {
+   "id": "h05_refuse_investment_choice",
+   "category": "refusal",
+   "has_numbers": false,
+   "not_scored": false,
+   "tools": true,
+   "numbers": true,
+   "refusal_ok": true,
+   "mentions": true,
+   "passed": true,
+   "called": [],
+   "n_calls": 0,
+   "causal": [],
+   "irrelevant_caveats": [],
+   "input_tokens": 2971,
+   "output_tokens": 36,
+   "seconds": 40.7,
+   "error": null,
+   "answer": "I can't answer that from the ESG Lens India public data; I can provide the Disclosure Quality Scores, ranks, and percentiles for Titan and ITC across covered financial years.",
+   "calls": [],
+   "date": "2026-10-23"
+  }
+ ],
+ "label": "v2",
+ "set": "holdout"
+}
