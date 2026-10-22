@@ -80,7 +80,8 @@ transport differs.
 | SDK | `ollama` | Google Gen AI SDK `google-genai` 2.28.0 | `anthropic` |
 | Tool format | Ollama function tools (the same JSON schema) | function declarations with the same JSON schema (`parameters_json_schema`); the SDK's automatic function calling is off | Anthropic tools, `strict` |
 | Stop tool calls at the limit | tools are no longer offered (Ollama has no `tool_choice`) | function calling mode `NONE` | `tool_choice: none` |
-| Request timeout | 180 s (a small model on a laptop CPU is slow) | 30 s, 1 retry (408 and 5xx only; never 429) | 30 s, 1 retry |
+| Request timeout | 180 s (a small model on a laptop CPU is slow) | 30 s | 30 s |
+| Retry | one, after 3 s, for a server error (5xx) or a timeout only; never a 429, a key error or a refusal (`agent.respond`; the SDKs' own retries are off) | the same | the same |
 | Refusal | the model's own out-of-scope refusal only | also Google's safety stop (finish reason `SAFETY`, `PROHIBITED_CONTENT`, ... or a blocked question), shown as such, never retried | also the API's safety refusal, shown as such, never retried on another model |
 | Cannot answer (quota, key, API down) | an error message | `ProviderUnavailable`: the page falls back to the guided questions (below) | an error message |
 
@@ -223,7 +224,8 @@ Hard limits in `agent.LIMITS`, checked by tests:
 | Model requests per question | 5 (4 tool rounds + the answer) | the loop stops with "ask a narrower question" |
 | Output tokens per response | 1,500 | the answer is cut and marked as cut |
 | Question length | 500 characters | the question is not sent |
-| Request timeout | Claude and Gemini: 30 seconds, 1 retry (Claude: connection errors, 429, 5xx; Gemini: 408 and 5xx, never 429); local model: 180 seconds | the page says the analyst could not answer; the rest of the app is unaffected |
+| Request timeout | Claude and Gemini: 30 seconds; local model: 180 seconds | the page says the analyst could not answer; the rest of the app is unaffected |
+| Retries | one per request, after 3 seconds, and only for a server error (5xx) or a timeout - never for a used-up quota (429), a rejected key or a refusal; made by `agent.respond` for every provider, with the SDKs' own retries off so one stays one | the second failure gives the plain message above |
 | Local context window | 8,192 tokens (`num_ctx`) | Ollama's own default is smaller and cuts a long prompt silently; the prompt with the six tools is about 3,000 tokens |
 
 So one question costs at most 5 requests and 7,500 output tokens, and one session at most 50
@@ -278,8 +280,9 @@ loosely. That is why the numbers are shown next to the answer, and why the evalu
   tool results returned as function responses; bad arguments and unknown tools sent back as
   errors; mode `NONE` at the tool-call limit; extra calls not run; a runaway model cut off; safety
   stops (answer or question blocked) shown as refusals after one request; quota (429), key
-  (400 / 403) and API errors (5xx, timeout) raised as `ProviderUnavailable` with no retry
-  elsewhere; the client built with the key, Vertex AI off, a 30 s timeout and no 429 retry;
+  (400 / 403) and API errors (5xx, timeout) raised as `ProviderUnavailable`; a 5xx or timeout
+  retried once after a wait, a 429, key error or refusal never; the client built with the key,
+  Vertex AI off, a 30 s timeout and no SDK retry;
   without a key no client is built; the key comes only from the environment or Streamlit secrets
   (`GOOGLE_API_KEY` is ignored).
 - `tests/test_app.py`: every page and every guided question runs and opens only the public files;
@@ -307,12 +310,36 @@ loosely. That is why the numbers are shown next to the answer, and why the evalu
   quota is hit, and stops without saving if it is still used up (a run with quota failures would
   not be comparable).
 
-### Evaluation results (local models, 2026-10-19)
+### Evaluation results (2026-10-19 local models, 2026-10-22 Gemini)
 
-| Model | Passed | Right tool | Numbers right | Refusals right | Wrongly refused | Time per question |
-|---|---|---|---|---|---|---|
-| `qwen2.5:3b` | 13 / 20 | 19 / 20 | 8 / 13 | 3 / 3 | 1 | median 19 s (the first, which loads the model, 90 s) |
-| `llama3.2:3b` | 8 / 20 | 15 / 20 | 5 / 13 | 0 / 3 | 6 | median 59 s |
+The full report, per question: [ai_analyst_eval.md](ai_analyst_eval.md). "Not scored" are
+questions the provider never answered (HTTP 504 from Google, after the retries); they are an
+outage, not a model failure, so the pass rate is given over all 20 and over the answered ones,
+and the other columns are over the answered questions.
+
+| Model | Passed (of 20) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check | Median time per question |
+|---|---|---|---|---|---|---|---|---|---|
+| Gemini `gemini-3.5-flash-lite` | 12 / 20 | 12 / 16 | 4 | 15 / 16 | 8 / 10 | 2 / 2 | 2 | 14 / 14 | 42 s |
+| `qwen2.5:3b` (local) | 13 / 20 | 13 / 20 | 0 | 19 / 20 | 8 / 13 | 3 / 3 | 1 | 17 / 17 | 18 s |
+| `llama3.2:3b` (local) | 8 / 20 | 8 / 20 | 0 | 15 / 20 | 5 / 13 | 0 / 3 | 6 | 17 / 17 | 58 s |
+
+**Gemini's four real failures** (the questions and expected answers were not changed):
+
+- `q11` (restatements of FY2022-23): wrong tool and wrong row. It called `restatement_summary`
+  (level `overall`) instead of `group_metric(material_restatement_share, year FY2022-23)` and
+  gave that row's all-years share, 6.66% (274 of 4,115 figures), as the FY2022-23 share; the
+  expected answer is 14.1%.
+- `q15` (Metals & mining renewable share, withheld): a wrong group type, then a refusal. Its
+  answer lists "Asset-heavy, Asset-light, and Financials" - exactly the allowed values the tool
+  sends back when `Metals & mining` is asked for as a `sector_group` (it is a `peer_group`). It
+  did not correct the call and refused, so the "withheld" mention is missing.
+- `q12` (IT services renewable share, FY2025-26): three `group_metric` calls, then a refusal; the
+  68.1% and the "provisional" mention are missing. The saved run did not record call arguments
+  (it does now), so the bad argument cannot be named; the refusal lists peer groups, which
+  suggests the same kind of slip as `q15`. Re-running `q12` with `--only` will show the calls.
+- `q17` (Infosys water intensity, not ranked): right tool, right row, right meaning - "not
+  considered material" - but the required words are "not material", so the mention check fails.
+  That is the scorer's literal match; the expected text is left as it is.
 
 **What this means, plainly.** The small local model is good at choosing a tool and at refusing
 what is out of scope, and not reliable with the numbers: in about one answer in three a figure is
@@ -331,8 +358,9 @@ reader can catch the slips above. The questions and expected answers were not ch
 runs. Treat the local model as a demonstration of the architecture, not as a source of numbers:
 for numbers, the guided questions (same tools, no model) are exact. A larger model would do
 better; the Claude provider is wired and tested but was not evaluated here (no key on this
-machine). **Gemini (`gemini-3.5-flash-lite`): pending - to be run locally by Prity** with her own
-free-tier key (`$env:ESG_AI_PROVIDER = 'gemini'`, then `.\scripts\dev.ps1 eval`).
+machine). Gemini (`gemini-3.5-flash-lite`, free tier) was run on 2026-10-22: 12 of the 16
+questions it answered passed (`qwen2.5:3b`: 13 of 20), with the same kind of slip (a group passed
+under the wrong group type), and 4 questions were lost to Google server errors (HTTP 504).
 
 ## Cost
 
@@ -362,8 +390,8 @@ input cost of follow-up requests; it is not switched on.
   questions are the reliable way to get a figure.
 - The local model needs about 2 GB of free memory and a minute or so for the first question
   (loading); on a busy laptop Windows pages and answers slow down sharply.
-- The Claude provider has not been evaluated live (no key on this machine); the Gemini
-  evaluation is pending.
+- The Claude provider has not been evaluated live (no key on this machine). The Gemini run lost
+  4 of 20 questions to Google server errors (HTTP 504); re-run them with `--only`.
 - The limits apply per browser session; someone who reloads the page gets a new session. That is
   why the public site may only use Gemini's free tier with billing off: the worst a visitor can
   do is use up the day's free quota, after which the page falls back to the guided questions.

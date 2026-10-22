@@ -333,21 +333,78 @@ def api_error(code, status):
     return cls(code, {"error": {"code": code, "message": "fake", "status": status}})
 
 
+@pytest.fixture
+def no_backoff(monkeypatch):
+    from dataclasses import replace
+
+    monkeypatch.setattr(agent, "LIMITS", replace(agent.LIMITS, retry_backoff_seconds=0))
+
+
 @pytest.mark.parametrize(
-    ("error", "reason"),
-    [(lambda: api_error(429, "RESOURCE_EXHAUSTED"), "quota"),
-     (lambda: api_error(400, "API_KEY_INVALID"), "auth"),
-     (lambda: api_error(403, "PERMISSION_DENIED"), "auth"),
-     (lambda: api_error(503, "UNAVAILABLE"), "error"),
-     (lambda: TimeoutError("read timed out"), "error")],
+    ("error", "reason", "transient"),
+    [(lambda: api_error(429, "RESOURCE_EXHAUSTED"), "quota", False),
+     (lambda: api_error(400, "API_KEY_INVALID"), "auth", False),
+     (lambda: api_error(403, "PERMISSION_DENIED"), "auth", False),
+     (lambda: api_error(400, "INVALID_ARGUMENT"), "error", False),
+     (lambda: api_error(503, "UNAVAILABLE"), "error", True),
+     (lambda: api_error(504, "DEADLINE_EXCEEDED"), "error", True),
+     (lambda: TimeoutError("read timed out"), "error", True)],
 )  # fmt: skip
-def test_gemini_quota_key_and_api_errors_become_provider_unavailable(error, reason):
-    """The page turns these into a plain message and the guided questions (tests/test_app.py)."""
-    client = FakeGemini([_gemini(calls=[CONCENTRATION]), error()])
+def test_gemini_quota_key_and_api_errors_become_provider_unavailable(
+    no_backoff, error, reason, transient
+):
+    """The page turns these into a plain message and the guided questions (tests/test_app.py).
+    Only a server error or a timeout is retried, once; never a quota, key or request error."""
+    client = FakeGemini([_gemini(calls=[CONCENTRATION]), error(), error()])
     with pytest.raises(agent.ProviderUnavailable) as raised:
         ask_gemini("x", client)
-    assert raised.value.reason == reason
-    assert len(client.requests) == 2  # no retry on another model or provider
+    assert raised.value.reason == reason and raised.value.transient == transient
+    assert len(client.requests) == (3 if transient else 2)  # never another model or provider
+
+
+def test_a_504_is_retried_once_after_a_wait_and_the_answer_comes_through(monkeypatch):
+    waits = []
+    monkeypatch.setattr(agent.time, "sleep", waits.append)
+    client = FakeGemini([
+        api_error(504, "DEADLINE_EXCEEDED"),
+        _gemini(calls=[CONCENTRATION]),
+        TimeoutError("read timed out"),
+        _gemini("The three largest emitters held most of it."),
+    ])  # fmt: skip
+    answer = ask_gemini("How concentrated?", client)
+    assert answer.text.startswith("The three largest") and len(client.requests) == 4
+    assert waits == [agent.LIMITS.retry_backoff_seconds] * 2  # each request: one retry, one wait
+
+
+def test_quota_and_refusals_are_never_retried(no_backoff):
+    client = FakeGemini([api_error(429, "RESOURCE_EXHAUSTED"), _gemini("never sent")])
+    with pytest.raises(agent.ProviderUnavailable):
+        ask_gemini("x", client)
+    assert len(client.requests) == 1
+    client = FakeGemini([_gemini(finish="SAFETY"), _gemini("never sent")])
+    assert ask_gemini("x", client).model_refused and len(client.requests) == 1
+
+
+def test_transient_errors_of_every_provider():
+    """5xx and timeouts of the Anthropic and Ollama SDKs count too; 429 and 4xx never do."""
+    import anthropic
+    import httpx
+
+    request = httpx.Request("POST", "https://example.invalid")
+
+    def status(cls, code):
+        return cls("x", response=httpx.Response(code, request=request), body=None)
+
+    assert providers.is_transient(status(anthropic.InternalServerError, 529))
+    assert providers.is_transient(anthropic.APITimeoutError(request=request))
+    assert providers.is_transient(httpx.ReadTimeout("slow"))
+    assert not providers.is_transient(status(anthropic.RateLimitError, 429))
+    assert not providers.is_transient(status(anthropic.BadRequestError, 400))
+    assert not providers.is_transient(ValueError("bad"))
+    import ollama
+
+    assert providers.is_transient(ollama.ResponseError("busy", 503))
+    assert not providers.is_transient(ollama.ResponseError("no model", 404))
 
 
 def test_gemini_client_gets_the_key_timeout_and_no_quota_retry(monkeypatch):
@@ -360,7 +417,7 @@ def test_gemini_client_gets_the_key_timeout_and_no_quota_retry(monkeypatch):
     assert seen["api_key"] == "test-key-from-env" and seen["vertexai"] is False
     options = seen["http_options"]
     assert options.timeout == agent.LIMITS.timeout_seconds * 1000  # milliseconds
-    assert options.retry_options.attempts == 1 + agent.LIMITS.max_retries
+    assert options.retry_options.attempts == 1  # the one retry is agent.respond's, not the SDK's
     assert 429 not in options.retry_options.http_status_codes
 
 

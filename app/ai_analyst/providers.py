@@ -34,11 +34,24 @@ DEFAULT_MODELS = {
 
 class ProviderUnavailable(RuntimeError):
     """The provider cannot answer right now. `reason`: "quota" (free-tier quota used up),
-    "auth" (key missing or rejected) or "error" (API error, timeout, network)."""
+    "auth" (key missing or rejected) or "error" (API error, timeout, network). `transient`: a
+    server error (5xx) or a timeout, which agent.ask retries once."""
 
-    def __init__(self, reason: str, detail: str = ""):
+    def __init__(self, reason: str, detail: str = "", transient: bool = False):
         super().__init__(f"{reason}: {detail}" if detail else reason)
         self.reason = reason
+        self.transient = transient
+
+
+def is_transient(error: Exception) -> bool:
+    """A server error (5xx) or a timeout of any provider: worth one retry. Never a used-up
+    quota (429), a rejected key or a bad request; a refusal is an answer, not an error."""
+    if isinstance(error, ProviderUnavailable):
+        return error.transient
+    if isinstance(error, TimeoutError) or "timeout" in type(error).__name__.lower():
+        return True  # TimeoutError, httpx.*Timeout, anthropic.APITimeoutError
+    code = getattr(error, "status_code", None) or getattr(error, "code", None)
+    return isinstance(code, int) and (code == 408 or 500 <= code <= 599)
 
 
 DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
@@ -327,7 +340,11 @@ def gemini_error(error: Exception) -> ProviderUnavailable:
         reason = "auth"
     else:
         reason = "error"
-    return ProviderUnavailable(reason, f"{type(error).__name__} {code or ''}".strip())
+    return ProviderUnavailable(
+        reason,
+        f"{type(error).__name__} {code or ''}".strip(),
+        transient=reason == "error" and is_transient(error),
+    )
 
 
 def _name(value) -> str:
@@ -438,9 +455,10 @@ class GeminiProvider:
                 vertexai=False,
                 http_options=types.HttpOptions(
                     timeout=int(self.timeout * 1000),  # milliseconds
+                    # agent.ask makes the one retry of a 5xx or timeout; here 429 is never
+                    # retried either way: a used-up quota stays used up
                     retry_options=types.HttpRetryOptions(
                         attempts=1 + self.max_retries,
-                        # 429 is not retried: a used-up quota stays used up
                         http_status_codes=[408, 500, 502, 503, 504],
                     ),
                 ),

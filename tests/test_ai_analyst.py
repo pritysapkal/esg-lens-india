@@ -282,7 +282,7 @@ def test_question_limits_per_session_and_length():
     limits = agent.LIMITS
     assert limits.questions_per_session == 10 and limits.tool_calls_per_question == 4
     assert limits.max_output_tokens <= 2000 and limits.timeout_seconds <= 60
-    assert limits.max_retries <= 1
+    assert limits.max_retries == 1 and limits.sdk_retries == 0  # one retry, made by agent.respond
     assert agent.check_question("  What is the top-5 share?  ", 9) == "What is the top-5 share?"
     with pytest.raises(agent.QuestionRejected, match="10 questions"):
         agent.check_question("again", limits.questions_per_session)
@@ -301,8 +301,9 @@ def test_client_gets_the_key_timeout_and_retries_explicitly(monkeypatch):
     monkeypatch.setattr(anthropic, "Anthropic", lambda **kwargs: seen.update(kwargs) or object())
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-from-env")
     agent.make_provider("anthropic").client()
+    # the SDK does not retry (it would also retry a 429): agent.respond makes the one retry
     assert seen == {"api_key": "test-key-from-env", "timeout": agent.LIMITS.timeout_seconds,
-                    "max_retries": agent.LIMITS.max_retries}  # fmt: skip
+                    "max_retries": 0}  # fmt: skip
 
 
 def test_out_of_scope_answer_counts_as_refused():
@@ -505,6 +506,80 @@ def test_eval_supports_gemini_paces_it_and_stops_without_saving_on_a_used_up_quo
         eval_ai_analyst.run_live(questions, "gemini", "gemini-3.5-flash-lite", 0.0, slept.append)
 
 
+def test_eval_retries_a_server_error_once_and_then_marks_it_not_scored(monkeypatch):
+    """A 5xx or timeout is an outage: one retry of the question, then "not scored", which counts
+    in the pass rate over all questions but not in any rate over the answered ones."""
+    import eval_ai_analyst
+
+    questions = eval_ai_analyst.load()[:3]
+    slept, calls = [], []
+
+    def flaky(question, provider, model):
+        calls.append(question)
+        if len(calls) == 1:  # q01: a 504, then answered on the retry
+            raise agent.ProviderUnavailable("error", "ServerError 504", transient=True)
+        if len(calls) in (3, 4):  # q02: 504 twice -> not scored
+            raise agent.ProviderUnavailable("error", "ServerError 504", transient=True)
+        if len(calls) == 5:  # q03: a non-transient error -> a failure, no retry
+            raise agent.ProviderUnavailable("error", "ClientError 400")
+        return agent.Answer(text="ok")
+
+    monkeypatch.setattr(agent, "ask", flaky)
+    run = eval_ai_analyst.run_live(questions, "gemini", "gemini-3.5-flash-lite", 0.0, slept.append)
+    assert len(calls) == 5 and slept == [eval_ai_analyst.SERVER_ERROR_WAIT] * 2
+    assert [r["not_scored"] for r in run["rows"]] == [False, True, False]
+    assert [r["error"] is not None for r in run["rows"]] == [False, True, True]
+    m = eval_ai_analyst.summary(run, questions)
+    assert (m["n"], m["answered"], m["not_scored"]) == (3, 2, 1)
+
+
+def test_saved_gemini_run_counts_its_504s_as_not_scored():
+    import eval_ai_analyst
+
+    run = eval_ai_analyst.load_run("gemini", "gemini-3.5-flash-lite")
+    if run is None:
+        pytest.skip("no saved Gemini run")
+    m = eval_ai_analyst.summary(run)
+    outages = sorted(r["id"][:3] for r in m["rows"] if r["not_scored"])
+    assert outages == ["q02", "q03", "q10", "q18"]
+    assert m["answered"] == m["n"] - 4 and m["passed"] <= m["answered"]
+
+
+def test_only_reruns_the_named_questions_and_merges_them_into_the_saved_run(monkeypatch, tmp_path):
+    import eval_ai_analyst
+
+    monkeypatch.setattr(eval_ai_analyst, "RESULTS", tmp_path)
+    questions = eval_ai_analyst.load()
+    saved = {"provider": "gemini", "model": "gemini-3.5-flash-lite", "date": "2026-10-22",
+             "rows": [eval_ai_analyst.score(q, None, "ProviderUnavailable: error: ServerError 504",
+                                            not_scored=True) for q in questions]}  # fmt: skip
+    eval_ai_analyst.save(saved)
+    with pytest.raises(SystemExit, match="q99"):
+        eval_ai_analyst.select(questions, ["q99"])
+    chosen = eval_ai_analyst.select(questions, ["q02", "q03_heavy_industry_agg_vs_median"])
+    assert [q["id"][:3] for q in chosen] == ["q02", "q03"]
+
+    asked = []
+
+    def answer(question, provider, model):
+        asked.append(question)
+        return agent.Answer(text="ok")
+
+    monkeypatch.setenv("ESG_AI_ENABLED", "true")
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    # main() sets these two from --provider / --model; monkeypatch puts them back afterwards
+    monkeypatch.setenv("ESG_AI_PROVIDER", "gemini")
+    monkeypatch.setenv("ESG_AI_MODEL", "gemini-3.5-flash-lite")
+    monkeypatch.setattr(agent, "ask", answer)
+    eval_ai_analyst.main(["--provider", "gemini", "--model", "gemini-3.5-flash-lite",
+                          "--only", "q02", "q03", "--pause", "0", "--no-report"])  # fmt: skip
+    assert asked == [q["question"] for q in chosen]
+    merged = eval_ai_analyst.load_run("gemini", "gemini-3.5-flash-lite")
+    assert [r["id"] for r in merged["rows"]] == [q["id"] for q in questions]  # order kept
+    rerun = {r["id"][:3] for r in merged["rows"] if not r["not_scored"]}
+    assert rerun == {"q02", "q03"}  # the others still hold the saved rows
+
+
 def test_eval_report_shows_gemini_as_pending_until_it_is_run(monkeypatch, tmp_path):
     import eval_ai_analyst
 
@@ -514,7 +589,8 @@ def test_eval_report_shows_gemini_as_pending_until_it_is_run(monkeypatch, tmp_pa
     eval_ai_analyst.write_report([ollama], {})
     report = (tmp_path / "report.md").read_text(encoding="utf-8")
     (row,) = [line for line in report.splitlines() if line.startswith("| gemini |")]
-    assert "pending — run locally by Prity" in row and row.count("|") == 13
+    (header,) = [line for line in report.splitlines() if line.startswith("| Provider |")]
+    assert "pending — run locally by Prity" in row and row.count("|") == header.count("|")
     gemini = dict(ollama, provider="gemini", model="gemini-3.5-flash-lite")
     eval_ai_analyst.write_report([ollama, gemini], {})
     report = (tmp_path / "report.md").read_text(encoding="utf-8")

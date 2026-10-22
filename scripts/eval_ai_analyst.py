@@ -5,6 +5,8 @@
     python scripts/eval_ai_analyst.py --provider gemini         # free tier; paced (--pause)
     python scripts/eval_ai_analyst.py --offline          # no model call: checks the question set
     python scripts/eval_ai_analyst.py --report-only      # rebuild the report from saved results
+    python scripts/eval_ai_analyst.py --provider gemini --only q02 q03   # re-run some questions,
+                                                         # merged into the saved run
 
 The live run needs ESG_AI_ENABLED=true (and GEMINI_API_KEY for gemini, ANTHROPIC_API_KEY for
 anthropic). Each live run is saved to evals/results/<provider>__<model>.json; the report shows
@@ -22,8 +24,16 @@ Live scoring per question:
             refusal -> starts with the refusal sentence; expected_text appears; no causal wording;
             no caveat that does not apply (the Disclosure Quality Score caveat in an answer about
             another figure, "provisional" for final years)
-A question passes when all three pass. Offline mode runs each expected tool call and checks that
-the expected numbers and statuses are what the tools return today.
+A question passes when all three pass.
+
+Not scored: a question the provider could not answer at all - a server error (5xx) or a timeout,
+after agent.ask's own retry and one more retry of the whole question here - is an outage, not a
+model failure. It is reported as "not scored", and the pass rate is given both over all questions
+and over the answered ones. Re-run just those questions with --only: the new rows replace the
+old ones in the saved run.
+
+Offline mode runs each expected tool call and checks that the expected numbers and statuses are
+what the tools return today.
 """
 
 from __future__ import annotations
@@ -36,13 +46,14 @@ import sys
 import time
 from datetime import date
 from pathlib import Path
+from statistics import median
 
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from app.ai_analyst import agent, tools  # noqa: E402
+from app.ai_analyst import agent, providers, tools  # noqa: E402
 
 QUESTIONS = ROOT / "evals" / "ai_analyst_questions.yaml"
 REPORT = ROOT / "docs" / "ai_analyst_eval.md"
@@ -69,6 +80,9 @@ PRICES = {  # USD per million input / output tokens
 PENDING = {"gemini": ("gemini-3.5-flash-lite", "pending — run locally by Prity")}
 GEMINI_PAUSE = 10.0  # seconds between questions of a gemini run (free-tier per-minute quota)
 QUOTA_WAIT = 65.0  # seconds before the one retry of a question that hit the quota
+SERVER_ERROR_WAIT = 20.0  # seconds before the one retry of a question that hit a 5xx or timeout
+# a provider outage in a run saved before rows recorded "not_scored"
+OUTAGE = re.compile(r"ServerError|\b5\d\d\b|timed? ?out|timeout", re.I)
 
 
 class QuotaExhausted(RuntimeError):
@@ -139,9 +153,14 @@ def irrelevant_caveats(question: dict, text: str) -> list[str]:
 
 
 def score(
-    question: dict, answer: agent.Answer | None, error: str | None = None, seconds: float = 0.0
+    question: dict,
+    answer: agent.Answer | None,
+    error: str | None = None,
+    seconds: float = 0.0,
+    not_scored: bool = False,
 ) -> dict:
-    """One question. An error (timeout, connection) counts as a failure, not a crash."""
+    """One question. An error never crashes the run: a provider outage (5xx, timeout) is marked
+    not_scored, any other error counts as a failure."""
     if answer is None:
         answer = agent.Answer(text="")
     called = {call.name for call in answer.calls}
@@ -172,6 +191,7 @@ def score(
         "id": question["id"],
         "category": question["category"],
         "has_numbers": bool(question["expected_numbers"]),
+        "not_scored": bool(error) and not_scored,
         "tools": tools_ok,
         "numbers": numbers_ok,
         "refusal_ok": refusal_ok,
@@ -186,7 +206,32 @@ def score(
         "seconds": round(seconds, 1),
         "error": error,
         "answer": text,
+        # what the model asked for, so a wrong row or argument can be told from a wrong reading
+        "calls": [
+            {"name": c.name, "arguments": c.arguments, "error": c.error} for c in answer.calls
+        ],
+        "date": date.today().isoformat(),
     }
+
+
+def is_not_scored(row: dict) -> bool:
+    """A provider outage: the question was never answered, so it says nothing about the model."""
+    if "not_scored" in row:
+        return bool(row["not_scored"])
+    return bool(row.get("error")) and bool(OUTAGE.search(row["error"]))
+
+
+def rescored(row: dict, question: dict | None) -> dict:
+    """A saved row under today's rules: the caveat check is applied to its saved answer (runs
+    saved before the check existed lack it). Nothing else is re-judged."""
+    row = dict(row, not_scored=is_not_scored(row))
+    row.setdefault("irrelevant_caveats", [])
+    if question is None or row["not_scored"] or row["category"] == "refusal":
+        return row
+    irrelevant = irrelevant_caveats(question, row["answer"])
+    mentions = row["mentions"] and not irrelevant
+    return dict(row, irrelevant_caveats=irrelevant, mentions=mentions,
+                passed=row["tools"] and row["numbers"] and mentions)  # fmt: skip
 
 
 def run_live(
@@ -198,6 +243,7 @@ def run_live(
             sleep(pause)
         started = time.perf_counter()
         for attempt in (1, 2):
+            outage = False
             try:
                 answer, error = agent.ask(q["question"], provider=provider, model=model), None
             except agent.ProviderUnavailable as exc:
@@ -211,20 +257,57 @@ def run_live(
                 if exc.reason in ("quota", "auth"):
                     raise QuotaExhausted(f"{q['id']}: {exc}") from exc
                 answer, error = None, f"{type(exc).__name__}: {exc}"[:300]
-            except Exception as exc:  # a timeout or a dead server is a failed question
+                outage = providers.is_transient(exc)
+            except Exception as exc:  # a timeout or a dead server: never a crash of the run
                 answer, error = None, f"{type(exc).__name__}: {exc}"[:300]
+                outage = providers.is_transient(exc)
+            if outage and attempt == 1:
+                print(f"{q['id']:<42} {error}; waiting {SERVER_ERROR_WAIT:.0f}s, retrying once")
+                sleep(SERVER_ERROR_WAIT)
+                started = time.perf_counter()
+                continue
             break
-        result = score(q, answer, error, time.perf_counter() - started)
+        result = score(q, answer, error, time.perf_counter() - started, not_scored=outage)
         rows.append(result)
-        print(f"{q['id']:<42} {'PASS' if result['passed'] else 'FAIL'}  {result['seconds']:6.1f}s  tools={result['called']}"
+        verdict = "NOT SCORED" if result["not_scored"] else "PASS" if result["passed"] else "FAIL"
+        print(f"{q['id']:<42} {verdict}  {result['seconds']:6.1f}s  tools={result['called']}"
               + (f"  ERROR {error}" if error else ""))  # fmt: skip
     return {"provider": provider, "model": model, "date": date.today().isoformat(), "rows": rows}
 
 
+def result_path(provider: str, model: str) -> Path:
+    return RESULTS / f"{provider}__{re.sub(r'[^A-Za-z0-9.]+', '-', model)}.json"
+
+
+def _named(question: dict, name: str) -> bool:
+    return name in (question["id"], question["id"].split("_")[0])
+
+
+def select(questions: list[dict], only: list[str]) -> list[dict]:
+    """The questions --only names: a full id or its number (q02 = q02_companies_for_80)."""
+    unknown = [name for name in only if not any(_named(q, name) for q in questions)]
+    if unknown:
+        raise SystemExit(f"--only: no question {', '.join(unknown)}")
+    return [q for q in questions if any(_named(q, name) for name in only)]
+
+
+def load_run(provider: str, model: str) -> dict | None:
+    path = result_path(provider, model)
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
+def merge(previous: dict | None, run: dict, questions: list[dict]) -> dict:
+    """The re-run rows in place of the saved ones, in the order of the question set."""
+    rows = {r["id"]: r for r in (previous or {}).get("rows", [])} | {
+        r["id"]: r for r in run["rows"]
+    }
+    order = {q["id"]: i for i, q in enumerate(questions)}
+    return dict(run, rows=sorted(rows.values(), key=lambda r: order.get(r["id"], len(order))))
+
+
 def save(run: dict) -> Path:
     RESULTS.mkdir(parents=True, exist_ok=True)
-    name = f"{run['provider']}__{re.sub(r'[^A-Za-z0-9.]+', '-', run['model'])}.json"
-    path = RESULTS / name
+    path = result_path(run["provider"], run["model"])
     path.write_text(
         json.dumps(run, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
     )
@@ -237,12 +320,16 @@ def saved_runs() -> list[dict]:
     return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(RESULTS.glob("*.json"))]
 
 
-def summary(run: dict) -> dict:
-    rows = run["rows"]
-    with_numbers = [r for r in rows if r["has_numbers"]]
-    refusals = [r for r in rows if r["category"] == "refusal"]
-    answerable = [r for r in rows if r["category"] != "refusal"]
-    timed = [r["seconds"] for r in rows if not r["error"]]
+def summary(run: dict, questions: list[dict] | None = None) -> dict:
+    """The rates of one run. Not-scored questions (provider outages) count in "of all" and are
+    left out of every other rate, which is over the answered questions."""
+    by_id = {q["id"]: q for q in (questions if questions is not None else load())}
+    rows = [rescored(r, by_id.get(r["id"])) for r in run["rows"]]
+    answered = [r for r in rows if not r["not_scored"]]
+    with_numbers = [r for r in answered if r["has_numbers"]]
+    refusals = [r for r in answered if r["category"] == "refusal"]
+    answerable = [r for r in answered if r["category"] != "refusal"]
+    timed = sorted(r["seconds"] for r in answered if not r["error"])
     tokens_in = sum(r["input_tokens"] for r in rows)
     tokens_out = sum(r["output_tokens"] for r in rows)
     price = PRICES.get(run["model"])
@@ -255,17 +342,22 @@ def summary(run: dict) -> dict:
     else:
         cost = "unknown price"
     return {
-        "passed": sum(r["passed"] for r in rows),
+        "rows": rows,
+        "passed": sum(r["passed"] for r in answered),
         "n": len(rows),
-        "tools": sum(r["tools"] for r in rows),
+        "answered": len(answered),
+        "not_scored": len(rows) - len(answered),
+        "tools": sum(r["tools"] for r in answered),
         "numbers": sum(r["numbers"] for r in with_numbers),
         "n_numbers": len(with_numbers),
         "refusals": sum(r["refusal_ok"] for r in refusals),
         "n_refusals": len(refusals),
         "false_refusals": sum(not r["refusal_ok"] and not r["error"] for r in answerable),
-        "mentions": sum(r["mentions"] for r in rows),
-        "errors": sum(bool(r["error"]) for r in rows),
-        "avg_seconds": sum(timed) / len(timed) if timed else 0.0,
+        "caveats": sum(not r["irrelevant_caveats"] for r in answerable),
+        "n_caveats": len(answerable),
+        "mentions": sum(r["mentions"] for r in answered),
+        "errors": sum(bool(r["error"]) for r in answered),
+        "median_seconds": median(timed) if timed else 0.0,
         "max_seconds": max(timed) if timed else 0.0,
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
@@ -305,57 +397,86 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
         ]
     else:
         lines += [
-            "How each question is scored: **tool selection** - every expected tool was called (for a "
-            "question that must be refused: no tool at all); **numbers** - every expected number is in "
-            "the answer within its tolerance (questions that have numbers); **refusal right** - the three "
-            "out-of-scope questions are refused, and no answerable question is refused; **mentions** - a "
-            "withheld figure is called withheld, the provisional year is called provisional, expected "
-            "words appear, there is no causal wording, and no caveat that does not apply (the Disclosure "
-            'Quality Score caveat in an answer about another figure, "provisional" for a final year). '
-            "A question passes when tools, numbers and mentions all pass.",
+            "How each question is scored: **right tool** - every expected tool was called (for a "
+            "question that must be refused: no tool at all); **numbers right** - every expected number "
+            "is in the answer within its tolerance (questions that have numbers); **refusals right** - "
+            "the three out-of-scope questions are refused; **wrongly refused** - answerable questions "
+            "the model refused; **caveat check** - no caveat that does not apply (the Disclosure "
+            'Quality Score caveat in an answer about another figure, "provisional" for a final year); '
+            "**mentions** - a withheld figure is called withheld, the provisional year is called "
+            "provisional, expected words appear, no causal wording, and the caveat check. A question "
+            "passes when right tool, numbers and mentions all pass.",
             "",
-            "| Provider | Model | Passed | Tool selection | Numbers right | Refusals right | Wrongly refused | Mentions | Errors | Avg time per question | Slowest | Cost of the run |",
+            "**Not scored** - the provider could not answer at all (a server error such as HTTP 504, or "
+            "a timeout) even after one retry of the request and one retry of the question. That is an "
+            "outage, not a model failure, so it is not counted against the model: the pass rate is "
+            "given over all questions and over the answered ones, and every other column is over the "
+            "answered questions only. Re-run such questions with `--only` (they replace the saved "
+            "rows). Runs saved before the caveat check existed are re-checked on their saved answers.",
+            "",
+            "| Provider | Model | Passed (of all) | Passed (of answered) | Not scored | Right tool | Numbers right | Refusals right | Wrongly refused | Caveat check | Median time per question | Cost of the run |",
             "|---|---|---|---|---|---|---|---|---|---|---|---|",
         ]
         evaluated = {run["provider"] for run in runs}
         pending = [(p, m, note) for p, (m, note) in PENDING.items() if p not in evaluated]
-        for run in runs:
-            m = summary(run)
+        summaries = [(run, summary(run, questions)) for run in runs]
+        for run, m in summaries:
             lines.append(
-                f"| {run['provider']} | `{run['model']}` | **{m['passed']} / {m['n']}** | {m['tools']} / {m['n']} | "
+                f"| {run['provider']} | `{run['model']}` | **{m['passed']} / {m['n']}** | "
+                f"**{m['passed']} / {m['answered']}** | {m['not_scored']} | {m['tools']} / {m['answered']} | "
                 f"{m['numbers']} / {m['n_numbers']} | {m['refusals']} / {m['n_refusals']} | {m['false_refusals']} | "
-                f"{m['mentions']} / {m['n']} | {m['errors']} | {m['avg_seconds']:.0f} s | {m['max_seconds']:.0f} s | {m['cost']} |"
+                f"{m['caveats']} / {m['n_caveats']} | {m['median_seconds']:.0f} s | {m['cost']} |"
             )
         for provider, model, note in pending:
             lines.append(f"| {provider} | `{model}` | {note} |" + " |" * 9)
         mark = {True: "pass", False: "FAIL"}
-        for run in runs:
-            m = summary(run)
+        for run, m in summaries:
             lines += [
                 "",
                 f"### {run['provider']} `{run['model']}` ({run['date']})",
                 "",
-                f"Tokens: {m['tokens_in']:,} in, {m['tokens_out']:,} out.",
+                f"Tokens: {m['tokens_in']:,} in, {m['tokens_out']:,} out. Slowest answered question: "
+                f"{m['max_seconds']:.0f} s.",
                 "",
-                "| Question | Category | Tools | Numbers | Mentions | Time | Tools called |",
-                "|---|---|---|---|---|---|---|",
+                "| Question | Category | Tools | Numbers | Mentions | Caveats | Time | Tools called |",
+                "|---|---|---|---|---|---|---|---|",
             ]
-            for r in run["rows"]:
+            for r in m["rows"]:
+                if r["not_scored"]:
+                    cells = "not scored | not scored | not scored | not scored"
+                else:
+                    caveat = (
+                        "-" if r["category"] == "refusal" else mark[not r["irrelevant_caveats"]]
+                    )
+                    cells = f"{mark[r['tools']]} | {mark[r['numbers']]} | {mark[r['mentions']]} | {caveat}"
                 lines.append(
-                    f"| `{r['id']}` | {r['category']} | {mark[r['tools']]} | {mark[r['numbers']]} | "
-                    f"{mark[r['mentions']]} | {r['seconds']:.0f} s | {', '.join(r['called']) or '-'} |"
+                    f"| `{r['id']}` | {r['category']} | {cells} | {r['seconds']:.0f} s | "
+                    f"{', '.join(r['called']) or '-'} |"
                 )
-            failed = [r for r in run["rows"] if not r["passed"]]
+            outages = [r for r in m["rows"] if r["not_scored"]]
+            if outages:
+                listed = ", ".join("`" + r["id"] + "` (" + r["error"] + ")" for r in outages)
+                numbers = " ".join(r["id"].split("_")[0] for r in outages)
+                lines += [
+                    "",
+                    f"Not scored (provider outage): {listed}. Re-run them with "
+                    f"`python scripts/eval_ai_analyst.py --provider {run['provider']} --only {numbers}`.",
+                ]
+            failed = [r for r in m["rows"] if not r["passed"] and not r["not_scored"]]
             if failed:
                 lines += ["", "Answers that failed (first 400 characters):", ""]
                 for r in failed:
                     short = (r["error"] or r["answer"]).replace("\n", " ").replace("|", "/")[:400]
                     extra = f" (causal wording: {', '.join(r['causal'])})" if r["causal"] else ""
-                    if r.get("irrelevant_caveats"):
+                    if r["irrelevant_caveats"]:
                         extra += (
                             f" (caveat that does not apply: {', '.join(r['irrelevant_caveats'])})"
                         )
                     lines.append(f"- `{r['id']}`{extra}: {short or '(empty answer)'}")
+                    for call in r.get("calls", []):
+                        args = ", ".join(f"{k}={v!r}" for k, v in call["arguments"].items())
+                        result = f" -> error: {call['error']}" if call["error"] else ""
+                        lines.append(f"  - `{call['name']}({args})`{result}")
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
@@ -372,6 +493,13 @@ def main(argv: list[str] | None = None) -> int:
         "--provider", choices=["ollama", "gemini", "anthropic"], help="override ESG_AI_PROVIDER"
     )
     parser.add_argument("--model", help="override ESG_AI_MODEL")
+    parser.add_argument(
+        "--only",
+        nargs="+",
+        metavar="ID",
+        help="run only these questions (full id or number, e.g. q02 q03) and merge them into the "
+        "saved run of the same provider and model",
+    )
     parser.add_argument(
         "--pause",
         type=float,
@@ -396,12 +524,16 @@ def main(argv: list[str] | None = None) -> int:
                 if args.pause is not None
                 else (GEMINI_PAUSE if provider == "gemini" else 0.0)
             )
+            selected = select(questions, args.only) if args.only else questions
             try:
-                run = run_live(questions, provider, agent.model_name(), pause)
+                run = run_live(selected, provider, agent.model_name(), pause)
             except QuotaExhausted as error:
                 print(f"STOPPED, nothing saved - the provider's quota or key failed: {error}")
                 return 1
-            print(f"saved {save(run).relative_to(ROOT)}")
+            if args.only:
+                run = merge(load_run(provider, run["model"]), run, questions)
+            path = save(run)
+            print(f"saved {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
         else:
             print(f"AI analyst switched off ({agent.disabled_reason()}): live evaluation not run")
     if not args.no_report:

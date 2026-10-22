@@ -219,13 +219,19 @@ def test_used_up_quota_pauses_free_text_and_keeps_guided_questions(monkeypatch):
 
 @needs_public
 def test_an_api_error_gives_a_plain_message_and_the_box_stays(monkeypatch):
+    from dataclasses import replace
+
     from test_ai_providers import api_error
 
-    provider, _ = _gemini_provider([api_error(503, "UNAVAILABLE")])
+    from app.ai_analyst import agent
+
+    monkeypatch.setattr(agent, "LIMITS", replace(agent.LIMITS, retry_backoff_seconds=0))
+    # a 503 is retried once; a second one gives the plain message
+    provider, client = _gemini_provider([api_error(503, "UNAVAILABLE")] * 2)
     settings = {"ESG_AI_ENABLED": "true", "ESG_AI_PROVIDER": "gemini", "GEMINI_API_KEY": "k"}
     app = _ai_page(monkeypatch, settings, provider)
     app.chat_input[0].set_value("How concentrated are emissions?").run()
-    assert not app.exception
+    assert not app.exception and len(client.requests) == 2
     warnings = [w.value for w in app.warning]
     assert any("could not answer just now" in w for w in warnings)
     _no_setup_details(warnings)

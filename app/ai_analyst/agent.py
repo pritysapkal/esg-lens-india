@@ -49,7 +49,12 @@ class Limits:
         180.0  # per request to Ollama: a small model on a laptop CPU is slow
     )
     local_context_tokens: int = 8192  # Ollama context window (its default would cut the prompt)
-    max_retries: int = 1  # the SDK retries only connection errors, 408, 409, 429 and 5xx
+    # one retry of a request that failed with a server error (5xx) or a timeout, made by ask()
+    # after retry_backoff_seconds; never of a 429 (quota) or a refusal. The SDKs' own retries
+    # are off (sdk_retries), so one retry stays one.
+    max_retries: int = 1
+    retry_backoff_seconds: float = 3.0
+    sdk_retries: int = 0
 
     @property
     def max_requests_per_question(self) -> int:
@@ -211,14 +216,14 @@ def make_provider(name: str | None = None, client=None):
             client=client,
             api_key=setting("GEMINI_API_KEY"),
             timeout=LIMITS.timeout_seconds,
-            max_retries=LIMITS.max_retries,
+            max_retries=LIMITS.sdk_retries,
         )
     if name == providers.ANTHROPIC:
         return providers.AnthropicProvider(
             client=client,
             api_key=setting("ANTHROPIC_API_KEY"),
             timeout=LIMITS.timeout_seconds,
-            max_retries=LIMITS.max_retries,
+            max_retries=LIMITS.sdk_retries,
         )
     if name == providers.OLLAMA:
         return providers.OllamaProvider(
@@ -245,6 +250,19 @@ def check_question(question: str, asked_so_far: int = 0) -> str:
             f"Please keep the question under {LIMITS.max_question_chars} characters."
         )
     return question
+
+
+def respond(session, allow_tools: bool, sleep=None):
+    """One model request. A server error (5xx) or a timeout is retried once after a short wait;
+    a quota (429), key or request error is not, and a refusal is an answer, never retried."""
+    for attempt in range(LIMITS.max_retries + 1):
+        try:
+            return session.respond(allow_tools)
+        except Exception as error:
+            if attempt >= LIMITS.max_retries or not providers.is_transient(error):
+                raise
+            (sleep or time.sleep)(LIMITS.retry_backoff_seconds * (attempt + 1))
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 def ask(
@@ -277,7 +295,7 @@ def ask(
 
     for _ in range(LIMITS.max_requests_per_question):
         allow_tools = len(answer.calls) < LIMITS.tool_calls_per_question
-        turn = session.respond(allow_tools)
+        turn = respond(session, allow_tools)
         answer.input_tokens += turn.input_tokens
         answer.output_tokens += turn.output_tokens
         answer.stop_reason = turn.stop_reason
