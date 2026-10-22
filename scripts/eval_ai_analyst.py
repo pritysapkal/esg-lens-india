@@ -19,7 +19,9 @@ Live scoring per question:
   tools     every expected tool was called (refusals: no tool call at all)
   numbers   every expected number appears in the answer, within its tolerance
   mentions  suppressed -> says withheld / fewer than 5; provisional -> says provisional;
-            refusal -> starts with the refusal sentence; expected_text appears; no causal wording
+            refusal -> starts with the refusal sentence; expected_text appears; no causal wording;
+            no caveat that does not apply (the Disclosure Quality Score caveat in an answer about
+            another figure, "provisional" for final years)
 A question passes when all three pass. Offline mode runs each expected tool call and checks that
 the expected numbers and statuses are what the tools return today.
 """
@@ -49,6 +51,10 @@ NUMBER = re.compile(r"[-+−]?\d[\d,]*(?:\.\d+)?")
 WITHHELD = re.compile(
     r"withheld|fewer than 5|fewer than five|n<5|n < 5|not published|suppressed", re.I
 )
+DQS_QUESTION = re.compile(r"disclosure quality|\bDQS\b|\bscore\b", re.I)
+DQS_CAVEAT = re.compile(r"disclosure quality score|\bDQS\b|not an ESG rating", re.I)
+YEAR = re.compile(r"FY\d{4}-\d{2}")
+PROVISIONAL_YEAR = "FY2025-26"  # the latest year, not yet confirmed by a later report
 CAUSAL = re.compile(
     r"\b(causes|caused|causing|leads? to|led to|because of|drives|driven by|results? in)\b", re.I
 )
@@ -118,6 +124,20 @@ def check_offline(question: dict) -> list[str]:
     return problems
 
 
+def irrelevant_caveats(question: dict, text: str) -> list[str]:
+    """Caveats the answer adds that do not apply to the question: the Disclosure Quality Score
+    caveat in an answer that is not about the score, or "provisional" in an answer about named
+    years that are all final."""
+    asked = question.get("question", "")
+    found_caveats = []
+    if not DQS_QUESTION.search(asked) and DQS_CAVEAT.search(text):
+        found_caveats.append("Disclosure Quality Score caveat")
+    years = set(YEAR.findall(asked))
+    if years and PROVISIONAL_YEAR not in years and "provisional" in text.lower():
+        found_caveats.append("provisional note")
+    return found_caveats
+
+
 def score(
     question: dict, answer: agent.Answer | None, error: str | None = None, seconds: float = 0.0
 ) -> dict:
@@ -144,7 +164,8 @@ def score(
     numbers = numbers_in(text)
     numbers_ok = all(found(e, numbers) for e in question["expected_numbers"])
     causal = CAUSAL.findall(text)
-    mentions_ok = mentions_ok and not causal
+    irrelevant = [] if refusal else irrelevant_caveats(question, text)
+    mentions_ok = mentions_ok and not causal and not irrelevant
     if error:
         tools_ok = numbers_ok = mentions_ok = refusal_ok = False
     return {
@@ -159,6 +180,7 @@ def score(
         "called": sorted(called),
         "n_calls": len(answer.calls),
         "causal": causal,
+        "irrelevant_caveats": irrelevant,
         "input_tokens": answer.input_tokens,
         "output_tokens": answer.output_tokens,
         "seconds": round(seconds, 1),
@@ -288,8 +310,9 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
             "the answer within its tolerance (questions that have numbers); **refusal right** - the three "
             "out-of-scope questions are refused, and no answerable question is refused; **mentions** - a "
             "withheld figure is called withheld, the provisional year is called provisional, expected "
-            "words appear, and there is no causal wording. A question passes when tools, numbers and "
-            "mentions all pass.",
+            "words appear, there is no causal wording, and no caveat that does not apply (the Disclosure "
+            'Quality Score caveat in an answer about another figure, "provisional" for a final year). '
+            "A question passes when tools, numbers and mentions all pass.",
             "",
             "| Provider | Model | Passed | Tool selection | Numbers right | Refusals right | Wrongly refused | Mentions | Errors | Avg time per question | Slowest | Cost of the run |",
             "|---|---|---|---|---|---|---|---|---|---|---|---|",
@@ -328,6 +351,10 @@ def write_report(runs: list[dict], offline: dict[str, list[str]]) -> None:
                 for r in failed:
                     short = (r["error"] or r["answer"]).replace("\n", " ").replace("|", "/")[:400]
                     extra = f" (causal wording: {', '.join(r['causal'])})" if r["causal"] else ""
+                    if r.get("irrelevant_caveats"):
+                        extra += (
+                            f" (caveat that does not apply: {', '.join(r['irrelevant_caveats'])})"
+                        )
                     lines.append(f"- `{r['id']}`{extra}: {short or '(empty answer)'}")
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 

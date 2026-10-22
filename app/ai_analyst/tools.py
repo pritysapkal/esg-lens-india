@@ -278,7 +278,9 @@ def top_movers_confirmed(direction: str, ranking_group: str | None = None, limit
     limit = _integer("limit", limit, 1, 10)
     frame = data.table("rpt_public_ghg_yoy")
     if ranking_group is not None:
-        _one_of("ranking_group", ranking_group, sorted(frame["ranking_group"].unique()))
+        # every ranking group the schema offers is accepted; one without GHG year-on-year pairs
+        # (e.g. Financials) simply has no movers
+        _one_of("ranking_group", ranking_group, allowed()["ranking_groups"])
         frame = frame[frame["ranking_group"] == ranking_group]
     ranked = frame[frame["is_ranked"].astype(bool)].sort_values(
         "change_pct", ascending=direction == "improvement"

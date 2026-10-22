@@ -7,11 +7,11 @@ from __future__ import annotations
 
 import logging
 
-import pandas as pd
 import streamlit as st
 
 from app import guided, labels, ui
 from app.ai_analyst import agent
+from app.answer_view import show_calls, show_notes, show_table
 
 ui.require_data()
 st.title("Ask the data")
@@ -19,24 +19,6 @@ st.markdown(
     "Pick a question and its details below. Every answer comes from a fixed, tested query on the "
     "public tables, and the query is shown under the answer so you can check it."
 )
-
-
-# ------------------------------------------------------------------ shared display
-
-
-def show_notes(notes: list[str]) -> None:
-    for note in notes:
-        if "provisional" in note.lower():
-            st.warning(note, icon=":material/schedule:")
-        elif "withheld" in note.lower() or "n<5" in note:
-            st.info(note, icon=":material/visibility_off:")
-        else:
-            st.caption(note)
-
-
-def show_table(frame: pd.DataFrame) -> None:
-    if frame is not None and not frame.empty:
-        st.dataframe(labels.friendly(frame), hide_index=True, width="stretch")
 
 
 # ------------------------------------------------------------------ guided questions
@@ -151,39 +133,6 @@ st.caption(
     f"{limits.questions_per_session} this session; at most {limits.tool_calls_per_question} queries per question. "
     "Answers describe associations, not causes, and are not investment advice."
 )
-
-
-def show_calls(calls) -> None:
-    if not calls:
-        return
-    with st.expander(f"Numbers used ({len(calls)} quer{'ies' if len(calls) != 1 else 'y'})"):
-        for call in calls:
-            st.markdown(
-                f"`{call.name}({', '.join(f'{k}={v!r}' for k, v in call.arguments.items())})`"
-            )
-            if call.error:
-                st.error(call.error)
-                continue
-            rows = next(
-                (
-                    call.result[k]
-                    for k in ("rows", "movers", "largest_emitters")
-                    if k in call.result
-                ),
-                None,
-            )
-            if rows:
-                show_table(pd.DataFrame(rows))
-            if "card" in call.result:
-                show_table(
-                    pd.DataFrame([call.result["card"]]).drop(
-                        columns=["reasons_points_were_lost"], errors="ignore"
-                    )
-                )
-            if "summary" in call.result:
-                show_table(pd.DataFrame([call.result["summary"]]))
-            for note in call.result.get("notes", []):
-                st.caption(note)
 
 
 def show_answer(reply) -> None:

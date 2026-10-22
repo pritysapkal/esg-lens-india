@@ -442,6 +442,39 @@ def test_scoring_rules():
     assert not eval_ai_analyst.score(number_q, agent.Answer(text="It fell by 4.3%."))["numbers"]
 
 
+def test_a_ghg_answer_carries_no_disclosure_quality_caveat():
+    """Caveats only where they apply: a GHG question gets no Disclosure Quality Score caveat and,
+    for a final year, no provisional note; a DQS or FY2025-26 question still may carry them."""
+    import eval_ai_analyst
+
+    (ghg,) = [q for q in eval_ai_analyst.load() if q["id"] == "q07_asian_paints_rank"]
+    calls = [agent.ToolCall("company_percentiles", {})]
+    plain = "Asian Paints is at percentile 57.1, rank 4 of 7 in its ranking group (company_percentiles)."
+    assert eval_ai_analyst.score(ghg, agent.Answer(text=plain, calls=calls))["passed"]
+    for extra in (" Note: the Disclosure Quality Score is not an ESG rating.",
+                  " The DQS measures disclosure, not performance.",
+                  " These figures are provisional."):  # fmt: skip
+        result = eval_ai_analyst.score(ghg, agent.Answer(text=plain + extra, calls=calls))
+        assert not result["mentions"] and not result["passed"], extra
+        assert result["irrelevant_caveats"], extra
+
+    (dqs,) = [q for q in eval_ai_analyst.load() if q["id"] == "q06_hdfc_score"]
+    assert not eval_ai_analyst.irrelevant_caveats(dqs, "The DQS is not an ESG rating.")
+    (latest,) = [q for q in eval_ai_analyst.load() if q["id"] == "q12_it_renewable_latest"]
+    assert not eval_ai_analyst.irrelevant_caveats(latest, "FY2025-26 is provisional.")
+
+    # the prompt ties each caveat to the answers it applies to
+    prompt = agent.SYSTEM_PROMPT
+    assert "only the ones that apply to this answer" in prompt
+    assert "do not mention the Disclosure Quality Score at all" in prompt
+    assert "Provisional: only when your answer uses FY2025-26" in prompt
+    assert "Withheld: only when a figure you were asked for came back withheld" in prompt
+    # and the tool behind a GHG ranking question sends no DQS note to the model
+    if data.available():
+        result = tools.call("company_percentiles", ghg["expected_calls"][0]["args"])
+        assert not eval_ai_analyst.DQS_CAVEAT.search(json.dumps(result))
+
+
 def test_eval_supports_gemini_paces_it_and_stops_without_saving_on_a_used_up_quota(monkeypatch):
     """No live call: agent.ask is replaced. A quota error is retried once after a wait; a second
     one stops the run (QuotaExhausted, nothing saved); other errors are failed questions."""

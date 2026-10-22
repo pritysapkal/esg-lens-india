@@ -5,6 +5,7 @@ gates each statistic)."""
 from __future__ import annotations
 
 import math
+import os
 
 import pandas as pd
 
@@ -148,7 +149,7 @@ FRIENDLY_COLUMNS = {
     "value": "Value",
     "status": "Shown as",
     "companies_behind_it": "Companies behind it",
-    "kpi": "KPI",
+    "kpi": "KPI code",
     "kpi_label": "KPI",
     "ranking_group": "Ranking group",
     "sector_group": "Sector group",
@@ -179,8 +180,13 @@ FRIENDLY_COLUMNS = {
 }
 
 
-def friendly(frame: pd.DataFrame) -> pd.DataFrame:
-    """The same table with reader-facing column names (unknown names: underscores to spaces)."""
+def friendly(frame: pd.DataFrame, strict: bool | None = None) -> pd.DataFrame:
+    """The same table with reader-facing column names (unknown names: underscores to spaces).
+
+    Several raw names share a label (e.g. group / group_value), so two of them in one table would
+    give duplicate headers, which st.dataframe refuses. Under pytest (or strict=True) that raises;
+    on the site the clashing headers are told apart by their raw name instead of breaking the page.
+    """
 
     def name(column) -> str:
         column = str(column)
@@ -191,4 +197,20 @@ def friendly(frame: pd.DataFrame) -> pd.DataFrame:
         text = column.replace("_", " ")
         return text[:1].upper() + text[1:]
 
-    return frame.rename(columns=name)
+    names = [name(column) for column in frame.columns]
+    clashes = {n for n in names if names.count(n) > 1}
+    if clashes:
+        if strict is None:
+            strict = "PYTEST_CURRENT_TEST" in os.environ
+        if strict:
+            raise ValueError(
+                f"columns {[str(c) for c, n in zip(frame.columns, names, strict=True) if n in clashes]} "
+                f"map to the same label(s) {sorted(clashes)}"
+            )
+        names = [
+            f"{n} ({str(c).replace('_', ' ')})" if n in clashes else n
+            for c, n in zip(frame.columns, names, strict=True)
+        ]
+    renamed = frame.copy(deep=False)
+    renamed.columns = names
+    return renamed
