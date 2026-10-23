@@ -197,6 +197,53 @@ def test_power_bi_project_is_complete(project):
             assert "\tmeasure " not in text, f"{table}: measures belong in _Measures"
 
 
+SCHEMA_DIR = Path(__file__).parent / "fixtures" / "pbir_schemas"
+SCHEMA_PREFIX = "https://developer.microsoft.com/json-schemas/"
+
+
+def _schema_registry():
+    from referencing import Registry, Resource
+    from referencing.jsonschema import DRAFT7
+
+    resources = []
+    for path in SCHEMA_DIR.rglob("*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        uri = SCHEMA_PREFIX + path.relative_to(SCHEMA_DIR).as_posix()
+        resources.append((uri, Resource.from_contents(doc, default_specification=DRAFT7)))
+    return Registry().with_resources(resources)
+
+
+@pytest.mark.parametrize("project", ["esg_lens_local", "esg_lens_public"])
+def test_power_bi_report_matches_the_official_pbir_schemas(project):
+    """Every report file validates against the schema its own $schema field names."""
+    import jsonschema
+
+    report = POWERBI / project / f"{project}.Report"
+    assert not (report / "report.json").exists(), "legacy report.json next to a PBIR definition"
+    registry = _schema_registry()
+    files = [report / "definition.pbir", *sorted((report / "definition").rglob("*.json"))]
+    assert {f.name for f in files} >= {
+        "definition.pbir",
+        "version.json",
+        "report.json",
+        "pages.json",
+        "page.json",
+    }
+    for file in files:
+        doc = json.loads(file.read_text(encoding="utf-8"))
+        uri = doc["$schema"]
+        assert uri.startswith(SCHEMA_PREFIX), f"{file.name}: unexpected $schema {uri}"
+        schema = registry.get_or_retrieve(uri).value.contents
+        jsonschema.Draft7Validator(schema, registry=registry).validate(doc)
+    pages = json.loads((report / "definition/pages/pages.json").read_text(encoding="utf-8"))
+    (page_name,) = pages["pageOrder"]
+    assert pages["activePageName"] == page_name
+    page = json.loads(
+        (report / f"definition/pages/{page_name}/page.json").read_text(encoding="utf-8")
+    )
+    assert page["name"] == page_name and page["displayName"] == "Overview"
+
+
 def test_no_local_path_is_committed_in_the_power_bi_projects():
     drive = re.compile(r"\b[A-Za-z]:\\")
     for path in POWERBI.rglob("*"):

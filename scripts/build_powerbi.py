@@ -1020,6 +1020,10 @@ def _relationships_tmdl(model: Model) -> str:
     return "\n".join(out)
 
 
+SCHEMA_ROOT = "https://developer.microsoft.com/json-schemas/fabric/item/report"
+PAGE_ID = "overview"  # PBIR page folder / name: letters, digits, _ and - only
+
+
 def project_files(model: Model) -> dict[str, str]:
     """Relative path -> file content of one Power BI project."""
     name = f"esg_lens_{model.audience}"
@@ -1035,26 +1039,53 @@ def project_files(model: Model) -> dict[str, str]:
             indent=2,
         ),
         f"{report_dir}/definition.pbir": json.dumps(
-            {"version": "4.0", "datasetReference": {"byPath": {"path": f"../{model_dir}"}}},
+            {
+                "$schema": f"{SCHEMA_ROOT}/definitionProperties/2.0.0/schema.json",
+                "version": "4.0",
+                "datasetReference": {"byPath": {"path": f"../{model_dir}"}},
+            },
             indent=2,
         ),
-        f"{report_dir}/report.json": json.dumps(
+        f"{report_dir}/definition/version.json": json.dumps(
             {
-                "config": json.dumps({"version": "5.59", "activeSectionIndex": 0}),
-                "layoutOptimization": 0,
-                "resourcePackages": [],
-                "sections": [
-                    {
-                        "config": "{}",
-                        "displayName": "Start here",
-                        "displayOption": 1,
-                        "filters": "[]",
-                        "height": 720.0,
-                        "name": "ReportSectionStart",
-                        "visualContainers": [],
-                        "width": 1280.0,
+                "$schema": f"{SCHEMA_ROOT}/definition/versionMetadata/1.0.0/schema.json",
+                "version": "2.0.0",
+            },
+            indent=2,
+        ),
+        f"{report_dir}/definition/report.json": json.dumps(
+            {
+                "$schema": f"{SCHEMA_ROOT}/definition/report/3.2.0/schema.json",
+                "themeCollection": {
+                    "baseTheme": {
+                        "name": "CY24SU10",
+                        "reportVersionAtImport": {
+                            "visual": "1.8.50",
+                            "report": "2.0.50",
+                            "page": "1.3.50",
+                        },
+                        "type": "SharedResources",
                     }
-                ],
+                },
+            },
+            indent=2,
+        ),
+        f"{report_dir}/definition/pages/pages.json": json.dumps(
+            {
+                "$schema": f"{SCHEMA_ROOT}/definition/pagesMetadata/1.0.0/schema.json",
+                "pageOrder": [PAGE_ID],
+                "activePageName": PAGE_ID,
+            },
+            indent=2,
+        ),
+        f"{report_dir}/definition/pages/{PAGE_ID}/page.json": json.dumps(
+            {
+                "$schema": f"{SCHEMA_ROOT}/definition/page/2.1.0/schema.json",
+                "name": PAGE_ID,
+                "displayName": "Overview",
+                "displayOption": "FitToPage",
+                "height": 720,
+                "width": 1280,
             },
             indent=2,
         ),
