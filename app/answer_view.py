@@ -9,6 +9,52 @@ import streamlit as st
 
 from app import labels
 
+# Per guided question: (how to read it, how it is calculated). Presentation text only.
+GUIDED_HELP: dict[str, tuple[str, str]] = {
+    "group": (
+        "Whole group and typical company can differ a lot: a few large companies move the first.",
+        "Whole group = ratio of sums (all the group's emissions, energy, water or waste divided by "
+        "all its turnover). Typical company = the median of the companies' own ratios. A figure is "
+        "shown only when 5 or more companies stand behind it.",
+    ),
+    "card": (
+        "The score says how completely and consistently a company discloses, not how good its "
+        "performance is. It is not an ESG rating.",
+        "Disclosure Quality Score (0-100) from completeness, consistency over time and assurance. "
+        "Rank and percentile are within the ranking group and year, with 5 or more gradable companies.",
+    ),
+    "peers": (
+        "A position is where the company stands in its group; it is associated with the group's "
+        "make-up and size, not with effort alone.",
+        "Percentile in the ranking group and year (100 = best). Only KPIs that are material for "
+        "the group, in groups of 5 or more companies, with a trusted value, are ranked.",
+    ),
+    "concentration": (
+        "A handful of companies account for most of the emissions covered, so a group trend is "
+        "largely the trend of those few.",
+        "Each company's share of the Scope 1+2 emissions of all companies covered in the year; "
+        "the running total is the cumulative share. Shares only, never tonnes.",
+    ),
+    "movers": (
+        "Only changes a later report confirms are ranked; large moves are often data issues.",
+        "Year-on-year change in GHG intensity, confirmed-only: both years must be repeated in the "
+        "next report. Provisional, unit-inferred, restated and one-year-reversal moves are excluded.",
+    ),
+    "restatements": (
+        "Restated figures are common; the data show no tilt in the companies' favour.",
+        "Figures first filed for a year, compared with the same figures in the next report "
+        "('Material' = the change is large enough to matter, as defined in the restatement method). "
+        "The latest year is not yet observable.",
+    ),
+}
+
+
+def show_guided_help(key: str) -> None:
+    reading, how = GUIDED_HELP[key]
+    st.markdown(f"**Takeaway:** {reading}")
+    with st.expander("How this is calculated"):
+        st.markdown(how)
+
 
 def show_notes(notes: list[str]) -> None:
     for note in notes:

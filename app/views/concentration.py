@@ -5,30 +5,38 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from app import data, labels, ui
+from app import data, layout, ui
+from app import format as fmt
 
 ui.require_data()
 frame = ui.table("rpt_public_concentration")
 
-st.title("Concentration of emissions")
-st.markdown(
-    "Each company's share of the **Scope 1+2 emissions of all companies covered** in a year, from "
+layout.page_header(
+    "Concentration of emissions",
+    "**How few companies carry most of the emissions?** Each company's share of the **Scope 1+2 emissions of all companies covered** in a year, from "
     "the largest emitter down, and the running total (a Pareto chart). Shares only: the tonnes "
-    "behind them are filed values and are not published."
+    "behind them are filed values and are not published.",
 )
-years = data.years()
-year = st.segmented_control("Financial year", years, default=years[-1]) or years[-1]
+year = layout.year_filter(data.years())
 ui.provisional_banner(year)
 
 rows = frame[frame["fiscal_year_label"] == year].sort_values("emitter_rank")
+if rows.empty:
+    layout.not_shown("Not shown: no emissions shares are published for this year.")
+    ui.footer()
+    st.stop()
 by_rank = rows.set_index("emitter_rank")["cumulative_share_pct"]
-cards = st.columns(4)
-cards[0].metric("Largest emitter", labels.fmt(by_rank.get(1), 1, "%"))
-cards[1].metric("Top 5", labels.fmt(by_rank.get(5), 1, "%"))
-cards[2].metric("Top 10", labels.fmt(by_rank.get(10), 1, "%"))
-cards[3].metric(
-    "Companies for 80%", f"{int((rows['cumulative_share_pct'] < 80).sum()) + 1} of {len(rows)}"
-)
+layout.kpi_row(
+    [
+        ("Largest emitter (% of total)", fmt.pct(by_rank.get(1)), "Share of the year's Scope 1+2 emissions."),
+        ("Top 5 (% of total)", fmt.pct(by_rank.get(5)), "Combined share of the five largest emitters."),
+        ("Top 10 (% of total)", fmt.pct(by_rank.get(10)), "Combined share of the ten largest emitters."),
+        ("Companies for 80% of emissions",
+         f"{int((rows['cumulative_share_pct'] < 80).sum()) + 1} of {len(rows)}",
+         "Fewest companies whose shares add up to 80%."),
+    ],
+    per_row=4,
+)  # fmt: skip
 
 shown = rows.head(15)
 figure = go.Figure()
@@ -48,7 +56,7 @@ figure.add_trace(
     )
 )  # fmt: skip
 figure.add_hline(y=80, line={"color": ui.NEUTRAL, "dash": "dot", "width": 1}, annotation_text="80%")
-figure.update_layout(height=460, margin={"l": 0, "r": 10, "t": 10, "b": 10}, yaxis={"title": "% of the year's Scope 1+2 emissions", "range": [0, 105]},
+figure.update_layout(height=460, margin={"l": 0, "r": 10, "t": 10, "b": 10}, xaxis={"title": "Company (largest emitter first)"}, yaxis={"title": "% of the year's Scope 1+2 emissions", "range": [0, 105]},
                      legend={"orientation": "h", "y": -0.35}, bargap=0.25)  # fmt: skip
 st.plotly_chart(ui.readable(figure), width="stretch")
 st.caption(

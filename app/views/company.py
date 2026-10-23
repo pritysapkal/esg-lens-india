@@ -6,7 +6,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from app import data, labels, ui
+from app import data, labels, layout, ui
+from app import format as fmt
 
 ui.require_data()
 companies = data.companies()
@@ -14,14 +15,17 @@ dqs = ui.table("rpt_public_disclosure_quality")
 company_year = ui.table("rpt_public_company_year")
 percentiles = ui.table("rpt_public_company_percentile")
 
-st.title("Company report card")
-left, right = st.columns([2, 1])
-name = left.selectbox("Company", companies["display_name"].tolist())
+layout.page_header(
+    "Company report card",
+    "**How well does this company disclose, and where does it sit among its peers?** One company "
+    "in one year.",
+)
+name = st.sidebar.selectbox("Company", companies["display_name"].tolist())
 company = companies[companies["display_name"] == name].iloc[0]
 company_years = sorted(
     company_year.loc[company_year["isin"] == company["isin"], "fiscal_year_label"].unique()
 )
-year = right.selectbox("Financial year", company_years, index=len(company_years) - 1)
+year = layout.year_filter(company_years)
 
 st.caption(
     f"{company['symbol']} - {company['sector_group']}, peer group {company['peer_group']}; ranked "
@@ -37,30 +41,25 @@ kpis = company_year[
 # ------------------------------------------------------------------ disclosure quality
 st.subheader("Disclosure Quality Score")
 if score.empty:
-    st.info("No score for this year.")
+    st.info("Not shown: no score for this company in this year.", icon=":material/visibility_off:")
 else:
     s = score.iloc[0]
     status = "Provisional" if bool(s["is_provisional"]) else "Final"
-    cols = st.columns(4)
-    cols[0].metric(
-        "Score (0-100)",
-        labels.fmt(s["dqs_total"], 1),
-        help=f"{status}. Compare within one year only.",
-    )
-    cols[1].metric("Grade", s["dqs_grade"] or "-")
     rank = (
         "-"
         if labels.is_missing(s["dqs_rank_in_group"])
         else f"{int(s['dqs_rank_in_group'])} of {int(s['dqs_group_n'])}"
     )
-    cols[2].metric(
-        "Rank in group",
-        rank,
-        help="1 = best in the ranking group and year; only with 5 or more gradable companies.",
-    )
-    cols[3].metric(
-        "Percentile in group", labels.fmt(s["dqs_percentile_in_group"], 0), help="100 = best."
-    )
+    layout.kpi_row(
+        [
+            ("Score (0-100)", fmt.score(s["dqs_total"]), f"{status}. Compare within one year only."),
+            ("Grade", s["dqs_grade"] or "-", "Letter grade of the Disclosure Quality Score."),
+            ("Rank in group", rank,
+             "1 = best in the ranking group and year; only with 5 or more gradable companies."),
+            ("Percentile in group (100 = best)", labels.fmt(s["dqs_percentile_in_group"], 0), "100 = best."),
+        ],
+        per_row=4,
+    )  # fmt: skip
 
     parts = pd.DataFrame(
         {
@@ -71,7 +70,7 @@ else:
         }
     )  # fmt: skip
     parts["Score (0-1)"] = parts["Score (0-1)"].map(
-        lambda v: "not scored this year" if labels.is_missing(v) else f"{v:.2f}"
+        lambda v: "not scored this year" if labels.is_missing(v) else labels.fmt(v, 2)
     )
     a, b = st.columns(2)
     a.dataframe(parts, hide_index=True, width="stretch")
@@ -113,7 +112,7 @@ for column, metric, label in (
     rows.append(
         {
             "KPI": label,
-            "Company": labels.fmt(value, 2),
+            "Company": fmt.intensity2(value),
             "Typical company of the group": labels.fmt(median, 2),
             "Ranking": status,
         }
@@ -129,6 +128,10 @@ positions["Ranking"] = [
     for r, why in zip(positions["is_ranked"], positions["reason_not_ranked"], strict=True)
 ]
 ranked = positions[positions["is_ranked"].astype(bool)]
+if ranked.empty:
+    layout.not_shown(
+        "Not shown: no KPI of this company has a peer position in this year (group too small or values withheld)."
+    )
 not_ranked = positions[~positions["is_ranked"].astype(bool)]
 
 st.markdown(
@@ -149,7 +152,7 @@ for pillar in labels.PILLARS:
         go.Bar(
             x=rows["percentile_in_group"], y=rows["kpi_label"], orientation="h", showlegend=False,
             marker={"color": colours, "cornerradius": 4},
-            text=[f"{v:.0f}" for v in rows["percentile_in_group"]], textposition="outside", cliponaxis=False,
+            text=[labels.fmt(v, 0) for v in rows["percentile_in_group"]], textposition="outside", cliponaxis=False,
             textfont={"size": ui.CHART_FONT_SIZE},
             customdata=rows[["rank_in_group", "n_in_group"]],
             hovertemplate="%{y}<br>percentile %{x:.1f}, rank %{customdata[0]} of %{customdata[1]}<extra></extra>",
@@ -165,7 +168,7 @@ for pillar in labels.PILLARS:
     figure.add_vline(x=50, line={"color": ui.NEUTRAL, "dash": "dot", "width": 1})
     figure.update_layout(
         height=60 + 36 * len(rows), margin={"l": 270, "r": 40, "t": 6, "b": 36}, font={"size": ui.CHART_FONT_SIZE},
-        xaxis={"range": [-3, 108], "tickvals": [0, 25, 50, 75, 100], "title": "percentile (100 = best)"},
+        xaxis={"range": [-3, 108], "tickvals": [0, 25, 50, 75, 100], "title": "Percentile in group (100 = best)"},
         yaxis={"title": None, "autorange": "reversed", "automargin": False}, bargap=0.35,
     )  # fmt: skip
     st.plotly_chart(ui.readable(figure), width="stretch")

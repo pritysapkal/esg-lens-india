@@ -5,23 +5,26 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from app import labels, ui
+from app import data, labels, layout, ui
+from app import format as fmt
 
 ui.require_data()
 groups = ui.table("rpt_public_group_metrics")
 
-st.title("Sectors and groups")
-st.markdown(
+layout.page_header(
+    "Sectors and groups",
+    "**How do groups of companies compare on a figure, year by year?** "
     "**Whole group** = all of the group's emissions (or energy, water, waste) divided by all its "
     "turnover: large companies weigh more. **Typical company** = the median company. A figure is "
-    "shown only when **5 or more companies** stand behind it; otherwise it reads *n<5 (withheld)*."
+    "shown only when **5 or more companies** stand behind it; otherwise it reads *n<5 (withheld)*.",
 )
 metric_names = [m for m in labels.GROUP_METRICS if labels.GROUP_METRICS[m][2] is not None]
-left, right = st.columns(2)
-group_type = left.selectbox(
+group_type = st.sidebar.selectbox(
     "Group by", [g for g in labels.GROUP_TYPES if g != "all"], format_func=labels.GROUP_TYPES.get
 )
-metric = right.selectbox("Figure", metric_names, format_func=lambda m: labels.GROUP_METRICS[m][0])
+metric = st.sidebar.selectbox(
+    "Figure", metric_names, format_func=lambda m: labels.GROUP_METRICS[m][0]
+)
 label, unit, gate, _restatement = labels.GROUP_METRICS[metric]
 
 rows = groups[groups["group_type"].isin([group_type, "all"])].copy()
@@ -32,6 +35,23 @@ wide = wide.reindex(order)
 wide.index.name = "Group"
 wide.columns.name = None
 digits = 1 if unit in ("%", "points (0-100)") else 2
+latest = data.latest_year()
+latest_cells = rows[rows["fiscal_year_label"] == latest]
+n_groups = latest_cells["group_value"].nunique() - 1
+n_shown = int(
+    latest_cells[latest_cells["group_value"] != "All companies"]["shown"]
+    .map(lambda v: not isinstance(v, str))
+    .sum()
+)
+total = latest_cells[latest_cells["group_value"] == "All companies"]["shown"]
+layout.kpi_row(
+    [
+        (f"Groups in view ({latest})", fmt.count(n_groups), f"Groups of the chosen type, in {latest}."),
+        ("Groups with a published figure", f"{n_shown} of {n_groups}",
+         "A figure is published only when 5 or more companies stand behind it."),
+        (f"All companies, {latest}", labels.fmt(total.iloc[0], digits) if len(total) else "-", f"{label} ({unit})"),
+    ]
+)  # fmt: skip
 st.markdown(f"**{label}** ({unit})")
 st.dataframe(wide.map(lambda v: labels.fmt(v, digits)), width="stretch")
 st.caption(
@@ -52,7 +72,7 @@ if not numeric.empty:
             )
         )  # fmt: skip
     figure.update_layout(height=420, margin={"l": 0, "r": 10, "t": 10, "b": 10}, hovermode="x unified",
-                         yaxis={"title": unit}, legend={"orientation": "h", "y": -0.15})  # fmt: skip
+                         xaxis={"title": "Financial year"}, yaxis={"title": unit}, legend={"orientation": "h", "y": -0.15})  # fmt: skip
     if metric.startswith(("ghg_", "energy_", "water_", "waste_")):
         figure.update_yaxes(
             type="log", title=f"{unit} (log scale)", **ui.log_ticks(numeric["shown"].astype(float))
@@ -60,13 +80,17 @@ if not numeric.empty:
     st.plotly_chart(ui.readable(figure), width="stretch")
     withheld = rows[rows["shown"].map(lambda v: isinstance(v, str) and v.startswith("n<5"))]
     if not withheld.empty:
-        st.caption(
-            "Not drawn (fewer than 5 companies): "
+        layout.not_shown(
+            "Not shown (fewer than 5 companies in the group): "
             + ", ".join(
                 f"{g} {y}"
                 for g, y in zip(withheld["group_value"], withheld["fiscal_year_label"], strict=True)
             )
         )
+else:
+    layout.not_shown(
+        "Not shown: no group has a published figure for this selection (fewer than 5 companies, or not yet observable)."
+    )
 
 with st.expander("Companies behind each figure"):
     counts = groups[groups["group_type"].isin([group_type, "all"])].pivot(

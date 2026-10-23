@@ -9,15 +9,16 @@ import logging
 
 import streamlit as st
 
-from app import guided, labels, ui
+from app import guided, labels, layout, ui
 from app.ai_analyst import agent
-from app.answer_view import show_calls, show_notes, show_table
+from app.answer_view import show_calls, show_guided_help, show_notes, show_table
 
 ui.require_data()
-st.title("Ask the data")
-st.markdown(
-    "Pick a question and its details below. Every answer comes from a fixed, tested query on the "
-    "public tables, and the query is shown under the answer so you can check it."
+layout.page_header(
+    "Ask the data",
+    "**Can I get a checked answer to a specific question?** Pick a question and its details below. "
+    "Every answer comes from a fixed, tested query on the public tables, and the query is shown "
+    "under the answer so you can check it.",
 )
 
 
@@ -79,6 +80,7 @@ with st.container(border=True):
     st.markdown(answer.sentence)
     show_table(answer.table)
     show_notes(answer.notes)
+    show_guided_help(kind)
     st.caption(f"Query used: `{answer.call_text}` on the public table {answer.source}.")
 
 # ------------------------------------------------------------------ the AI analyst (when switched on)
@@ -97,6 +99,12 @@ GOOGLE_NOTICE = (
 )
 
 st.subheader("Ask in your own words")
+st.markdown(":orange-badge[:material/science: Experimental]")
+st.caption(
+    "It can look up figures in the public tables through fixed, validated queries and describe "
+    "associations. It cannot browse the web, see filed values, give investment advice or claim "
+    "that one thing causes another; guided questions above remain the reference."
+)
 if not agent.switched_on():
     # the default, and the public site unless Gemini is switched on there
     st.info(
