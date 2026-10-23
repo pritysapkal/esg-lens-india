@@ -28,7 +28,7 @@ opens the file itself.
 | Sectors | Any published group figure by sector group, peer group, ranking group, size band or ownership, year by year; withheld cells read **n<5 (withheld)**, restatements of the latest year **not yet observable**; chart of the shown values (intensities on a log axis labelled 1 / 10 / 100 / 1,000) and the company counts behind them | group metrics |
 | Concentration | Pareto chart of company shares of the year's Scope 1+2 emissions (shares only, no tonnes), top 1 / 5 / 10 and companies needed for 80% | concentration |
 | Ask the data | **Guided questions** (default, no language model): six question types built from dropdowns, each one call of a validated tool, answered with a sentence, a table and the query used. Below it, the AI analyst for questions in your own words - where it is switched on: locally with any provider, on the public site only with Gemini's free tier; otherwise visitors see a short note instead ([ai_analyst.md](ai_analyst.md)) | all seven, through the same fixed tools |
-| Methodology | Sources, the publication rule, how to read the figures, limits, where the details are | - |
+| About & Methodology | Sources, compliance approach, publication policy, DQS in two lines, tech stack, the publication rule, how to read the figures, limits, where the details are | - |
 
 Labels that appear wherever they apply:
 
@@ -42,6 +42,14 @@ Labels that appear wherever they apply:
 Charts use one colour per sector group (blue Asset-heavy, orange Asset-light, green Financials),
 validated for colour-blind separation; each chart has a table next to or under it, so colour is
 never the only way to read it. Tables are cached with `st.cache_data`.
+
+## Look and feel (Week 14 polish)
+
+Presentation only; no figure or rule changed. Theme in `.streamlit/config.toml` (muted teal).
+`app/layout.py` holds the shared page header, footer, sidebar pieces (financial-year filter,
+"About this project"), KPI cards and the "Not shown" message; `app/format.py` the number
+formats. Page filters live in the sidebar. `tests/test_app_smoke.py` checks every page loads with
+the AI analyst off and that headline numbers match the public tables.
 
 ## Deployment (Streamlit Community Cloud)
 

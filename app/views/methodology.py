@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app import ui
+from app import layout, ui
 
-st.title("Methodology")
+layout.page_header(
+    "About & Methodology",
+    "**Where do the numbers come from, what is published, and what are the limits?**",
+)
 st.markdown(
     """
 ### Where the data comes from
@@ -14,6 +17,16 @@ Listed Indian companies publish a Business Responsibility and Sustainability Rep
 machine-readable XBRL file. ESG Lens India covers the **NIFTY 50 companies plus Wipro** for
 **FY2022-23 to FY2025-26** (196 reports). The files were saved **by hand**: the exchange's terms
 forbid automated collection, so nothing here was downloaded by a program.
+
+### How the data was collected (compliance)
+Collection was **manual, under the exchange's Terms of Use**: a person saved each file from the
+public website. There is **no scraping** and no automated download. Filed values are **not
+redistributed**: this site and its public exports contain only values calculated by ESG Lens India.
+
+### Publication policy
+Only derived values leave the project: intensities, shares, percentiles, medians, ranks, the
+Disclosure Quality Score and counts. Groups with fewer than 5 companies are suppressed, and
+published figures are rounded. See `docs/publication_policy.md`.
 
 ### What is shown, and what is not
 **Only values we calculate are public.** Intensities per Rs crore of turnover, shares, gaps,
@@ -35,6 +48,11 @@ not describe a group.
   discloses in the XBRL file - not how good its ESG performance is. **It is not an ESG rating.**
 - **Associations, not causes.** Nothing here says that one thing produces another.
 
+### Disclosure Quality Score in two lines
+A 0-100 score of how completely, consistently over time and verifiably (assurance) a company
+discloses in its machine-readable filing. It measures disclosure, not performance, and is not an
+ESG rating.
+
 ### Limits worth knowing
 - Today's NIFTY 50 is applied to all four years (survivorship). Several peer groups have fewer
   than 5 companies, so they are compared within their sector group.
@@ -42,6 +60,11 @@ not describe a group.
 - Turnover is the only denominator and is in current rupees; inflation alone lowers intensity.
 - The score reads only the machine-readable filing; a company may disclose more in its PDF report.
 - The statistics are small-sample: with about 50 companies only large effects can be shown.
+
+### Tech stack
+dbt + DuckDB (warehouse and tests), MetricFlow (the semantic layer: group metrics defined once),
+Airflow (pipeline orchestration), Power BI (the analyst report) and Streamlit (this site).
+Source: [GitHub](https://github.com/pritysapkal/esg-lens-india).
 
 ### Where the details are
 In the project repository: `docs/START_HERE.md` (overview), `docs/kpi_definitions.md` (every
