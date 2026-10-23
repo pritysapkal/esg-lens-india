@@ -1,234 +1,197 @@
 # ESG Lens India
 
-> **New here? Read [docs/START_HERE.md](docs/START_HERE.md) first** - the project on one page.
-> Then: [docs/project_plan.md](docs/project_plan.md) (what is done, what is next) and
-> [docs/publication_policy.md](docs/publication_policy.md) (what may be published).
+Turns the BRSR sustainability filings (XBRL) of the NIFTY 50 companies plus Wipro, FY2022-23 to
+FY2025-26, into a tested warehouse of comparable ESG metrics, with a semantic layer, SQL and
+statistical analysis, Power BI and Excel models, a Streamlit report card and a guarded AI analyst.
 
-**Open, reproducible ESG analytics on SEBI BRSR filings of the NIFTY 50 companies.**
+[![ci](https://github.com/pritysapkal/esg-lens-india/actions/workflows/ci.yml/badge.svg)](https://github.com/pritysapkal/esg-lens-india/actions/workflows/ci.yml)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
+![dbt](https://img.shields.io/badge/dbt-1.12-orange)
+![DuckDB](https://img.shields.io/badge/DuckDB-warehouse-yellow)
 
-ESG Lens India turns the machine-readable BRSR (Business Responsibility and Sustainability Report)
-XBRL filings published on NSE into a tested analytics warehouse, a semantic layer of ESG metrics,
-company report cards, and a small AI analyst - all open source and runnable on a laptop.
+Live app: coming soon (Streamlit Community Cloud deployment pending) · Demo video: coming soon
 
-> **Disclosure Quality Score is NOT an ESG rating.** It measures how complete, consistent and
-> internally coherent a company's BRSR disclosures are - not how sustainable the company is.
-> Nothing in this project is investment advice.
+> New here? [docs/START_HERE.md](docs/START_HERE.md) is the project on one page.
+> This is not an ESG rating and not investment advice.
 
-## Scope
+## Key findings
 
-- **Companies:** the official NIFTY 50 constituents (niftyindices.com list), plus companies with
-  listing CSVs that are no longer in the index (currently WIPRO, flagged `in_universe = false`).
-- **Years:** FY2022-23 to FY2025-26. That is **197 listed filings, 196 received**; M&M FY2023-24
-  is listed by NSE, but NSE does not serve the file.
-- **Taxonomies:** 5 SEBI BRSR versions are in use: 2021-09-30, 2023-06-30, 2024-04-30, 2025-05-31
-  and 2026-02-28.
+All figures are calculated values (shares, intensities, medians, p-values); no filed quantity is
+shown. Details and caveats: [analysis_findings.md](docs/analysis_findings.md),
+[stats_findings.md](docs/stats_findings.md).
 
-Live status: [docs/data_status.md](docs/data_status.md).
+1. **Five companies carry 85% of Scope 1+2 emissions** in the set: 85.5% to 86.2% in every year, and
+   ten carry 98.5%. Any "average" trend is the trend of a handful of companies.
+2. **A headline fall can be a composition effect.** Asset-heavy whole-group GHG intensity fell 15.2%
+   across all companies, but rose 3.7% on a balanced panel of the 15 companies followed without a
+   break, while the typical company of that panel fell 37.9%.
+3. **Restatements are a coin toss, not a pattern.** 6.7% of checkable figures were restated
+   materially; of those with a direction, 47.7% flatter the trend (95% interval 41.5% to 54.0%,
+   the one study large enough for its "no" to mean something).
+4. **The biggest year-on-year moves are data problems.** Every GHG intensity change beyond a
+   factor of two traced back to a unit, a scale slip, a one-year reversal or an unconfirmed
+   figure. Among moves a later report confirms, the largest improvement is 40% and the largest
+   deterioration 22%.
+5. **Pre-registered tests, honest nulls.** The typical company's carbon intensity fell 9% from
+   FY2023-24 to FY2024-25 (p = 0.015 alone, 0.12 after correcting for eight tests). None of the
+   eight primary tests rejects its null; four of five studies can only detect large effects.
 
-## Problem
+## What I built
 
-SEBI requires the top 1,000 listed companies to file BRSR, and the XBRL versions are public. But:
-
-- each filing has ~2,000 facts over ~618 concepts, 658 contexts, 35 dimension axes and 11 units -
-  not usable in a spreadsheet;
-- the SEBI taxonomy changes between years (5 versions across FY2022-23 to FY2025-26), so the
-  same metric can live under different concepts, and even the entity identifier changes (CIN
-  before 2026-02-28, ISIN after);
-- each file carries current **and** prior-year values, so silent restatements go unnoticed;
-- there is no free, transparent, cross-company view of these disclosures.
+| Layer | What it does | Tools |
+|---|---|---|
+| Manual intake and XBRL parser | Matches hand-saved filings to the listing, hashes them, never overwrites; parses 196 filings to Parquet, cross-checked against Arelle on 5 filings | Python, lxml, Arelle |
+| dbt warehouse | Staging, intermediate and gold star schema; 5 taxonomy versions mapped to one metric catalogue; enforced contracts, data and unit tests | dbt Core, DuckDB |
+| Disclosure Quality Score v2 | Score 0-100 per company-year for how complete, consistent and assured a report is; grade, reason codes | dbt |
+| Restatement tracker | Compares prior-year comparatives in later filings; 4,115 compared pairs, scale errors set aside | dbt |
+| Semantic layer | 29 group metrics defined once, generated from a KPI catalogue; whole-group vs typical-company | MetricFlow |
+| SQL analysis | 12 business questions with answer, insight and caveat | SQL (window functions, QUALIFY, PIVOT, GROUPING SETS) |
+| Statistics | 5 pre-registered studies, permutation and bootstrap, multiple-test correction, power | Python (scipy, numpy) |
+| Power BI model and Excel | Generated star-schema models with measures reconciled to the semantic layer; Excel peer benchmark | Power BI (PBIP/TMDL), openpyxl |
+| Orchestration | One manual-only DAG, 17 tasks, run once in Docker with the network switched off | Airflow 3, Cosmos |
+| Streamlit report card | 6 pages reading only the public exports | Streamlit |
+| AI analyst | 6 validated tools, no free-form SQL, guided-question mode without a model, evaluated on a fixed question set | Gemini / Ollama / Claude |
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    A[Manual download<br/>NSE website] --> B[Intake<br/>match, hash, no overwrite]
+    B --> C[XBRL parser<br/>Parquet]
+    C --> D[(DuckDB)]
+    subgraph dbt [dbt]
+        direction LR
+        S[staging] --> I[intermediate] --> M[marts<br/>star schema]
+    end
+    D --> S
+    M --> L[Semantic layer<br/>MetricFlow]
+    M --> R[rpt_public_* models]
+    L -. same definitions .-> R
+    R --> P1[Streamlit]
+    R --> P2[Power BI]
+    R --> P3[Excel]
+    R --> P4[AI analyst]
+    AF[Airflow] -. orchestrates .-> B
+    AF -. orchestrates .-> dbt
+    CI[GitHub Actions CI<br/>tests] -. checks .-> dbt
 ```
- manual download ──► data/raw/listing/*.csv ──► discover.py ──► listing.parquet
- (NSE website)  └──► data/raw/xbrl_inbox/*.xml ──► intake.py ──► data/raw/xbrl/<ISIN>/<year>/
-                                                   (sha256, match,      (+ manifest.csv)
-                                                    never overwrite)           │
-                       todo.py ──► docs/data_status.md                         ▼
-                                                        parse_xbrl.py (lxml)
-                                                               │
-          data/processed/parsed/{filings,contexts,units,facts,text_facts}/reporting_year_label=*/
-                                                               │  (load_raw.py -> raw_* tables)
- ┌──────────────────────────── dbt Core on DuckDB (data/warehouse/esg_lens.duckdb) ───────────┐
- │  seeds (concept_metric_map, nic_sector_map, peer_groups...)                                 │
- │  bronze/staging (views) ─► silver/intermediate (views) ─► gold/marts (tables, Kimball star) │
- │  restatement tracker (prior-year comparatives in later filings) · dbt tests + Elementary    │
- │  MetricFlow semantic layer                                                                  │
- └───────────────┬───────────────────┬───────────────────┬───────────────────┬────────────────┘
-                 ▼                   ▼                   ▼                   ▼
-              Power BI             Excel        Streamlit report cards   MCP AI analyst
 
- Orchestration (week 13): Airflow 3 + Astronomer Cosmos (Docker), watching the inbox · CI: GitHub Actions
- Prod target (later): Databricks Free Edition
-```
+## Engineering and analytics highlights
 
-## Status
+- **Compliance-first data collection.** NSE's terms prohibit automated collection, so there is no
+  scraper: filings are saved by hand and code only matches, hashes and files them
+  ([ADR 0002](docs/adr/0002-manual-intake-nse-terms.md)).
+- **Publication policy.** Only values the project calculates are public; filed values stay local.
+  Every public model is checked by tests, statistics are withheld for fewer than 5 companies in
+  every public table, and the build fails if a public model gains a non-public column
+  ([policy](docs/publication_policy.md)).
+- **Ratio of sums vs median.** A group figure is either the whole group (all emissions over all
+  turnover) or the typical company (the median), never an average of company ratios.
+- **Balanced panel and confirmed-only rankings.** Trends are also shown on companies without
+  mergers or boundary changes, and year-on-year movers are ranked only when a later report
+  repeats the figures.
+- **Pre-registered statistics.** Hypotheses, tests and decision rules were committed before any
+  result was computed; each study reports its minimum detectable effect, and the methods were
+  checked on made-up data first ([hypotheses](docs/stats_hypotheses.md)).
+- **A score that was revised on evidence.** Disclosure Quality Score v1 gave 187 of 196 reports
+  grade A, so v2 changed what is measured (voluntary depth, beyond-compliance assurance). v2: 98 A,
+  90 B, 7 C ([method](docs/disclosure_quality_score.md)).
+- **AI analyst with limits.** It can call only 6 tested queries over the public tables. On a
+  fixed 20-question set, Gemini `gemini-3.5-flash-lite` went from 16/20 (v1) to 19/20 (v2) and
+  passed 5/5 on new held-out questions. v2 also introduced one regression (`q10`: it answered
+  for a year the question did not name); it was left unfixed and documented rather than tuned to
+  the test ([evaluation](docs/ai_analyst_eval.md)). Smaller free local model: 13/20.
+- **Reconciliation across tools.** Power BI measures and the public group table are checked against
+  the semantic layer (87 Power BI figures equal to `mf query`; all 2,562 shown cells of the public
+  group table equal) ([checklist](docs/powerbi_reconciliation.md)).
+- **Tests.** Latest local runs: pytest 381 passed, 6 skipped (the skips need Airflow in Docker);
+  dbt build 562 steps passed, 0 warnings, 0 errors (446 data tests, 13 unit tests, about 4 minutes). CI runs lint, pytest and a dbt parse on synthetic data.
 
-| Module | Path | Status |
-|---|---|---|
-| Scaffold, CI, pre-commit | repo root | ✅ Week 1 |
-| Module 1 - Manual intake pipeline (listing, universe, taxonomy scan, intake, status) | `ingestion/{discover,universe,taxonomy,intake,todo}.py` | ✅ Done |
-| Module 2 - XBRL parser (done) -> Parquet + DuckDB raw tables | `ingestion/{parse_xbrl,load_raw}.py` | ✅ Done - HDFC Bank FY2025-26: 2,182 facts, 618 concepts, 658 contexts, 11 units, 12-month period; Arelle cross-check on 5 filings: all counts and every fact/context identical ([validation](docs/parser_validation.md)) |
-| dbt staging (done) - typed, flagged staging models + tests | `dbt/models/staging/` | ✅ Done - 8 models (196 filings, 121,891 contexts, 1,714 units, 399,499 facts + 19,705 text facts), 55 tests pass, 0 cast failures, 7,226 NA-text facts |
-| Module 4 - Metric catalogue + normalisation (done) | `dbt/models/intermediate/`, `dbt/seeds/` | ✅ Done - 34 metrics / 148 catalogue rows over 5 taxonomies, 21,730 metric values; 24 automatic turnover scale corrections + 14 approved manual overrides (megatonnes, turnover), old-taxonomy units inferred ([rules](docs/business_rules.md), [metrics](docs/metric_definitions.md)) |
-| Module 5 - Company identity & sectors (done) | `dbt/models/marts/`, `dbt/seeds/` | ✅ Done - `dim_company` (51 companies, ISIN key, peer group, NIC sector, 5 conglomerates), derived SCD2 `dim_company_history`, 9 peer groups, metric materiality, 42 NIC divisions ([method](docs/company_identity.md), [ADR 0003](docs/adr/0003-company-history-scd2.md)) |
-| Module 6 - Gold star schema + restatement tracker (done) | `dbt/models/marts/` | ✅ Done - 5 facts, 4 dims, contracts on every model; 21,706 metric values, 196 company-year KPI rows, 3,313 peer percentiles. Restatements: 4,115 compared pairs (suspected scale errors excluded), 6.7% material, 61 red flags; on headline totals 8 of 48 companies restated materially FY2023-24 -> FY2024-25 (24 of 50 over all three pairs) ([method](docs/restatement_method.md), [data model](docs/data_model.md)) |
-| Pre-Week-8 hardening | `docs/`, `dbt/` | ✅ Done - [publication policy](docs/publication_policy.md) with `public_safe` on every fact column and two public models; accepted KPI exceptions in a seed (build ends with 0 warnings); KPI catalogue as single source ([KPIs](docs/kpi_definitions.md)); dbt tags and selectors (`daily`, `full`). Full build and test (`dev.ps1 dbt-build`): 434 steps in 2.5 to 3 minutes (147-172 s over three runs, laptop, 2026-10-10) |
-| Week 8 - Disclosure Quality Score | `dbt/models/marts/fct_disclosure_quality.sql`, `dbt/seeds/dqs_*.csv`, `dbt/seeds/leadership_indicator_map.csv` | ✅ Done - one score 0-100 per company-year from completeness (0.30: half mandatory metrics, half voluntary Leadership indicators), internal consistency (0.30), temporal consistency (0.20) and assurance (0.20: Core assurance is compliance, whole-report assurance earns the rest), re-weighted when a part cannot be tested; grade, rank in group and year, reason codes, public model. Version 2, 196 scores: median 85.0, 98 grade A, 90 B, 7 C (version 1: 187 A, 75 at exactly 100). Ranking barely moves with equal weights (Spearman 0.99). Compare within a year only. Not an ESG rating ([method](docs/disclosure_quality_score.md)) |
-| Week 9 - Semantic layer | `dbt/models/semantic/`, `scripts/build_semantic_layer.py` | ✅ Done - 29 group metrics in MetricFlow (dbt-metricflow 0.15.0 on DuckDB, dbt 1.12 YAML spec), generated from `kpi_catalogue.csv`: whole-group ratios of sums (`_agg`), typical-company medians (`_median`), Disclosure Quality, restatement and coverage metrics; never an average of company ratios. 8 saved queries; `mf validate-configs` clean; `mf query` equals plain SQL on the gold tables within 1e-9 (102 values). Public tools read `rpt_public_group_metrics`, generated from the same definitions, where a statistic is empty below 5 companies (equal to `mf query` in all 2,562 shown cells). Databricks not done ([guide](docs/semantic_layer.md)) |
-| Week 10 - SQL business analysis | `analysis/sql/`, `scripts/run_analysis.py` | ✅ Done - 12 business questions in SQL on the gold tables (window functions, QUALIFY, PIVOT, GROUPING SETS, balanced panels), each with answer, insight and caveat. Five companies hold 85% of Scope 1+2 emissions; the 15% fall in heavy-industry intensity turns into +3.7% on a like-for-like panel; 6.7% of comparable figures are restated materially and 47.7% of those flatter the trend (a coin toss); at least 9 of 38 companies grew while cutting emissions (10 more need review); every year-on-year intensity move beyond a factor of two is a data issue, and only moves confirmed by a later report are ranked. Q1 and Q8 equal `mf query` (48 figures). Findings use derived values only ([findings](docs/analysis_findings.md)) |
-| Week 11 - Statistics studies | `analysis/stats/` | ✅ Done - five studies fixed in advance ([hypotheses](docs/stats_hypotheses.md), committed before any result): stratified permutation, Wilcoxon signed-rank, exact binomial, Fisher's exact and a stratified Mann-Whitney comparison, with company-level bootstrap and permutation, Benjamini-Hochberg over 8 primary tests and a minimum detectable effect for each. Restatements do not flatter trends (47.7%, interval 41.5% to 54.0%, well powered); the typical company's carbon intensity fell 9% in the one confirmed year (p = 0.015 alone, 0.12 after correction); no association between disclosure quality and carbon intensity, but too few companies to rule one out. Methods checked on made-up data (power 79.5% to 97%, false alarms 2.4% to 6.6%) ([findings](docs/stats_findings.md)) |
-| Week 12 - BI engine | `scripts/export_bi.py`, `powerbi/`, `scripts/build_excel.py` | ✅ Engine done, visuals pending - Parquet exports in two folders (local star schema; public = `rpt_public_*` only, enforced by the script and a test); two Power BI projects (PBIP + TMDL for Power BI Desktop 2.158, generated from the export queries, parsed by Power BI's own TMDL library) with 42 / 46 measures in `_Measures` mirroring the semantic layer - 87 figures equal to `mf query`; an Excel workbook (Peer Benchmark with XLOOKUP and data validation, Sector Summary with "n<5", DQS view) that recalculates in Excel with 0 errors and matches the warehouse. Two more public models, `rpt_public_concentration` (Pareto in shares, equal to Week 10 Q2) and `rpt_public_company_percentile` (peer positions), so that all five pages are built in the public model. Pages: [build guide](docs/powerbi_build_guide.md), [checklist](docs/powerbi_reconciliation.md) |
-| Week 13 - Airflow, report card, AI analyst | `orchestration/`, `app/`, `evals/` | ✅ Done - manual-only Airflow 3.3.2 DAG with Cosmos (17 tasks from inbox check to public safety checks) in Docker, repo mounted read-only, one full run with the network switched off ([orchestration](docs/orchestration.md)); Streamlit report card with 6 pages that reads only `exports/public`, checked by an audit hook ([report card](docs/streamlit_app.md)); Ask the data: guided questions (no model, also on the public site) and an AI analyst on the same 6 strict, validated tools, no free-form SQL, every number shown with its tool call; free local model `qwen2.5:3b` through Ollama (13 of 20 evaluation questions right) or Claude, local only ([AI analyst](docs/ai_analyst.md), [evaluation](docs/ai_analyst_eval.md)) |
+## Data and compliance
 
-Weeks 1-13 and the hardening step are done (Week 12 visuals pending); details and commit hashes are in
-[docs/project_plan.md](docs/project_plan.md).
-
-### Roadmap
-
-| Week | Goal | Status |
-|---|---|---|
-| 12 | Power BI pages (five, from the build guide) | 🟡 Engine done, visuals by Prity |
-| 14 | Insight report, README polish, 3-minute demo video | 🔲 |
+Source: companies' own BRSR filings published on NSE, saved manually. Raw filings and the
+warehouse are not in the repository. What is public is only derived values (intensities, shares,
+gaps, percentiles, medians, scores, counts), with plain-text citations and no links to filings.
+We have not asked NSE for permission and do not assume it. Full rules:
+[publication_policy.md](docs/publication_policy.md).
 
 ## Run it
 
-| What | Command | Needs |
-|---|---|---|
-| Public report card (Streamlit) | `.\scripts\dev.ps1 app` -> http://localhost:8501 | only `exports/public` (committed) |
-| Guided questions in the report card | part of `.\scripts\dev.ps1 app` (page *Ask the data*) | nothing: no model, no key; also on the public site |
-| AI analyst, free local model (local only) | install Ollama once (`winget install -e --id Ollama.Ollama`, `ollama pull qwen2.5:3b`), then `$env:ESG_AI_ENABLED = 'true'` and `.\scripts\dev.ps1 app` | about 2 GB of free memory; answers in roughly 15 to 30 seconds on a laptop CPU ([evaluation](docs/ai_analyst_eval.md)) |
-| AI analyst with Gemini, free tier | get a key at [Google AI Studio](https://aistudio.google.com/) (*Get API key*), then `$env:ESG_AI_ENABLED = 'true'`, `$env:ESG_AI_PROVIDER = 'gemini'`, `$env:GEMINI_API_KEY = '<your key>'` (or the same three lines in your local `.env`) and `.\scripts\dev.ps1 app` | a free Gemini API key, kept **only** in your env / `.env` or the Streamlit app's Secrets, never in code; **never enable billing on its Google project**. Model `gemini-3.5-flash-lite`; same limits as the other providers. When the free quota is used up, the page says so and the guided questions carry on ([Gemini](docs/ai_analyst.md#gemini-free-tier)) |
-| AI analyst with Claude (local only) | additionally `$env:ESG_AI_PROVIDER = 'anthropic'` and `$env:ANTHROPIC_API_KEY = '...'` | an Anthropic API key; default model `claude-haiku-4-5` (about 1 US cent per question), optional `ESG_AI_MODEL`; at most 10 questions per session and 4 tool calls per question ([guardrails](docs/ai_analyst.md)) |
-| AI analyst evaluation | `.\scripts\dev.ps1 eval` (with `ESG_AI_PROVIDER` = `ollama`, `gemini` or `anthropic`) | `ESG_AI_ENABLED=true` for the live part: free with the local model (about 6 minutes) or Gemini's free tier (paced, about 5 minutes), about 20 US cents with Claude; without it only the question set is checked. Results: `evals/results/`, [docs/ai_analyst_eval.md](docs/ai_analyst_eval.md) |
-| Whole pipeline in Airflow | `.\scripts\dev.ps1 airflow` -> http://localhost:8080, trigger `esg_lens_pipeline` | Docker Desktop |
-| Pipeline once, network off | `.\scripts\dev.ps1 airflow-test` | Docker Desktop |
-| Warehouse, by hand | `.\scripts\dev.ps1 dbt-build`, then `analysis`, `stats`, `bi-export` | the filings in `data/raw` |
-
-The report card can be deployed to Streamlit Community Cloud with main file
-`app/streamlit_app.py` ([docs/streamlit_app.md](docs/streamlit_app.md)).
-
-## Setup (Windows 11, PowerShell)
-
-Prerequisites: Python **3.12** (`py -3.12 --version`), Git. Nothing is installed globally.
-
 ```powershell
-git clone <repo-url> esg-lens-india
-cd esg-lens-india
-
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements-dev.txt     # includes requirements.txt
-pre-commit install
-Copy-Item .env.example .env
-
-pytest -q
-cd dbt
-dbt deps  --profiles-dir .
-dbt debug --profiles-dir .
-dbt seed  --profiles-dir .
-cd ..
+.\scripts\dev.ps1 setup        # packages, dbt deps
+.\scripts\dev.ps1 app          # Streamlit report card on http://localhost:8501
 ```
 
-Or in one go: `.\scripts\dev.ps1 setup`. Other tasks: `.\scripts\dev.ps1 lint|test|intake|todo|parse|load|dbt-build|dbt-docs|semantic|analysis|stats|bi-export|app|airflow|airflow-test|eval`
-(Linux/CI: `make <target>`). To add filings, see [docs/how_to_add_filings.md](docs/how_to_add_filings.md).
+The app runs from the committed `exports/public` and needs no raw data. The rest needs the
+filings downloaded into `data/raw` (see [how_to_add_filings.md](docs/how_to_add_filings.md)):
 
-> dbt always runs from `dbt/` with `--profiles-dir .` - the profile lives in the repo, not in `~/.dbt`.
+| Target | What it does |
+|---|---|
+| `dbt-build` | Builds and tests the warehouse (about 3 minutes) |
+| `analysis` / `stats` | Runs the 12 SQL questions / the 5 statistics studies |
+| `app` | Streamlit report card |
+| `eval` | AI analyst evaluation |
+| `airflow` / `airflow-test` | Pipeline DAG in Docker (needs Docker Desktop) |
 
-### Updating dependencies
+The AI analyst is off by default. To turn it on, set `ESG_AI_ENABLED=true` and
+`ESG_AI_PROVIDER` to `gemini`, `ollama` (default, local) or `anthropic`, plus that provider's key
+in your environment or a local `.env`. Never commit keys. Guided questions in the app need no
+model or key. More: [ai_analyst.md](docs/ai_analyst.md).
 
-`requirements*.txt` are full locks (direct deps listed first). To upgrade: bump the direct pins,
-install into a fresh venv, run `pip check`, then re-freeze. `click` is capped `<8.5` by sqlfluff.
+## Project status
 
-## How to explore
+| Week | Done | Doc |
+|---|---|---|
+| 1-2 | Scaffold, CI, compliant manual intake | [ADR 0002](docs/adr/0002-manual-intake-nse-terms.md), [how to add filings](docs/how_to_add_filings.md) |
+| 3 | XBRL parser, Arelle cross-check | [parser_validation.md](docs/parser_validation.md) |
+| 4-5 | dbt staging; metric catalogue and normalisation | [business_rules.md](docs/business_rules.md) |
+| 6-7 | Company identity, gold star schema, restatement tracker | [company_identity.md](docs/company_identity.md), [restatement_method.md](docs/restatement_method.md) |
+| 8 | Disclosure Quality Score (v2) | [disclosure_quality_score.md](docs/disclosure_quality_score.md) |
+| 9 | Semantic layer | [semantic_layer.md](docs/semantic_layer.md) |
+| 10 | SQL business analysis, 12 questions | [analysis_findings.md](docs/analysis_findings.md) |
+| 11 | Pre-registered statistics | [stats_findings.md](docs/stats_findings.md) |
+| 12 | Power BI model and Excel (engine) | [powerbi_build_guide.md](docs/powerbi_build_guide.md) |
+| 13 | Airflow, Streamlit report card, AI analyst v1 and v2 | [orchestration.md](docs/orchestration.md), [streamlit_app.md](docs/streamlit_app.md), [ai_analyst.md](docs/ai_analyst.md) |
 
-After `parse` (Module 2), build the dbt models and open the docs:
-
-```powershell
-.\scripts\dev.ps1 dbt-build     # dbt deps + dbt build (models + all tests)
-.\scripts\dev.ps1 dbt-docs      # dbt docs generate + serve -> http://localhost:8080
-
-# or by hand, from dbt/ (ESG_DATA_DIR must be ABSOLUTE - dev.ps1 sets it for you):
-cd dbt
-$env:ESG_DATA_DIR = "$((Resolve-Path ..\data).Path -replace '\\','/')"
-dbt build --profiles-dir . --select staging
-dbt show  --profiles-dir . --select staging_quality_summary --limit 200   # data-quality summary
-```
-
-The warehouse is a single DuckDB file, `data/warehouse/esg_lens.duckdb`. Open it from Python
-(`duckdb.connect("data/warehouse/esg_lens.duckdb", read_only=True).sql("...").df()`) or any
-DuckDB client, and try:
-
-```sql
--- 1. Scope 1 emissions (tCO2e) per company for FY2025-26, company-wide, current period
-select f.symbol, x.value_num as scope1_tco2e, u.unit_label
-from stg_facts x
-join stg_filings f using (filing_id)
-join stg_contexts c on c.filing_id = x.filing_id and c.context_id = x.context_ref
-join stg_units u on u.filing_id = x.filing_id and u.unit_id = x.unit_ref
-where f.fiscal_year_label = 'FY2025-26' and x.concept = 'TotalScope1Emissions'
-  and not c.has_dimensions and c.start_date = f.period_start and c.end_date = f.period_end
-order by scope1_tco2e desc;
-
--- 2. Filings whose main period is not 12 months
-select symbol, fiscal_year_label, period_start, period_end, period_months
-from stg_filings where is_non_standard_period;
-
--- 3. Which questions are most often answered "not applicable"?
-select concept, count(*) as n_na
-from stg_facts where is_na_text
-group by concept order by n_na desc limit 10;
-```
-
-Staging only cleans, types and flags. Current/prior-year roles, unit conversions and the metric
-mapping live in the intermediate layer: `int_metric_values` (one row per metric value) and
-`int_normalisation_exceptions` (everything inferred or corrected, for review).
+Remaining: the five Power BI report pages (the model is done; the pages are built by Prity from
+the build guide), then Week 14: insight report, Streamlit Cloud deployment and a 3-minute demo
+video. Full plan: [project_plan.md](docs/project_plan.md).
 
 ## Repository layout
 
 ```
-ingestion/     Python: listing -> manual intake -> status report -> parse XBRL -> Parquet
-dbt/           dbt project `esg_lens` (DuckDB), seeds, tests
-data/          raw / processed / warehouse (git-ignored contents)
-tests/fixtures/ synthetic test data (no real filings are committed)
-notebooks/     learning notebooks (outputs are never committed)
-app/           Streamlit report-card app
-dashboards/    Power BI / Excel
-ai/            MCP-based AI analyst
-orchestration/ Airflow 3 + Cosmos (later)
-docs/          ADRs, metric definitions, open questions
+ingestion/      intake, XBRL parser, loaders
+dbt/            staging, intermediate, marts, semantic models, seeds, tests
+analysis/       sql/ (12 questions), stats/ (5 studies)
+app/            Streamlit report card and AI analyst
+orchestration/  Airflow DAG (Docker)
+powerbi/        generated Power BI projects (PBIP + TMDL)
+exports/        public/ (committed), local/ (git-ignored)
+evals/          AI analyst question sets and results
+scripts/        dev.ps1 and build, export, reconcile scripts
+docs/           method, findings, policy, ADRs
+tests/          pytest suite (synthetic fixtures only)
 ```
 
-## Data source & compliance
+Key docs: [START_HERE](docs/START_HERE.md) · [project plan](docs/project_plan.md) ·
+[data model](docs/data_model.md) · [KPI definitions](docs/kpi_definitions.md) ·
+[publication policy](docs/publication_policy.md) · [semantic layer](docs/semantic_layer.md) ·
+[analysis findings](docs/analysis_findings.md) · [stats findings](docs/stats_findings.md) ·
+[AI analyst evaluation](docs/ai_analyst_eval.md) · [data status](docs/data_status.md)
 
-BRSR filings are public disclosures that NSE publishes under SEBI rules. The
-[NSE Terms of Use](https://www.nseindia.com/static/nse-terms-of-use) (updated 29/10/2025)
-prohibit automated data collection (clause 9) and redistribution without written permission
-(clause 8). This project therefore works as follows
-([ADR 0002](docs/adr/0002-manual-intake-nse-terms.md)):
+## Limitations
 
-- **Manual download only.** Listing CSVs and XBRL files are downloaded by hand into
-  `data/raw/listing/` and `data/raw/xbrl_inbox/`. No code makes requests to `nseindia.com` or
-  `nsearchives.nseindia.com`.
-- **No redistribution.** Raw NSE files live under the git-ignored `data/` folder and are never
-  committed. Tests use synthetic fixtures. Real-data tests skip when the files are absent.
-- **Only calculated values are published** ([ADR 0004](docs/adr/0004-publication-policy.md),
-  [publication policy](docs/publication_policy.md)). Public: intensities per Rs crore, computed
-  percentages and ratios, pay-equity and attrition gaps, percentiles, peer medians and quartiles,
-  Disclosure Quality Scores, restatement classes and counts, yes/no flags. Not public: any value
-  copied from a filing - quantities, counts, turnover, headcount, and filed percentages and rates
-  too - which are shown only as gaps, percentiles or peer statistics. We have not asked NSE for
-  permission and do not assume it.
-- **Public outputs read only the `rpt_public_*` models.** That covers GitHub, the Streamlit report
-  card, posts and the insight report. Full dashboards with raw values stay local and are shown
-  through screenshots or a demo video. Tests fail the build if a public model gains a non-public
-  column.
-- **Plain-text citations, no links to filings.** Each number cites its source as plain text
-  (company, report, financial year, NSE filing date). There are no hyperlinks to NSE filings or
-  data: no `nsearchives.nseindia.com` URLs (XBRL, PDF, listing files) and no NSE filing or
-  company-filing pages. Citing NSE's public Terms of Use page (linked above) is fine.
-- **Universe.** The NIFTY 50 constituents list comes from niftyindices.com and is saved locally.
+- **Survivorship:** today's NIFTY 50 is applied to all four years; some peer groups have fewer than 5 companies.
+- **FY2022-23 units were partly inferred** and hold most of the scale errors.
+- **Turnover is the only denominator**, in current rupees, so price rises alone lower intensity.
+- **XBRL only:** what is in the structured filing, not the full report or anything unreported.
+- **Small samples:** about 50 companies and two or three usable years; the statistics detect only large effects.
 
-Workflow: [docs/how_to_add_filings.md](docs/how_to_add_filings.md). Status:
-[docs/data_status.md](docs/data_status.md).
+The Disclosure Quality Score measures disclosure quality, not sustainability. Nothing here is
+an ESG rating or investment advice.
+
+## Author
+
+Prity Sapkal · [github.com/pritysapkal](https://github.com/pritysapkal)
