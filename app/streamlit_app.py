@@ -15,12 +15,16 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `import app...` works
 
 st.set_page_config(
-    page_title="ESG Lens India - public report card",
+    page_title="ESG Lens India",
     page_icon=":material/eco:",
     layout="wide",
     menu_items={"About": "ESG Lens India: comparable figures from the BRSR filings of the NIFTY 50. "
                 "Not an ESG rating, not investment advice."},
 )  # fmt: skip
+
+LOGO = Path(__file__).resolve().parent / "assets" / "logo.svg"
+if LOGO.exists():  # the app name, above the navigation
+    st.logo(str(LOGO), size="large")
 
 pages = [
     st.Page("views/overview.py", title="Overview", icon=":material/dashboard:", default=True),
@@ -28,6 +32,6 @@ pages = [
     st.Page("views/sectors.py", title="Sectors", icon=":material/category:"),
     st.Page("views/concentration.py", title="Concentration", icon=":material/stacked_bar_chart:"),
     st.Page("views/ai_analyst.py", title="Ask the data", icon=":material/chat:"),
-    st.Page("views/methodology.py", title="Methodology", icon=":material/menu_book:"),
+    st.Page("views/methodology.py", title="About & Methodology", icon=":material/menu_book:"),
 ]
 st.navigation(pages).run()

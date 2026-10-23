@@ -9,13 +9,13 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
 
-from app import data
+from app import data, layout
 
 # Categorical colours, one per sector group, the same on every page (validated for colour-blind
 # separation; the lightest needs visible labels, so every chart also has a table view).
 SECTOR_COLOURS = {"Asset-heavy": "#2a78d6", "Asset-light": "#eb6834", "Financials": "#1baf7a"}
 NEUTRAL = "#8a8985"
-ACCENT = "#2a78d6"
+ACCENT = "#1f7a6d"  # the theme's primary colour (.streamlit/config.toml)
 # better / worse half of a ranking group: blue and orange, validated colour-blind safe as a pair
 # (dataviz validator: CVD separation 24.7, contrast >= 3:1); every bar also carries its number
 BETTER = "#2a78d6"
@@ -44,9 +44,7 @@ def provisional_banner(year: str) -> None:
 
 
 def footer() -> None:
-    st.divider()
-    st.caption(data.SOURCE_NOTE)
-    st.caption(data.DISCLAIMER)
+    layout.footer()
 
 
 def colour_for(group: str, position: int = 0) -> str:
@@ -64,21 +62,28 @@ def colour_for(group: str, position: int = 0) -> str:
 
 
 # Every chart of the app: readable text at normal zoom, quiet grid.
+TEXT = "#1f2a28"
+GRID = "#e3e7e4"
 pio.templates["esg_lens"] = go.layout.Template(
     layout={
-        "font": {"size": CHART_FONT_SIZE},
-        "hoverlabel": {"font": {"size": CHART_FONT_SIZE}},
+        "font": {"size": CHART_FONT_SIZE, "color": TEXT},
+        "colorway": [SECTOR_COLOURS["Asset-heavy"], SECTOR_COLOURS["Asset-light"], SECTOR_COLOURS["Financials"], ACCENT],
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "hoverlabel": {"font": {"size": CHART_FONT_SIZE}, "bgcolor": "white", "bordercolor": GRID},
         "legend": {"font": {"size": CHART_FONT_SIZE}},
         "xaxis": {
             "tickfont": {"size": CHART_FONT_SIZE},
             "title": {"font": {"size": CHART_FONT_SIZE}},
+            "showgrid": False, "linecolor": GRID, "zeroline": False,
         },
         "yaxis": {
             "tickfont": {"size": CHART_FONT_SIZE},
             "title": {"font": {"size": CHART_FONT_SIZE}},
+            "gridcolor": GRID, "zeroline": False,
         },
     }
-)
+)  # fmt: skip
 pio.templates.default = "plotly+esg_lens"
 
 
