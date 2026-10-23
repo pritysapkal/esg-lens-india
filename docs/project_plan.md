@@ -1,6 +1,6 @@
 # Project plan (current)
 
-The plan as it stands on 2026-10-18, after thirteen weeks of work. It replaces the original blueprint
+**Last updated: 2026-10-24.** The plan as it stands after thirteen weeks of work and the AI analyst v2. It replaces the original blueprint
 wherever the two differ. Plain English on purpose.
 
 ## a) What changed from the original blueprint, and why
@@ -39,18 +39,39 @@ wherever the two differ. Plain English on purpose.
 | Week 11 | Statistics studies | Five studies, written down before any result was computed ([hypotheses](stats_hypotheses.md)): Spearman with a stratified permutation, Wilcoxon signed-rank, exact binomial, Fisher's exact, a stratified Mann-Whitney comparison; company-level bootstrap and permutation, Benjamini-Hochberg over 8 primary tests, minimum detectable effect for each; methods checked on made-up data. No primary test rejects its null hypothesis; one null is well powered (restatements do not flatter trends), four are likely underpowered ([findings](stats_findings.md)) | "docs: Week 11 pre-registered hypotheses", "feat: Week 11 statistics studies" |
 | Week 12 | BI engine (Power BI and Excel) | Parquet exports (`exports/local`: star schema with the numerators and denominators of the ratio-of-sums measures and the Week 10 results; `exports/public`: the four `rpt_public_*` models only, enforced). Two Power BI projects (PBIP with a TMDL model, generated, parsed with Power BI Desktop's own library): star schema, single-direction relationships, an `ExportFolder` parameter, measures in `_Measures` mirroring the semantic layer (87 figures equal to `mf query`); the public model reads group figures from `rpt_public_group_metrics` only. Excel workbook with XLOOKUP formulas (0 errors in Excel). Then two more public models so that all five pages are built on public data: `rpt_public_concentration` (rank and share of emissions, no tonnes) and `rpt_public_company_percentile` (percentile, rank, reason not ranked; values of computed KPIs only). **Visuals pending: Prity builds the five pages in the public project** ([guide](powerbi_build_guide.md), [checklist](powerbi_reconciliation.md)) | "feat: Week 12 BI engine (exports, Power BI model, Excel)" |
 | Week 13 | Airflow, Streamlit report card, AI analyst | **Airflow 3.3.2 + Cosmos 1.15 in Docker**: one manual-only DAG `esg_lens_pipeline` (17 tasks: inbox check, intake, parse, load, dbt seed / run / test as Cosmos task groups, semantic validation, analysis, statistics, BI export, public safety checks), defined once in `orchestration/pipeline.py`; repo mounted read-only; a full `airflow dags test` run with the network switched off. **Streamlit report card** (6 pages) that reads only `exports/public`, checked by an audit hook. **Ask the data**: guided questions (no model, also public) and an AI analyst, both on the same 6 strict, validated tools over the public tables, no free-form SQL; the analyst runs only where switched on, with a free local model (Ollama, `qwen2.5:3b`: 13 of 20 evaluation questions right, numbers unreliable) or Claude, within hard limits, never on the public site. New public model `rpt_public_ghg_yoy` (Week 10 Q3 in dbt). Public Parquet committed for Streamlit Community Cloud ([report card](streamlit_app.md), [AI analyst](ai_analyst.md), [orchestration](orchestration.md)) | "feat: Week 13 Airflow DAG, Streamlit report card, AI analyst", "fix: AI analyst cost and safety guardrails", "feat: guided questions, free local AI provider, UI polish" |
+| Week 12 (public models) | Concentration and percentile models for BI | `rpt_public_concentration` and `rpt_public_company_percentile`, so all five Power BI pages can be built on public data | `6c76911` |
+| Week 13 (follow-up) | Guardrails | AI analyst cost and safety limits (questions per session, tool calls per question, local only for Claude) | `1d0f163` |
+| After Week 13 | Guided questions, free local provider | Guided questions (no model) in the report card; Ollama provider (`qwen2.5:3b`: 13 / 20 on the evaluation set) | `9290aa2` |
+| After Week 13 | Min-5 suppression everywhere | The "5 companies or more" rule enforced in every public table, not only the group metrics | `875a1dd` |
+| After Week 13 | Gemini provider, stable exports | Gemini free-tier provider with safeguards; stable public Parquet exports | `b56e638` |
+| After Week 13 | Evaluation hardening | Unique table labels in AI answers, relevant caveats; the evaluation separates provider errors from model failures; Gemini comparison and final provider comparison ([evaluation](ai_analyst_eval.md)) | `0cb916c`, `b1ffe23`, `5aa70fa` |
+| After Week 13 | AI analyst v2 | Group type found from the group name, clearer tool errors and descriptions; Gemini `gemini-3.5-flash-lite` **16 / 20 -> 19 / 20** on the same 20 questions and **5 / 5** on a held-out set; one regression (`q10`) documented, not tuned away | `2222783`, `1ecd9e9` |
+| After Week 13 | README | Rewritten for Weeks 1-13 | `6282658` |
 
 State of the warehouse: 51 companies, 196 company-years, 21,706 metric values, 73 company-level
 KPIs (25 public), 29 group metrics in the semantic layer, 4,115 compared restatement pairs, 196
 Disclosure Quality Scores (version 2: median 85.0; 98 grade A, 90 B, 7 C, 1 without a grade);
 full build and test in about 3 minutes with 0 warnings.
 
-## c) Remaining weeks
+## c) Next / backlog
 
-| Week | Goal | Scope notes |
-|---|---|---|
-| 12 (rest) | **Power BI pages** | Prity builds the five pages from [powerbi_build_guide.md](powerbi_build_guide.md) and ticks the six numbers in [powerbi_reconciliation.md](powerbi_reconciliation.md). |
-| 14 | **Insight report, README polish, demo video** | A short written report of findings, a tidy README, and a 3-minute demo video of the local dashboards (checked against the publication policy). |
+In order.
+
+- [ ] Fix the Power BI `.pbip` report part ("Failed to load the report"); then Prity builds the five
+  dashboard pages in the public project ([guide](powerbi_build_guide.md)) and verifies the numbers in
+  [powerbi_reconciliation.md](powerbi_reconciliation.md)
+- [ ] Week 14: written insight report
+- [ ] Week 14: README final polish (live links)
+- [ ] Week 14: Streamlit Community Cloud deployment (Gemini off, or free tier with the safeguards)
+- [ ] Week 14: 3-minute demo video of the local dashboards (checked against the publication policy)
+- [ ] Resume bullets and a LinkedIn post
+
+Known follow-ups (not blocking):
+
+- [ ] AI evaluation: `q10` regression of v2 (answers for a year the question does not name); fix only as
+  a separate, labelled version ([evaluation](ai_analyst_eval.md))
+- [ ] Restart Docker Desktop before using Airflow
+- [ ] Check rounding and exports after the next rebuild
 
 ## d) Known limitations and open decisions
 
