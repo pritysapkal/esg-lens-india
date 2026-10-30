@@ -77,7 +77,7 @@ on Gemini's free tier** - the only provider allowed on the public site:
 
 - **Off (default):** add nothing to the app's *Secrets*. Visitors get the guided questions (the
   same tools, no model) and a short, plain note that free-text questions are not switched on for
-  this site and that **a demonstration of the AI analyst is in the project video** - no setup
+  this site and that the AI analyst's method and evaluation are in the GitHub repository - no setup
   details.
 - **Gemini, free tier (optional):** in *Manage app -> Settings -> Secrets* add
 

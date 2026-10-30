@@ -109,8 +109,8 @@ if not agent.switched_on():
     # the default, and the public site unless Gemini is switched on there
     st.info(
         "Free-text questions with an AI model are not switched on for this site. The guided "
-        "questions above cover the same data, and a demonstration of the AI analyst is shown in "
-        "the project video.",
+        "questions above cover the same data; how the AI analyst works and how it scored on a "
+        "fixed question set is in the project's GitHub repository (docs/ai_analyst_eval.md).",
         icon=":material/forum:",
     )
     ui.footer()

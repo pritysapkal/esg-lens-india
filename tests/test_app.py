@@ -117,7 +117,7 @@ def test_visitors_get_guided_questions_and_a_friendly_note(monkeypatch):
     assert app.radio and app.radio[0].value == "group"  # guided questions are the default
     assert any("Query used:" in c.value for c in app.caption)
     notes = [info.value for info in app.info]
-    assert any("not switched on for this site" in n and "video" in n for n in notes)
+    assert any("not switched on for this site" in n and "GitHub" in n for n in notes)
     _no_setup_details(notes)
     assert not app.chat_input  # no way to send a free-text question while it is off
 

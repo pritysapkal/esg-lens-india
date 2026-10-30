@@ -9,7 +9,7 @@ statistical analysis, Power BI and Excel models, a Streamlit report card and a g
 ![dbt](https://img.shields.io/badge/dbt-1.12-orange)
 ![DuckDB](https://img.shields.io/badge/DuckDB-warehouse-yellow)
 
-Live app: coming soon (Streamlit Community Cloud deployment pending) · Demo video: coming soon
+**Live app: [esg-lens-india.streamlit.app](https://esg-lens-india.streamlit.app)** · Power BI report: [screenshots below](#power-bi-report)
 
 > New here? [docs/START_HERE.md](docs/START_HERE.md) is the project on one page.
 > This is not an ESG rating and not investment advice.
@@ -36,6 +36,40 @@ shown. Details and caveats: [analysis_findings.md](docs/analysis_findings.md),
    FY2023-24 to FY2024-25 (p = 0.015 alone, 0.12 after correcting for eight tests). None of the
    eight primary tests rejects its null; four of five studies can only detect large effects.
 
+## Power BI report
+
+Five pages built on the public model (`powerbi/esg_lens_public`, PBIP). Teal is the whole group or
+the company; amber is the typical company or the peer median. Every page shows derived values only.
+
+**1. Overview** - coverage, headline intensities, disclosure quality and the top-5 share for the
+selected year, with the key findings.
+
+![Power BI Overview page](docs/images/powerbi_1_overview.png)
+
+**2. Decarbonisation** - whole group vs typical company by sector group over four years, the
+balanced-panel result and how many companies stand behind each point.
+
+![Power BI Decarbonisation page](docs/images/powerbi_2_decarbonisation.png)
+
+**3. Concentration** - the 15 largest emitters as shares of the total (Pareto): five companies
+reach 80%.
+
+![Power BI Concentration page](docs/images/powerbi_3_concentration.png)
+
+**4. Disclosure quality** - Disclosure Quality Score by sector group and company, and how often
+figures were restated in the next year's report.
+
+![Power BI Disclosure quality page](docs/images/powerbi_4_disclosure_quality.png)
+
+**5. Company card** - one company against the median of its ranking group, with its percentile
+and rank on every public KPI.
+
+![Power BI Company card page](docs/images/powerbi_5_company_card.png)
+
+To open it: Power BI Desktop, `powerbi/esg_lens_public/esg_lens_public.pbip`, then set the
+`ExportFolder` parameter to your `exports\public\` folder
+([build guide](docs/powerbi_build_guide.md)).
+
 ## What I built
 
 | Layer | What it does | Tools |
@@ -47,9 +81,9 @@ shown. Details and caveats: [analysis_findings.md](docs/analysis_findings.md),
 | Semantic layer | 29 group metrics defined once, generated from a KPI catalogue; whole-group vs typical-company | MetricFlow |
 | SQL analysis | 12 business questions with answer, insight and caveat | SQL (window functions, QUALIFY, PIVOT, GROUPING SETS) |
 | Statistics | 5 pre-registered studies, permutation and bootstrap, multiple-test correction, power | Python (scipy, numpy) |
-| Power BI model and Excel | Generated star-schema models with measures reconciled to the semantic layer; Excel peer benchmark | Power BI (PBIP/TMDL), openpyxl |
+| Power BI report and Excel | Generated star-schema models with measures reconciled to the semantic layer; a 5-page report; Excel peer benchmark | Power BI (PBIP/TMDL, DAX), openpyxl |
 | Orchestration | One manual-only DAG, 17 tasks, run once in Docker with the network switched off | Airflow 3, Cosmos |
-| Streamlit report card | 6 pages reading only the public exports | Streamlit |
+| Streamlit report card | 6 pages reading only the public exports, [live on Community Cloud](https://esg-lens-india.streamlit.app) | Streamlit |
 | AI analyst | 6 validated tools, no free-form SQL, guided-question mode without a model, evaluated on a fixed question set | Gemini / Ollama / Claude |
 
 ## Architecture
@@ -104,7 +138,7 @@ flowchart LR
 - **Reconciliation across tools.** Power BI measures and the public group table are checked against
   the semantic layer (87 Power BI figures equal to `mf query`; all 2,562 shown cells of the public
   group table equal) ([checklist](docs/powerbi_reconciliation.md)).
-- **Tests.** Latest local runs: pytest 381 passed, 6 skipped (the skips need Airflow in Docker);
+- **Tests.** Latest local runs: pytest 385 passed, 6 skipped (the skips need Airflow in Docker);
   dbt build 562 steps passed, 0 warnings, 0 errors (446 data tests, 13 unit tests, about 4 minutes). CI runs lint, pytest and a dbt parse on synthetic data.
 
 ## Data and compliance
@@ -115,16 +149,30 @@ gaps, percentiles, medians, scores, counts), with plain-text citations and no li
 We have not asked NSE for permission and do not assume it. Full rules:
 [publication_policy.md](docs/publication_policy.md).
 
-## Run it
+## How to run
+
+**Fastest:** open the [live app](https://esg-lens-india.streamlit.app). Nothing to install.
+
+**The app on your machine** (Python 3.12; it reads only the committed `exports/public`, so no raw
+data is needed):
 
 ```powershell
+git clone https://github.com/pritysapkal/esg-lens-india.git
+cd esg-lens-india
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-.\scripts\dev.ps1 setup        # packages, dbt deps
-.\scripts\dev.ps1 app          # Streamlit report card on http://localhost:8501
+pip install -r app/requirements.txt
+streamlit run app/streamlit_app.py     # http://localhost:8501
 ```
 
-The app runs from the committed `exports/public` and needs no raw data. The rest needs the
+**The full project** (warehouse, tests, analysis):
+
+```powershell
+.\scripts\dev.ps1 setup        # all packages, dbt deps
+.\scripts\dev.ps1 app          # same app as above
+```
+
+The pipeline itself needs the
 filings downloaded into `data/raw` (see [how_to_add_filings.md](docs/how_to_add_filings.md)):
 
 | Target | What it does |
@@ -154,10 +202,9 @@ model or key. More: [ai_analyst.md](docs/ai_analyst.md).
 | 11 | Pre-registered statistics | [stats_findings.md](docs/stats_findings.md) |
 | 12 | Power BI model and Excel (engine) | [powerbi_build_guide.md](docs/powerbi_build_guide.md) |
 | 13 | Airflow, Streamlit report card, AI analyst v1 and v2 | [orchestration.md](docs/orchestration.md), [streamlit_app.md](docs/streamlit_app.md), [ai_analyst.md](docs/ai_analyst.md) |
+| 14 | Five-page Power BI report, Streamlit polish and deployment to Community Cloud | [powerbi_build_guide.md](docs/powerbi_build_guide.md), [live app](https://esg-lens-india.streamlit.app) |
 
-Remaining: the five Power BI report pages (the model is done; the pages are built by Prity from
-the build guide), then Week 14: insight report, Streamlit Cloud deployment and a 3-minute demo
-video. Full plan: [project_plan.md](docs/project_plan.md).
+The project is complete. Full plan and backlog: [project_plan.md](docs/project_plan.md).
 
 ## Repository layout
 
