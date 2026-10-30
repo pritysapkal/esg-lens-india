@@ -1,0 +1,370 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "balanced_panel",
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Same companies, every year",
+                    "textStyle": {
+                      "fontSize": "13pt",
+                      "color": "#1F2A28",
+                      "fontWeight": "bold"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Asset-heavy · the 15 companies comparable from FY2022-23 to FY2025-26",
+                    "textStyle": {
+                      "fontSize": "9pt",
+                      "color": "#5B6B67",
+                      "fontStyle": "italic"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": " ",
+                    "textStyle": {
+                      "fontSize": "3pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "+3.7%",
+                    "textStyle": {
+                      "fontSize": "20pt",
+                      "color": "#1F7A6D",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "   whole group",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#1F2A28"
+                    }
+                  },
+                  {
+                    "value": "        ",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#1F2A28"
+                    }
+                  },
+                  {
+                    "value": "−38%",
+                    "textStyle": {
+                      "fontSize": "20pt",
+                      "color": "#C27C0E",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "   typical company",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Counting every reporting company instead, the whole group falls ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#1F2A28"
+                    }
+                  },
+                  {
+                    "value": "15.2%",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#1F7A6D",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": ": part of that fall is only who is in the data.",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Source: Week 10 SQL analysis, Q1 (balanced panel) · static figures",
+                    "textStyle": {
+                      "fontSize": "8pt",
+                      "color": "#5B6B67",
+                      "fontStyle": "italic"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#DCE4E1'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "10D"
+                }
+              }
+            },
+            "width": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dropShadow": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#000000'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "88D"
+                }
+              }
+            },
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Outer'"
+                }
+              }
+            },
+            "preset": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Custom'"
+                }
+              }
+            },
+            "shadowBlur": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            },
+            "shadowDistance": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
+                }
+              }
+            },
+            "shadowSpread": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "angle": {
+              "expr": {
+                "Literal": {
+                  "Value": "90D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "padding": [
+        {
+          "properties": {
+            "top": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "bottom": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "left": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "right": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Balanced panel: following the same 15 Asset-heavy companies, whole-group intensity rose 3.7% while the typical company fell 38%; counting all companies, it fell 15.2%.'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "position": {
+    "x": 24,
+    "y": 422,
+    "z": 3000,
+    "height": 186,
+    "width": 608,
+    "tabOrder": 3000
+  }
+}

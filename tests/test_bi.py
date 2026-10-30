@@ -236,18 +236,27 @@ def test_power_bi_report_matches_the_official_pbir_schemas(project):
         schema = registry.get_or_retrieve(uri).value.contents
         jsonschema.Draft7Validator(schema, registry=registry).validate(doc)
     pages = json.loads((report / "definition/pages/pages.json").read_text(encoding="utf-8"))
-    (page_name,) = pages["pageOrder"]
-    assert pages["activePageName"] == page_name
-    page = json.loads(
-        (report / f"definition/pages/{page_name}/page.json").read_text(encoding="utf-8")
+    first, *rest = pages["pageOrder"]
+    assert pages["activePageName"] == first
+    assert len(set(pages["pageOrder"])) == len(pages["pageOrder"])
+    for page_name in pages["pageOrder"]:
+        page = json.loads(
+            (report / f"definition/pages/{page_name}/page.json").read_text(encoding="utf-8")
+        )
+        assert page["name"] == page_name
+    first_page = json.loads(
+        (report / f"definition/pages/{first}/page.json").read_text(encoding="utf-8")
     )
-    assert page["name"] == page_name and page["displayName"] == "Overview"
+    assert first_page["displayName"] == "Overview"
+    folders = {p.name for p in (report / "definition/pages").iterdir() if p.is_dir()}
+    assert folders == set(pages["pageOrder"]), "a page folder is missing from pages.json"
 
 
 def test_no_local_path_is_committed_in_the_power_bi_projects():
     drive = re.compile(r"\b[A-Za-z]:\\")
     for path in POWERBI.rglob("*"):
-        if path.is_file():
+        # .pbi/ is Desktop's local cache and settings: git-ignored, never committed
+        if path.is_file() and ".pbi" not in path.relative_to(POWERBI).parts:
             text = path.read_text(encoding="utf-8", errors="replace")
             assert not drive.search(text), (
                 f"{path}: hard-coded path (use the ExportFolder parameter)"

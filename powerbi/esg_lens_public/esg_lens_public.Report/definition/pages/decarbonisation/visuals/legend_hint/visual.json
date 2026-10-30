@@ -1,0 +1,127 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "legend_hint",
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Whole group",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#1F7A6D",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": " = all emissions ÷ all turnover (big firms weigh more)   ·   ",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#5B6B67"
+                    }
+                  },
+                  {
+                    "value": "Typical company",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#C27C0E",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": " = the median   ·   each panel has its own scale   ·   tCO2e per ₹ crore   ·   FY2025-26 provisional",
+                    "textStyle": {
+                      "fontSize": "10pt",
+                      "color": "#5B6B67"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'How to read the three charts below.'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "position": {
+    "x": 24,
+    "y": 80,
+    "z": 200,
+    "height": 30,
+    "width": 1232,
+    "tabOrder": 200
+  }
+}

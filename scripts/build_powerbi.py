@@ -1039,6 +1039,12 @@ def _relationships_tmdl(model: Model) -> str:
 
 SCHEMA_ROOT = "https://developer.microsoft.com/json-schemas/fabric/item/report"
 PAGE_ID = "overview"  # PBIR page folder / name: letters, digits, _ and - only
+# Report pages in order: (folder / name, display name). The public report carries the
+# five-page build of docs/powerbi_build_guide.md; the local one keeps the Overview only.
+PAGES = {
+    "public": (("overview", "Overview"), ("decarbonisation", "Decarbonisation")),
+    "local": (("overview", "Overview"),),
+}
 
 
 def project_files(model: Model) -> dict[str, str]:
@@ -1090,22 +1096,25 @@ def project_files(model: Model) -> dict[str, str]:
         f"{report_dir}/definition/pages/pages.json": json.dumps(
             {
                 "$schema": f"{SCHEMA_ROOT}/definition/pagesMetadata/1.0.0/schema.json",
-                "pageOrder": [PAGE_ID],
+                "pageOrder": [page for page, _ in PAGES[model.audience]],
                 "activePageName": PAGE_ID,
             },
             indent=2,
         ),
-        f"{report_dir}/definition/pages/{PAGE_ID}/page.json": json.dumps(
-            {
-                "$schema": f"{SCHEMA_ROOT}/definition/page/2.1.0/schema.json",
-                "name": PAGE_ID,
-                "displayName": "Overview",
-                "displayOption": "FitToPage",
-                "height": 720,
-                "width": 1280,
-            },
-            indent=2,
-        ),
+        **{
+            f"{report_dir}/definition/pages/{page}/page.json": json.dumps(
+                {
+                    "$schema": f"{SCHEMA_ROOT}/definition/page/2.1.0/schema.json",
+                    "name": page,
+                    "displayName": display,
+                    "displayOption": "FitToPage",
+                    "height": 720,
+                    "width": 1280,
+                },
+                indent=2,
+            )
+            for page, display in PAGES[model.audience]
+        },
         f"{model_dir}/definition.pbism": json.dumps({"version": "4.0", "settings": {}}, indent=2),
         f"{model_dir}/definition/database.tmdl": (
             f"database\n\tcompatibilityLevel: {COMPATIBILITY_LEVEL}\n"

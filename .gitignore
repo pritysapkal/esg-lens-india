@@ -53,6 +53,8 @@ exports/public/*
 powerbi/**/.pbi/
 # Fabric Git metadata Desktop adds; PBIP does not need it
 powerbi/**/.platform
+# Desktop-generated linguistic schema (Q&A synonyms); not part of the generated model
+powerbi/**/definition/cultures/
 *.abf
 
 # Power BI backups / lock files
