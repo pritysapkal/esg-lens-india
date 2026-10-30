@@ -55,6 +55,7 @@ table fct_disclosure_quality
 	/// Disclosure Quality Score, 0-100, one decimal; empty if fewer than two components could be scored. Compare only within a financial year.
 	column dqs_total
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: e8145a3e-e9cf-5050-8fc3-27820e1c198e
 		summarizeBy: none
 		sourceColumn: dqs_total
@@ -69,6 +70,7 @@ table fct_disclosure_quality
 	/// Average of dqs_mandatory_completeness and dqs_voluntary_depth, 0-1.
 	column dqs_completeness
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 6adaf218-da1c-55a7-a008-d567094bf506
 		summarizeBy: none
 		sourceColumn: dqs_completeness
@@ -76,6 +78,7 @@ table fct_disclosure_quality
 	/// Required metrics disclosed / required metrics, 0-1.
 	column dqs_mandatory_completeness
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 27178e59-8827-5402-aefd-61eb62a7dcbf
 		summarizeBy: none
 		sourceColumn: dqs_mandatory_completeness
@@ -83,6 +86,7 @@ table fct_disclosure_quality
 	/// Leadership (voluntary) indicators with a substantive value / Leadership indicators of the taxonomy, 0-1.
 	column dqs_voluntary_depth
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 945ee6d7-64a4-5316-858f-2d4258855a54
 		summarizeBy: none
 		sourceColumn: dqs_voluntary_depth
@@ -90,6 +94,7 @@ table fct_disclosure_quality
 	/// 1 - failed checks / applicable checks inside the filing, 0-1.
 	column dqs_internal_consistency
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: a3b1e09f-b9c3-5de4-9d8f-075bf55dc03e
 		summarizeBy: none
 		sourceColumn: dqs_internal_consistency
@@ -97,6 +102,7 @@ table fct_disclosure_quality
 	/// 1 - flagged metrics / comparable metrics against the next report, 0-1; empty when there is no later filing.
 	column dqs_temporal_consistency
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: bd58cd0d-703a-55bd-a6ea-689b87c60914
 		summarizeBy: none
 		sourceColumn: dqs_temporal_consistency
@@ -104,6 +110,7 @@ table fct_disclosure_quality
 	/// Assurance points, 0-1 (baseline of the level plus the whole-report bonus); empty before FY2023-24.
 	column dqs_assurance
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 744364c4-145f-568f-952f-e04aa85fa4e2
 		summarizeBy: none
 		sourceColumn: dqs_assurance
@@ -153,6 +160,7 @@ table fct_disclosure_quality
 	/// Percentile within ranking group and financial year, 100 = best; same conditions as the rank.
 	column dqs_percentile_in_group
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 9422ff02-542a-57ed-b7a3-04c77d51c099
 		summarizeBy: none
 		sourceColumn: dqs_percentile_in_group

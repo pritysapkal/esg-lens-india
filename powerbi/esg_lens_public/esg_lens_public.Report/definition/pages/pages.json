@@ -2,7 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
   "pageOrder": [
     "overview",
-    "decarbonisation"
+    "decarbonisation",
+    "concentration",
+    "disclosure_quality",
+    "company_card"
   ],
   "activePageName": "overview"
 }

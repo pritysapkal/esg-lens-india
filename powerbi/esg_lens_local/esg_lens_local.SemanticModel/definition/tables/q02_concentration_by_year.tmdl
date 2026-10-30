@@ -16,18 +16,21 @@ table q02_concentration_by_year
 
 	column top_1_share_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 4feedd0e-914f-5790-b1db-97c1ac6d7721
 		summarizeBy: none
 		sourceColumn: top_1_share_pct
 
 	column top_5_share_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: e68cbd42-8acb-5cc5-afd6-b3936726ec1b
 		summarizeBy: none
 		sourceColumn: top_5_share_pct
 
 	column top_10_share_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 31222ff7-5728-53f3-a702-06de11731c64
 		summarizeBy: none
 		sourceColumn: top_10_share_pct

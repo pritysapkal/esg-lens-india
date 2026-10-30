@@ -129,6 +129,7 @@ createOrReplace
 		/// 12 / period_months.
 		column annualisation_factor
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 201386ea-3312-5da7-ad4c-7c3b746e51a8
 			summarizeBy: none
 			sourceColumn: annualisation_factor
@@ -136,6 +137,7 @@ createOrReplace
 		/// headcount_female / headcount_total x 100.
 		column female_workforce_pct
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 19d1978f-7be7-59d4-b64d-4c600d12dba1
 			summarizeBy: none
 			sourceColumn: female_workforce_pct
@@ -143,6 +145,7 @@ createOrReplace
 		/// female_wage_share_pct - female_workforce_pct, in percentage points; negative = women get a smaller share of wages than of headcount.
 		column pay_equity_gap_pp
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 35176b96-ce92-57e8-aefd-b36369d44813
 			summarizeBy: none
 			sourceColumn: pay_equity_gap_pp
@@ -150,6 +153,7 @@ createOrReplace
 		/// attrition_female_pct - attrition_male_pct, in percentage points.
 		column attrition_gap_pp
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d0010df3-cb1f-5f77-94e0-323614bd3f66
 			summarizeBy: none
 			sourceColumn: attrition_gap_pp
@@ -164,6 +168,7 @@ createOrReplace
 		/// ghg_s12_tco2e / turnover_cr (computed by us).
 		column ghg_intensity_tco2e_per_cr
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 74c171a9-9f15-513b-8721-cd165b0ff884
 			summarizeBy: none
 			sourceColumn: ghg_intensity_tco2e_per_cr
@@ -178,6 +183,7 @@ createOrReplace
 		/// energy_renewable_gj / energy_total_gj x 100.
 		column renewable_share_pct
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 3c95f413-21e5-5d3a-ab1d-b6928d3e85b8
 			summarizeBy: none
 			sourceColumn: renewable_share_pct
@@ -185,6 +191,7 @@ createOrReplace
 		/// energy_total_gj / turnover_cr (computed).
 		column energy_intensity_gj_per_cr
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 938a6e9c-b693-5501-b9ff-febf0b7b2891
 			summarizeBy: none
 			sourceColumn: energy_intensity_gj_per_cr
@@ -199,6 +206,7 @@ createOrReplace
 		/// water_consumption_kl / turnover_cr (computed).
 		column water_intensity_kl_per_cr
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d29a6836-955d-5e9f-8363-74f5ecb1a8a4
 			summarizeBy: none
 			sourceColumn: water_intensity_kl_per_cr
@@ -213,6 +221,7 @@ createOrReplace
 		/// waste_recovered_t / waste_generated_t x 100.
 		column waste_recovery_rate_pct
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 4a6ebe25-3597-5958-a5fa-6173840b77e7
 			summarizeBy: none
 			sourceColumn: waste_recovery_rate_pct
@@ -220,6 +229,7 @@ createOrReplace
 		/// waste_generated_t / turnover_cr.
 		column waste_intensity_t_per_cr
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 86f858f3-0485-5781-9818-7fcc3c8f9171
 			summarizeBy: none
 			sourceColumn: waste_intensity_t_per_cr
@@ -227,6 +237,7 @@ createOrReplace
 		/// (generated - recovered - disposed) / generated x 100; far from 0 means inconsistent inputs.
 		column waste_balance_gap_pct
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 7b555211-46fa-5333-9223-8da506b29ef9
 			summarizeBy: none
 			sourceColumn: waste_balance_gap_pct
@@ -241,6 +252,7 @@ createOrReplace
 		/// fatalities_total / headcount_total x 10,000.
 		column fatalities_per_10k_workforce
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 08ad6dd0-1cd9-545e-873f-1dd2d3a76f65
 			summarizeBy: none
 			sourceColumn: fatalities_per_10k_workforce
@@ -332,6 +344,7 @@ createOrReplace
 		/// Disclosure Quality Score, 0-100, one decimal; empty if fewer than two components could be scored. Compare only within a financial year.
 		column dqs_total
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d9bb379c-3ec1-5ba1-b10d-4133618ed8d6
 			summarizeBy: none
 			sourceColumn: dqs_total
@@ -346,6 +359,7 @@ createOrReplace
 		/// Average of dqs_mandatory_completeness and dqs_voluntary_depth, 0-1.
 		column dqs_completeness
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: bf5e1ef5-4d3b-57af-b3e3-e13d853b5d46
 			summarizeBy: none
 			sourceColumn: dqs_completeness
@@ -353,6 +367,7 @@ createOrReplace
 		/// Required metrics disclosed / required metrics, 0-1.
 		column dqs_mandatory_completeness
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: a4b9dca2-7fec-5a2b-bd43-cc1660671b7b
 			summarizeBy: none
 			sourceColumn: dqs_mandatory_completeness
@@ -360,6 +375,7 @@ createOrReplace
 		/// Leadership (voluntary) indicators with a substantive value / Leadership indicators of the taxonomy, 0-1.
 		column dqs_voluntary_depth
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 5bb92fd0-0f98-524b-8316-2f7e1aca74cd
 			summarizeBy: none
 			sourceColumn: dqs_voluntary_depth
@@ -367,6 +383,7 @@ createOrReplace
 		/// 1 - failed checks / applicable checks inside the filing, 0-1.
 		column dqs_internal_consistency
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d76cef88-b9c5-5ad0-95eb-0d27f3c3d009
 			summarizeBy: none
 			sourceColumn: dqs_internal_consistency
@@ -374,6 +391,7 @@ createOrReplace
 		/// 1 - flagged metrics / comparable metrics against the next report, 0-1; empty when there is no later filing.
 		column dqs_temporal_consistency
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 5ef5ad0d-433f-5528-8a1a-08ccfae97f1b
 			summarizeBy: none
 			sourceColumn: dqs_temporal_consistency
@@ -381,6 +399,7 @@ createOrReplace
 		/// Assurance points, 0-1 (baseline of the level plus the whole-report bonus); empty before FY2023-24.
 		column dqs_assurance
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 0ff7c10d-e9fd-5388-b374-89fb3ccb062e
 			summarizeBy: none
 			sourceColumn: dqs_assurance
@@ -430,6 +449,7 @@ createOrReplace
 		/// Percentile within ranking group and financial year, 100 = best; same conditions as the rank.
 		column dqs_percentile_in_group
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d75b75a5-dda9-5b1a-97df-1bdde01b01d1
 			summarizeBy: none
 			sourceColumn: dqs_percentile_in_group
@@ -474,12 +494,14 @@ createOrReplace
 
 		column ghg_intensity_agg
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 7526df72-fdfd-53b1-8f2a-1b6f5041c8f0
 			summarizeBy: none
 			sourceColumn: ghg_intensity_agg
 
 		column ghg_intensity_median
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d842a0a0-9f9b-534a-86df-bfacdf017314
 			summarizeBy: none
 			sourceColumn: ghg_intensity_median
@@ -492,12 +514,14 @@ createOrReplace
 
 		column energy_intensity_agg
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 47f28e76-57e8-5c15-b7c0-23cd6d06fc9f
 			summarizeBy: none
 			sourceColumn: energy_intensity_agg
 
 		column energy_intensity_median
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 33f16f97-8822-5be8-b83b-154beed70fd1
 			summarizeBy: none
 			sourceColumn: energy_intensity_median
@@ -510,12 +534,14 @@ createOrReplace
 
 		column water_intensity_agg
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: f6c986ed-d468-5aa8-937f-cf26ea246110
 			summarizeBy: none
 			sourceColumn: water_intensity_agg
 
 		column water_intensity_median
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 9f8d9c38-d801-5b76-b334-98ba10bf5a81
 			summarizeBy: none
 			sourceColumn: water_intensity_median
@@ -528,12 +554,14 @@ createOrReplace
 
 		column waste_intensity_agg
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 9fd6bcb0-3697-5637-a0d8-a25f117085ef
 			summarizeBy: none
 			sourceColumn: waste_intensity_agg
 
 		column waste_intensity_median
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 3b9c6148-d957-544e-bd19-1b876b7c69ee
 			summarizeBy: none
 			sourceColumn: waste_intensity_median
@@ -546,6 +574,7 @@ createOrReplace
 
 		column renewable_share_agg
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 3b7117e1-ffbc-54ac-8562-4ec2adbed8f8
 			summarizeBy: none
 			sourceColumn: renewable_share_agg
@@ -558,6 +587,7 @@ createOrReplace
 
 		column female_workforce_agg
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 12d785a0-a042-5558-af7a-e15c02e0b8c4
 			summarizeBy: none
 			sourceColumn: female_workforce_agg
@@ -576,30 +606,35 @@ createOrReplace
 
 		column scope3_disclosed_share
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 394b08be-cfff-51e1-abe0-c374bd8577b5
 			summarizeBy: none
 			sourceColumn: scope3_disclosed_share
 
 		column dqs_avg
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 98b285f8-a583-50fc-ac3e-82daa49831fd
 			summarizeBy: none
 			sourceColumn: dqs_avg
 
 		column dqs_median
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: ac6be2ac-892b-5be9-844f-d993a00efa46
 			summarizeBy: none
 			sourceColumn: dqs_median
 
 		column dqs_grade_a_share
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 78ffec41-c532-5d80-9d67-5c47d7f4d8c8
 			summarizeBy: none
 			sourceColumn: dqs_grade_a_share
 
 		column voluntary_depth_avg
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 49740f57-96eb-55b6-bdef-bb7d347bc8d7
 			summarizeBy: none
 			sourceColumn: voluntary_depth_avg
@@ -630,6 +665,7 @@ createOrReplace
 
 		column material_restatement_share
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 160b9ff9-f5ad-5c9d-b5be-c99555fd46b5
 			summarizeBy: none
 			sourceColumn: material_restatement_share
@@ -738,6 +774,7 @@ createOrReplace
 		/// pct no change
 		column pct_no_change
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 4595b294-34ba-531d-be19-bcad59e40a76
 			summarizeBy: none
 			sourceColumn: pct_no_change
@@ -745,6 +782,7 @@ createOrReplace
 		/// pct minor
 		column pct_minor
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d9163500-a5fa-530d-96ad-295e9de9e9af
 			summarizeBy: none
 			sourceColumn: pct_minor
@@ -752,6 +790,7 @@ createOrReplace
 		/// pct material
 		column pct_material
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 4d93a441-0e57-5c59-b885-c96db8e3e308
 			summarizeBy: none
 			sourceColumn: pct_material
@@ -766,6 +805,7 @@ createOrReplace
 		/// pct material unexplained
 		column pct_material_unexplained
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: a9038f4b-f3fd-59d1-b6c4-521a31e45fc9
 			summarizeBy: none
 			sourceColumn: pct_material_unexplained
@@ -780,6 +820,7 @@ createOrReplace
 		/// pct material flattering
 		column pct_material_flattering
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 46644c1f-7f73-5f62-9aed-4c9195e32273
 			summarizeBy: none
 			sourceColumn: pct_material_flattering
@@ -815,6 +856,7 @@ createOrReplace
 		/// pct companies with material
 		column pct_companies_with_material
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 7a9cf695-f215-5b95-896f-60772d47381f
 			summarizeBy: none
 			sourceColumn: pct_companies_with_material
@@ -906,6 +948,7 @@ createOrReplace
 		/// Share of the Scope 1+2 emissions of all companies covered that year, in % (0-100); empty in a year with fewer than 5 companies.
 		column share_of_total_pct
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 615ec038-d49e-53c2-b6c1-57117555ba29
 			summarizeBy: none
 			sourceColumn: share_of_total_pct
@@ -913,6 +956,7 @@ createOrReplace
 		/// Share held by this company and every larger emitter together, in % (0-100); empty in a year with fewer than 5 companies.
 		column cumulative_share_pct
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d5a957fc-a2b2-568f-9c4c-12d93ba3281b
 			summarizeBy: none
 			sourceColumn: cumulative_share_pct
@@ -1025,6 +1069,7 @@ createOrReplace
 		/// 0-100, 100 = best in the ranking group and year; empty when not ranked.
 		column percentile_in_group
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: a11c1e27-1bd7-517c-a3bb-3fbd04b52f0a
 			summarizeBy: none
 			sourceColumn: percentile_in_group
@@ -1060,6 +1105,7 @@ createOrReplace
 		/// The KPI value, only when kpi_catalogue marks the KPI public_safe (a value we compute); empty for filed values.
 		column kpi_value_public
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: eb874420-2095-50a7-89fc-030b5570826c
 			summarizeBy: none
 			sourceColumn: kpi_value_public
@@ -1116,6 +1162,7 @@ createOrReplace
 		/// Computed GHG intensity in from_year, tCO2e per Rs crore (2 decimals).
 		column intensity_from
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: aea7c496-7087-5677-805c-35503429b7b9
 			summarizeBy: none
 			sourceColumn: intensity_from
@@ -1123,6 +1170,7 @@ createOrReplace
 		/// Computed GHG intensity in to_year, tCO2e per Rs crore (2 decimals).
 		column intensity_to
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: d1d06332-4cc6-5d54-a0b6-5b5082d73e6a
 			summarizeBy: none
 			sourceColumn: intensity_to
@@ -1130,6 +1178,7 @@ createOrReplace
 		/// Change from from_year to to_year in % (1 decimal).
 		column change_pct
 			dataType: double
+			formatString: #,##0.0#
 			lineageTag: 126b58d8-3476-58dd-be4f-3f85cf8e2b46
 			summarizeBy: none
 			sourceColumn: change_pct

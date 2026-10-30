@@ -62,6 +62,7 @@ table fct_restatement
 	/// LOCAL ONLY - not public (publication policy). CY value of year Y from the filing for Y.
 	column original_value
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 9b001ac0-597f-54c1-a451-3463341fecdb
 		summarizeBy: none
 		sourceColumn: original_value
@@ -69,6 +70,7 @@ table fct_restatement
 	/// LOCAL ONLY - not public (publication policy). PY value of year Y from the filing for Y+1.
 	column restated_value
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 8c3000b9-6c00-59cc-adb6-446fff577731
 		summarizeBy: none
 		sourceColumn: restated_value
@@ -76,6 +78,7 @@ table fct_restatement
 	/// LOCAL ONLY - not public (publication policy). restated - original.
 	column abs_change
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: de1d38e5-5f31-522b-a51c-7ff60016a442
 		summarizeBy: none
 		sourceColumn: abs_change
@@ -83,6 +86,7 @@ table fct_restatement
 	/// (restated - original) / |original|; empty when original is 0.
 	column pct_change
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 5e8f9a89-a86b-55d1-acce-2b7d8c2e5fbe
 		summarizeBy: none
 		sourceColumn: pct_change
@@ -90,6 +94,7 @@ table fct_restatement
 	/// restated - original in percentage points (percent metrics only).
 	column pp_change
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: f40d8661-0fac-5b0f-a070-38618e80780f
 		summarizeBy: none
 		sourceColumn: pp_change
@@ -125,6 +130,7 @@ table fct_restatement
 	/// restated / original (both positive).
 	column ratio
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 01caf822-595c-5df1-bffb-067870dd1fef
 		summarizeBy: none
 		sourceColumn: ratio

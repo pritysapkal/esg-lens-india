@@ -157,13 +157,15 @@ year is still provisional.
 - Company table: `dim_company[display_name]` with the columns `dqs_total`, `dqs_grade`,
   `dqs_rank_in_group` and `dqs_reason_codes` of `rpt_public_disclosure_quality` (a table visual
   shows them as they are; no sum), plus `[Company: data status]`.
-- Optional: restatement classes from `rpt_public_restatement_summary` (level `year`) as a
-  100% stacked bar.
+- Restatement classes from `rpt_public_restatement_summary`, levels `peer_group` and
+  `overall` (the table has no `year` level): figures compared and the unchanged / minor /
+  material shares, in a table. It has no year column, so it covers all years and ignores the
+  year slicer.
 - Provisional label in the title: "FY2025-26 is provisional: no later report has confirmed it
   yet", or a card with `[Company: data status]`.
 
-**Visual.** Matrix with data bars for the scores; a table of companies with conditional
-formatting on the grade; a 100% stacked bar of restatement classes.
+**Visual.** Matrix of the scores by sector group; a table of every company, highest score
+first; a table of restatement classes by peer group.
 
 **Check.** FY2024-25, group type `all`: typical company score 85.65.
 

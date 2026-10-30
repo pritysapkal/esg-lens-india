@@ -165,6 +165,7 @@ table dim_company
 	/// Turnover share of the largest NIC division.
 	column nic_top_division_share
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 396c5b65-a632-51fc-8a9a-4ede89ee4844
 		summarizeBy: none
 		sourceColumn: nic_top_division_share

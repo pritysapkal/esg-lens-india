@@ -28,18 +28,21 @@ table q03_yoy_changes_with_confidence
 
 	column intensity_from
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: abe2c914-4934-5b89-9ece-ba04d21a8616
 		summarizeBy: none
 		sourceColumn: intensity_from
 
 	column intensity_to
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 0ed8fe98-0f97-5d73-9c48-40cb7fcd5504
 		summarizeBy: none
 		sourceColumn: intensity_to
 
 	column change_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: f9d9408e-a00c-531a-9bb9-ff82b1ca0449
 		summarizeBy: none
 		sourceColumn: change_pct

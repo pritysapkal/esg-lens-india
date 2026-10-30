@@ -68,6 +68,7 @@ table fct_peer_benchmark
 	/// Median of the KPI.
 	column median_value
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 87019eaa-8eb6-5148-9f8d-dfad7a2392aa
 		summarizeBy: none
 		sourceColumn: median_value
@@ -75,6 +76,7 @@ table fct_peer_benchmark
 	/// 25th percentile.
 	column p25_value
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: f221ab80-2297-5921-af16-6bfe12a736de
 		summarizeBy: none
 		sourceColumn: p25_value
@@ -82,6 +84,7 @@ table fct_peer_benchmark
 	/// 75th percentile.
 	column p75_value
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 5bf5cb98-90f0-5588-b8cb-a916521303ff
 		summarizeBy: none
 		sourceColumn: p75_value
@@ -89,6 +92,7 @@ table fct_peer_benchmark
 	/// LOCAL ONLY - not public (publication policy). Lowest value.
 	column min_value
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: bd4e750d-22dd-55b5-b4b1-197cb0626d1f
 		summarizeBy: none
 		sourceColumn: min_value
@@ -96,6 +100,7 @@ table fct_peer_benchmark
 	/// LOCAL ONLY - not public (publication policy). Highest value.
 	column max_value
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: a58f78a0-f5b4-5552-b942-959a2c9f62d2
 		summarizeBy: none
 		sourceColumn: max_value

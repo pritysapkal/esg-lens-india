@@ -41,6 +41,7 @@ table rpt_public_ghg_yoy
 	/// Computed GHG intensity in from_year, tCO2e per Rs crore (2 decimals).
 	column intensity_from
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: aea7c496-7087-5677-805c-35503429b7b9
 		summarizeBy: none
 		sourceColumn: intensity_from
@@ -48,6 +49,7 @@ table rpt_public_ghg_yoy
 	/// Computed GHG intensity in to_year, tCO2e per Rs crore (2 decimals).
 	column intensity_to
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: d1d06332-4cc6-5d54-a0b6-5b5082d73e6a
 		summarizeBy: none
 		sourceColumn: intensity_to
@@ -55,6 +57,7 @@ table rpt_public_ghg_yoy
 	/// Change from from_year to to_year in % (1 decimal).
 	column change_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 126b58d8-3476-58dd-be4f-3f85cf8e2b46
 		summarizeBy: none
 		sourceColumn: change_pct

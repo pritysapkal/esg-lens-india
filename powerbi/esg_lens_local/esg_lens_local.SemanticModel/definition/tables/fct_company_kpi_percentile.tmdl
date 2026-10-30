@@ -34,6 +34,7 @@ table fct_company_kpi_percentile
 	/// LOCAL ONLY - not public (publication policy). The company's KPI value.
 	column value
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: b069d8a7-ebf0-5409-815d-a962423e6859
 		summarizeBy: none
 		sourceColumn: value
@@ -48,6 +49,7 @@ table fct_company_kpi_percentile
 	/// 0-100, direction-aware (100 = best).
 	column percentile_in_group
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: ac9b0814-751e-57f0-b8ac-d28ce036ece8
 		summarizeBy: none
 		sourceColumn: percentile_in_group

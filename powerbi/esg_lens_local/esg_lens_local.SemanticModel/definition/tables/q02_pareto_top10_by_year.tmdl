@@ -34,12 +34,14 @@ table q02_pareto_top10_by_year
 
 	column share_of_total_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 3ac47282-fc68-59b8-b00c-36b3fb4af1c4
 		summarizeBy: none
 		sourceColumn: share_of_total_pct
 
 	column cumulative_share_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: b76c64ed-a6a6-57a9-aece-6e366a2ab668
 		summarizeBy: none
 		sourceColumn: cumulative_share_pct

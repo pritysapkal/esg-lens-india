@@ -999,6 +999,9 @@ def table_tmdl(table: Table) -> str:
         out += _description(column.description, "\t")
         out.append(f"\tcolumn {_quote(column.name)}")
         out.append(f"\t\tdataType: {column.data_type}")
+        if column.data_type == "double":
+            # table visuals show columns as they are: up to 2 decimals, not 6
+            out.append("\t\tformatString: #,##0.0#")
         if column.hidden:
             out.append("\t\tisHidden")
         out.append(f"\t\tlineageTag: {_tag('column', table.name, column.name)}")
@@ -1042,7 +1045,13 @@ PAGE_ID = "overview"  # PBIR page folder / name: letters, digits, _ and - only
 # Report pages in order: (folder / name, display name). The public report carries the
 # five-page build of docs/powerbi_build_guide.md; the local one keeps the Overview only.
 PAGES = {
-    "public": (("overview", "Overview"), ("decarbonisation", "Decarbonisation")),
+    "public": (
+        ("overview", "Overview"),
+        ("decarbonisation", "Decarbonisation"),
+        ("concentration", "Concentration"),
+        ("disclosure_quality", "Disclosure quality"),
+        ("company_card", "Company card"),
+    ),
     "local": (("overview", "Overview"),),
 }
 

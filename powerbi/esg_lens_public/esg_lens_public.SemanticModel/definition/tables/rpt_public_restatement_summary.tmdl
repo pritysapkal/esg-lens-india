@@ -75,6 +75,7 @@ table rpt_public_restatement_summary
 	/// pct no change
 	column pct_no_change
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 4595b294-34ba-531d-be19-bcad59e40a76
 		summarizeBy: none
 		sourceColumn: pct_no_change
@@ -82,6 +83,7 @@ table rpt_public_restatement_summary
 	/// pct minor
 	column pct_minor
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: d9163500-a5fa-530d-96ad-295e9de9e9af
 		summarizeBy: none
 		sourceColumn: pct_minor
@@ -89,6 +91,7 @@ table rpt_public_restatement_summary
 	/// pct material
 	column pct_material
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 4d93a441-0e57-5c59-b885-c96db8e3e308
 		summarizeBy: none
 		sourceColumn: pct_material
@@ -103,6 +106,7 @@ table rpt_public_restatement_summary
 	/// pct material unexplained
 	column pct_material_unexplained
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: a9038f4b-f3fd-59d1-b6c4-521a31e45fc9
 		summarizeBy: none
 		sourceColumn: pct_material_unexplained
@@ -117,6 +121,7 @@ table rpt_public_restatement_summary
 	/// pct material flattering
 	column pct_material_flattering
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 46644c1f-7f73-5f62-9aed-4c9195e32273
 		summarizeBy: none
 		sourceColumn: pct_material_flattering
@@ -152,6 +157,7 @@ table rpt_public_restatement_summary
 	/// pct companies with material
 	column pct_companies_with_material
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 7a9cf695-f215-5b95-896f-60772d47381f
 		summarizeBy: none
 		sourceColumn: pct_companies_with_material

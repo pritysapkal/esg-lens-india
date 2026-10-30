@@ -118,6 +118,7 @@ table rpt_public_company_year
 	/// 12 / period_months.
 	column annualisation_factor
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 201386ea-3312-5da7-ad4c-7c3b746e51a8
 		summarizeBy: none
 		sourceColumn: annualisation_factor
@@ -125,6 +126,7 @@ table rpt_public_company_year
 	/// headcount_female / headcount_total x 100.
 	column female_workforce_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 19d1978f-7be7-59d4-b64d-4c600d12dba1
 		summarizeBy: none
 		sourceColumn: female_workforce_pct
@@ -132,6 +134,7 @@ table rpt_public_company_year
 	/// female_wage_share_pct - female_workforce_pct, in percentage points; negative = women get a smaller share of wages than of headcount.
 	column pay_equity_gap_pp
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 35176b96-ce92-57e8-aefd-b36369d44813
 		summarizeBy: none
 		sourceColumn: pay_equity_gap_pp
@@ -139,6 +142,7 @@ table rpt_public_company_year
 	/// attrition_female_pct - attrition_male_pct, in percentage points.
 	column attrition_gap_pp
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: d0010df3-cb1f-5f77-94e0-323614bd3f66
 		summarizeBy: none
 		sourceColumn: attrition_gap_pp
@@ -153,6 +157,7 @@ table rpt_public_company_year
 	/// ghg_s12_tco2e / turnover_cr (computed by us).
 	column ghg_intensity_tco2e_per_cr
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 74c171a9-9f15-513b-8721-cd165b0ff884
 		summarizeBy: none
 		sourceColumn: ghg_intensity_tco2e_per_cr
@@ -167,6 +172,7 @@ table rpt_public_company_year
 	/// energy_renewable_gj / energy_total_gj x 100.
 	column renewable_share_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 3c95f413-21e5-5d3a-ab1d-b6928d3e85b8
 		summarizeBy: none
 		sourceColumn: renewable_share_pct
@@ -174,6 +180,7 @@ table rpt_public_company_year
 	/// energy_total_gj / turnover_cr (computed).
 	column energy_intensity_gj_per_cr
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 938a6e9c-b693-5501-b9ff-febf0b7b2891
 		summarizeBy: none
 		sourceColumn: energy_intensity_gj_per_cr
@@ -188,6 +195,7 @@ table rpt_public_company_year
 	/// water_consumption_kl / turnover_cr (computed).
 	column water_intensity_kl_per_cr
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: d29a6836-955d-5e9f-8363-74f5ecb1a8a4
 		summarizeBy: none
 		sourceColumn: water_intensity_kl_per_cr
@@ -202,6 +210,7 @@ table rpt_public_company_year
 	/// waste_recovered_t / waste_generated_t x 100.
 	column waste_recovery_rate_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 4a6ebe25-3597-5958-a5fa-6173840b77e7
 		summarizeBy: none
 		sourceColumn: waste_recovery_rate_pct
@@ -209,6 +218,7 @@ table rpt_public_company_year
 	/// waste_generated_t / turnover_cr.
 	column waste_intensity_t_per_cr
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 86f858f3-0485-5781-9818-7fcc3c8f9171
 		summarizeBy: none
 		sourceColumn: waste_intensity_t_per_cr
@@ -216,6 +226,7 @@ table rpt_public_company_year
 	/// (generated - recovered - disposed) / generated x 100; far from 0 means inconsistent inputs.
 	column waste_balance_gap_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 7b555211-46fa-5333-9223-8da506b29ef9
 		summarizeBy: none
 		sourceColumn: waste_balance_gap_pct
@@ -230,6 +241,7 @@ table rpt_public_company_year
 	/// fatalities_total / headcount_total x 10,000.
 	column fatalities_per_10k_workforce
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 08ad6dd0-1cd9-545e-873f-1dd2d3a76f65
 		summarizeBy: none
 		sourceColumn: fatalities_per_10k_workforce

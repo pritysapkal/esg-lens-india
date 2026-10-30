@@ -28,36 +28,42 @@ table q01_ghg_intensity_by_sector
 
 	column ghg_intensity_agg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: b97eb282-38f9-5288-b505-205f3bec2f8c
 		summarizeBy: none
 		sourceColumn: ghg_intensity_agg
 
 	column ghg_intensity_median
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 63277b90-1bc6-54e8-9c15-0471a3cd6e90
 		summarizeBy: none
 		sourceColumn: ghg_intensity_median
 
 	column agg_change_vs_first_year_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: cce81557-6d40-5b39-9339-c0ec09e06fec
 		summarizeBy: none
 		sourceColumn: agg_change_vs_first_year_pct
 
 	column median_change_vs_first_year_pct
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: ecbec354-9169-51ca-a279-0f2e81c838ad
 		summarizeBy: none
 		sourceColumn: median_change_vs_first_year_pct
 
 	column ghg_intensity_agg_exact
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 530fade0-d963-5855-a417-5b05f1bcd1ba
 		summarizeBy: none
 		sourceColumn: ghg_intensity_agg_exact
 
 	column ghg_intensity_median_exact
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 2dcbc888-e069-52cf-bec8-367f643f5605
 		summarizeBy: none
 		sourceColumn: ghg_intensity_median_exact

@@ -76,6 +76,7 @@ table rpt_public_company_percentile
 	/// 0-100, 100 = best in the ranking group and year; empty when not ranked.
 	column percentile_in_group
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: a11c1e27-1bd7-517c-a3bb-3fbd04b52f0a
 		summarizeBy: none
 		sourceColumn: percentile_in_group
@@ -111,6 +112,7 @@ table rpt_public_company_percentile
 	/// The KPI value, only when kpi_catalogue marks the KPI public_safe (a value we compute); empty for filed values.
 	column kpi_value_public
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: eb874420-2095-50a7-89fc-030b5570826c
 		summarizeBy: none
 		sourceColumn: kpi_value_public

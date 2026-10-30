@@ -55,6 +55,7 @@ table rpt_public_disclosure_quality
 	/// Disclosure Quality Score, 0-100, one decimal; empty if fewer than two components could be scored. Compare only within a financial year.
 	column dqs_total
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: d9bb379c-3ec1-5ba1-b10d-4133618ed8d6
 		summarizeBy: none
 		sourceColumn: dqs_total
@@ -69,6 +70,7 @@ table rpt_public_disclosure_quality
 	/// Average of dqs_mandatory_completeness and dqs_voluntary_depth, 0-1.
 	column dqs_completeness
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: bf5e1ef5-4d3b-57af-b3e3-e13d853b5d46
 		summarizeBy: none
 		sourceColumn: dqs_completeness
@@ -76,6 +78,7 @@ table rpt_public_disclosure_quality
 	/// Required metrics disclosed / required metrics, 0-1.
 	column dqs_mandatory_completeness
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: a4b9dca2-7fec-5a2b-bd43-cc1660671b7b
 		summarizeBy: none
 		sourceColumn: dqs_mandatory_completeness
@@ -83,6 +86,7 @@ table rpt_public_disclosure_quality
 	/// Leadership (voluntary) indicators with a substantive value / Leadership indicators of the taxonomy, 0-1.
 	column dqs_voluntary_depth
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 5bb92fd0-0f98-524b-8316-2f7e1aca74cd
 		summarizeBy: none
 		sourceColumn: dqs_voluntary_depth
@@ -90,6 +94,7 @@ table rpt_public_disclosure_quality
 	/// 1 - failed checks / applicable checks inside the filing, 0-1.
 	column dqs_internal_consistency
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: d76cef88-b9c5-5ad0-95eb-0d27f3c3d009
 		summarizeBy: none
 		sourceColumn: dqs_internal_consistency
@@ -97,6 +102,7 @@ table rpt_public_disclosure_quality
 	/// 1 - flagged metrics / comparable metrics against the next report, 0-1; empty when there is no later filing.
 	column dqs_temporal_consistency
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 5ef5ad0d-433f-5528-8a1a-08ccfae97f1b
 		summarizeBy: none
 		sourceColumn: dqs_temporal_consistency
@@ -104,6 +110,7 @@ table rpt_public_disclosure_quality
 	/// Assurance points, 0-1 (baseline of the level plus the whole-report bonus); empty before FY2023-24.
 	column dqs_assurance
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 0ff7c10d-e9fd-5388-b374-89fb3ccb062e
 		summarizeBy: none
 		sourceColumn: dqs_assurance
@@ -153,6 +160,7 @@ table rpt_public_disclosure_quality
 	/// Percentile within ranking group and financial year, 100 = best; same conditions as the rank.
 	column dqs_percentile_in_group
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: d75b75a5-dda9-5b1a-97df-1bdde01b01d1
 		summarizeBy: none
 		sourceColumn: dqs_percentile_in_group

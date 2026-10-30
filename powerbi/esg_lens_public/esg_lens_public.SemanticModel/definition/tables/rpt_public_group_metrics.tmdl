@@ -22,12 +22,14 @@ table rpt_public_group_metrics
 
 	column ghg_intensity_agg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 7526df72-fdfd-53b1-8f2a-1b6f5041c8f0
 		summarizeBy: none
 		sourceColumn: ghg_intensity_agg
 
 	column ghg_intensity_median
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: d842a0a0-9f9b-534a-86df-bfacdf017314
 		summarizeBy: none
 		sourceColumn: ghg_intensity_median
@@ -40,12 +42,14 @@ table rpt_public_group_metrics
 
 	column energy_intensity_agg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 47f28e76-57e8-5c15-b7c0-23cd6d06fc9f
 		summarizeBy: none
 		sourceColumn: energy_intensity_agg
 
 	column energy_intensity_median
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 33f16f97-8822-5be8-b83b-154beed70fd1
 		summarizeBy: none
 		sourceColumn: energy_intensity_median
@@ -58,12 +62,14 @@ table rpt_public_group_metrics
 
 	column water_intensity_agg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: f6c986ed-d468-5aa8-937f-cf26ea246110
 		summarizeBy: none
 		sourceColumn: water_intensity_agg
 
 	column water_intensity_median
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 9f8d9c38-d801-5b76-b334-98ba10bf5a81
 		summarizeBy: none
 		sourceColumn: water_intensity_median
@@ -76,12 +82,14 @@ table rpt_public_group_metrics
 
 	column waste_intensity_agg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 9fd6bcb0-3697-5637-a0d8-a25f117085ef
 		summarizeBy: none
 		sourceColumn: waste_intensity_agg
 
 	column waste_intensity_median
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 3b9c6148-d957-544e-bd19-1b876b7c69ee
 		summarizeBy: none
 		sourceColumn: waste_intensity_median
@@ -94,6 +102,7 @@ table rpt_public_group_metrics
 
 	column renewable_share_agg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 3b7117e1-ffbc-54ac-8562-4ec2adbed8f8
 		summarizeBy: none
 		sourceColumn: renewable_share_agg
@@ -106,6 +115,7 @@ table rpt_public_group_metrics
 
 	column female_workforce_agg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 12d785a0-a042-5558-af7a-e15c02e0b8c4
 		summarizeBy: none
 		sourceColumn: female_workforce_agg
@@ -124,30 +134,35 @@ table rpt_public_group_metrics
 
 	column scope3_disclosed_share
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 394b08be-cfff-51e1-abe0-c374bd8577b5
 		summarizeBy: none
 		sourceColumn: scope3_disclosed_share
 
 	column dqs_avg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 98b285f8-a583-50fc-ac3e-82daa49831fd
 		summarizeBy: none
 		sourceColumn: dqs_avg
 
 	column dqs_median
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: ac6be2ac-892b-5be9-844f-d993a00efa46
 		summarizeBy: none
 		sourceColumn: dqs_median
 
 	column dqs_grade_a_share
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 78ffec41-c532-5d80-9d67-5c47d7f4d8c8
 		summarizeBy: none
 		sourceColumn: dqs_grade_a_share
 
 	column voluntary_depth_avg
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 49740f57-96eb-55b6-bdef-bb7d347bc8d7
 		summarizeBy: none
 		sourceColumn: voluntary_depth_avg
@@ -178,6 +193,7 @@ table rpt_public_group_metrics
 
 	column material_restatement_share
 		dataType: double
+		formatString: #,##0.0#
 		lineageTag: 160b9ff9-f5ad-5c9d-b5be-c99555fd46b5
 		summarizeBy: none
 		sourceColumn: material_restatement_share
