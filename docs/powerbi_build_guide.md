@@ -68,8 +68,9 @@ also in `powerbi\esg_lens_public_measures.dax`.
 
 **Fields and measures.**
 
-- Slicers: `dim_fiscal_year[fiscal_year_label]` (single select); a page filter
-  `rpt_public_group_metrics[group_type]` = `all`.
+- Slicers: `dim_fiscal_year[fiscal_year_label]` (single select), with `[Year status]` in a
+  small card under it; a filter `rpt_public_group_metrics[group_type]` = `all` on each group
+  card (a visual filter: `page.json` is generated, see "After saving in Power BI Desktop").
 - Cards: `[Companies reporting]`, `[GHG intensity, whole group]`,
   `[Disclosure Quality Score, typical company]`, `[Companies disclosing Scope 3 (%)]`,
   `[Renewable share of energy, whole group (%)]`, `[Figures materially restated (%)]` with
@@ -237,6 +238,54 @@ same selection is 0.79.
   best)".
 - **Disclaimer** on every page: "The Disclosure Quality Score is not an ESG rating, and this is
   not investment advice."
+
+## After saving in Power BI Desktop
+
+Saving the project rewrites more than your pages. Before a commit, put the generated files
+back and keep only what you built.
+
+**What Desktop changes on save**
+
+- `expressions.tmdl`: your `ExportFolder` path.
+- The other `.tmdl` files: measures reformatted onto one line, `ref table` lines and
+  annotations added. Same model, different text: `build_powerbi.py --check` and the tests that
+  read the measures fail on it.
+- `report.json`: a newer `$schema` (3.3.0 with Desktop 2.159) and a `resourcePackages` block.
+- `.pbip`, `definition.pbir`, `definition.pbism`, `version.json`, `pages.json`, `page.json`:
+  formatting only (the final newline goes).
+- New, untracked: `.platform` files (Fabric Git metadata) and `.pbi/` folders (local
+  settings and caches, ignored by `.gitignore`).
+
+**Keep**
+
+- `powerbi/*/*.Report/definition/pages/*/visuals/`: the visuals you built.
+- `tests/fixtures/pbir_schemas/`: the official schemas the report test validates against.
+
+**Put back**
+
+1. With the warehouse built, run `python scripts/build_powerbi.py`. It rewrites every
+   generated file of both projects (model, `.pbip`, `definition.pbir`, `report.json`,
+   `pages.json`, `page.json`) and leaves `visuals/` alone. It also resets `ExportFolder` to the
+   `SET-ME` placeholder. Without the warehouse, the same thing is
+   `git checkout -- powerbi/*/*.SemanticModel powerbi/*/*.pbip powerbi/*/*.Report/definition.pbir powerbi/*/*.Report/definition/report.json powerbi/*/*.Report/definition/version.json powerbi/*/*.Report/definition/pages/pages.json powerbi/*/*.Report/definition/pages/*/page.json`
+   (that drops a measure you added in the generator but have not committed yet: use the
+   script then).
+2. Check: `python scripts/build_powerbi.py --check` and `pytest tests/test_bi.py`.
+3. `git status`: only `visuals/` files (and any new fixture schema) should be left to commit.
+
+**Rules that follow from this**
+
+- `page.json` is generated: a page-level filter, page background or edit-interactions setting
+  made in Desktop is lost. Put filters on the visuals (Filters pane > "Filters on this visual").
+- Desktop can rewrite a visual with the newest `visualContainer` schema it knows (Desktop
+  2.159 ships 2.14.0, not yet published; the committed visuals use 2.13.0). If the test reports a `$schema` it cannot resolve, download that version and
+  what it references from
+  [microsoft/json-schemas](https://github.com/microsoft/json-schemas/tree/main/fabric/item/report/definition)
+  into `tests/fixtures/pbir_schemas/` (same folder layout), or set the visual files back to the
+  newest version that is there.
+
+**Set `ExportFolder` again** after putting the files back, before you next open the project:
+Home > Transform data > Edit parameters (step 3 of "Before you start"), then Refresh.
 
 ## Publishing
 

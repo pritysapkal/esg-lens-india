@@ -545,7 +545,7 @@ def _catalogue() -> list[dict[str, str]]:
         return list(csv.DictReader(fh))
 
 
-def public_measures(group_columns: list[str]) -> list[Measure]:
+def public_measures(group_columns: list[str], provisional_year: str) -> list[Measure]:
     g = "rpt_public_group_metrics"
     by_name = {row["kpi_name"]: row for row in _catalogue()}
     m: list[Measure] = [
@@ -579,6 +579,20 @@ def public_measures(group_columns: list[str]) -> list[Measure]:
             FOLDERS["status"],
             "Why a group figure is empty: fewer than 5 companies (n<5), or a restatement figure "
             "of a year with no later report.",
+        ),
+        Measure(
+            "Year status",
+            "VAR y = SELECTEDVALUE ( dim_fiscal_year[fiscal_year_label] )\n"
+            "RETURN\n"
+            "    SWITCH (\n"
+            "        TRUE (),\n"
+            "        ISBLANK ( y ), BLANK (),\n"
+            f'        y = "{provisional_year}", "Provisional year",\n'
+            '        "Confirmed year"\n'
+            "    )",
+            FOLDERS["status"],
+            f"Provisional year = {provisional_year}, the latest year: no later report has "
+            "confirmed its figures yet. Blank unless one year is selected.",
         ),
     ]
     for column in group_columns:
@@ -927,7 +941,10 @@ def public_model(con: duckdb.DuckDBPyConnection) -> Model:
     group_columns = [
         c.name for c in next(t for t in tables if t.name == "rpt_public_group_metrics").columns
     ]
-    tables.append(_measures_table(public_measures(group_columns)))
+    (latest_year,) = con.sql(
+        "select max(fiscal_year_label) from rpt_public_company_year"
+    ).fetchone()
+    tables.append(_measures_table(public_measures(group_columns, latest_year)))
     relationships = [
         ("rpt_public_company_year.isin", "dim_company.isin"),
         ("rpt_public_company_year.fiscal_year_label", "dim_fiscal_year.fiscal_year_label"),

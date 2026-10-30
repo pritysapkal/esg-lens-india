@@ -31,6 +31,19 @@ table _Measures
 		displayFolder: 5 Data status and labels
 		lineageTag: d5ca809c-1f3c-5deb-85d1-85c60ab3a779
 
+	/// Provisional year = FY2025-26, the latest year: no later report has confirmed its figures yet. Blank unless one year is selected.
+	measure 'Year status' =
+			VAR y = SELECTEDVALUE ( dim_fiscal_year[fiscal_year_label] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( y ), BLANK (),
+			        y = "FY2025-26", "Provisional year",
+			        "Confirmed year"
+			    )
+		displayFolder: 5 Data status and labels
+		lineageTag: e1c8840c-7d05-5196-89cf-a536b8f45a55
+
 	/// tCO2e per Rs crore. All the Scope 1+2 emissions of the group divided by all its turnover: the intensity of the group as if it were one company. Large companies weigh more. Published value from rpt_public_group_metrics.ghg_intensity_agg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
 	measure 'GHG intensity, whole group' =
 			IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[ghg_intensity_agg] ) )

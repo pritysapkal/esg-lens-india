@@ -49,9 +49,10 @@ exports/public/*
 # Cloud reads them - docs/publication_policy.md). The workbooks stay out.
 !exports/public/rpt_public_*.parquet
 
-# Power BI project caches and personal settings (PBIP)
-powerbi/**/.pbi/localSettings.json
-powerbi/**/.pbi/cache.abf
+# Power BI project caches and personal settings (PBIP): the whole .pbi folder
+powerbi/**/.pbi/
+# Fabric Git metadata Desktop adds; PBIP does not need it
+powerbi/**/.platform
 *.abf
 
 # Power BI backups / lock files

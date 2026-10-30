@@ -22,6 +22,17 @@ Withheld note =
             "Restatements not yet observable: no later report"
         )
 
+// [5 Data status and labels] Provisional year = FY2025-26, the latest year: no later report has confirmed its figures yet. Blank unless one year is selected.
+Year status =
+    VAR y = SELECTEDVALUE ( dim_fiscal_year[fiscal_year_label] )
+    RETURN
+        SWITCH (
+            TRUE (),
+            ISBLANK ( y ), BLANK (),
+            y = "FY2025-26", "Provisional year",
+            "Confirmed year"
+        )
+
 // [2 Intensity and shares (group)] tCO2e per Rs crore. All the Scope 1+2 emissions of the group divided by all its turnover: the intensity of the group as if it were one company. Large companies weigh more. Published value from rpt_public_group_metrics.ghg_intensity_agg; shown only when one group, one group type and one year are selected. Blank when withheld: see 'Withheld note'.
 GHG intensity, whole group =
     IF ( COUNTROWS ( rpt_public_group_metrics ) = 1, MAX ( rpt_public_group_metrics[ghg_intensity_agg] ) )

@@ -1,0 +1,457 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "key_findings",
+  "position": {
+    "x": 640,
+    "y": 268,
+    "z": 11000,
+    "height": 336,
+    "width": 616,
+    "tabOrder": 11000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Key findings",
+                    "textStyle": {
+                      "fontSize": "13pt",
+                      "color": "#1F2A28",
+                      "fontWeight": "bold"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Across FY2022-23 to FY2025-26 · does not follow the year buttons",
+                    "textStyle": {
+                      "fontSize": "9pt",
+                      "color": "#5B6B67",
+                      "fontStyle": "italic"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": " ",
+                    "textStyle": {
+                      "fontSize": "3pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "85.5%",
+                    "textStyle": {
+                      "fontSize": "15pt",
+                      "color": "#1F7A6D",
+                      "fontWeight": "bold"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "of Scope 1+2 emissions come from the 5 largest emitters (85.5–86.2% every year).",
+                    "textStyle": {
+                      "fontSize": "9pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": " ",
+                    "textStyle": {
+                      "fontSize": "3pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "248.8",
+                    "textStyle": {
+                      "fontSize": "15pt",
+                      "color": "#1F7A6D",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "  vs  ",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#5B6B67"
+                    }
+                  },
+                  {
+                    "value": "11.4",
+                    "textStyle": {
+                      "fontSize": "15pt",
+                      "color": "#C27C0E",
+                      "fontWeight": "bold"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Asset-heavy intensity: whole group vs typical company (FY2025-26, tCO2e per ₹ crore).",
+                    "textStyle": {
+                      "fontSize": "9pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": " ",
+                    "textStyle": {
+                      "fontSize": "3pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "−15.2%",
+                    "textStyle": {
+                      "fontSize": "15pt",
+                      "color": "#1F7A6D",
+                      "fontWeight": "bold"
+                    }
+                  },
+                  {
+                    "value": "  →  ",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#5B6B67"
+                    }
+                  },
+                  {
+                    "value": "+3.7%",
+                    "textStyle": {
+                      "fontSize": "15pt",
+                      "color": "#C27C0E",
+                      "fontWeight": "bold"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Asset-heavy trend: all companies vs the 15 present every year. Coverage flips the sign (Page 2).",
+                    "textStyle": {
+                      "fontSize": "9pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": " ",
+                    "textStyle": {
+                      "fontSize": "3pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "47.7%",
+                    "textStyle": {
+                      "fontSize": "15pt",
+                      "color": "#1F7A6D",
+                      "fontWeight": "bold"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "of 241 material restatements make the trend look better (95% CI 41.5–54.0%): a coin toss.",
+                    "textStyle": {
+                      "fontSize": "9pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": " ",
+                    "textStyle": {
+                      "fontSize": "3pt",
+                      "color": "#1F2A28"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Key findings across FY2022-23 to FY2025-26: the top 5 emitters hold about 85.5% of emissions; Asset-heavy whole-group intensity is 248.8 versus 11.4 for the typical company; on the balanced panel the Asset-heavy trend flips sign (+3.7% instead of -15.2%); 47.7% of material restatements flatter the trend, a coin toss.'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#DCE4E1'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "10D"
+                }
+              }
+            },
+            "width": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dropShadow": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#000000'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "88D"
+                }
+              }
+            },
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Outer'"
+                }
+              }
+            },
+            "preset": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Custom'"
+                }
+              }
+            },
+            "shadowBlur": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            },
+            "shadowDistance": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
+                }
+              }
+            },
+            "shadowSpread": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "angle": {
+              "expr": {
+                "Literal": {
+                  "Value": "90D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "padding": [
+        {
+          "properties": {
+            "top": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "bottom": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "left": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "right": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
